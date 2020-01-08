@@ -4,7 +4,8 @@
   "description": "A fast inline intuitive PEG parser for Javascript",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test/test.js",
+    "build": "tsc"
   },
   "repository": {
     "type": "git",
@@ -29,6 +30,7 @@
     "lodash": "^4.17.15"
   },
   "devDependencies": {
-    "@types/lodash": "^4.14.149"
+    "@types/lodash": "^4.14.149",
+    "typescript": "^3.7.4"
   }
 }

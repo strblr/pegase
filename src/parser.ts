@@ -5,8 +5,12 @@ import { throwError } from "./error";
 export function $p(parser: ParserInput, action?: SemanticAction): Parser {
   if (isString(parser)) return new Terminal(parser, action);
   if (isRegExp(parser)) return new RegexTerminal(parser, action);
-  if (parser instanceof Parser)
-    return action ? new NonTerminal(parser, action) : parser;
+  if (parser instanceof Parser) {
+    if (!action) return parser;
+    if (parser.action) return new NonTerminal(parser, action);
+    parser.action = action;
+    return parser;
+  }
   if (isArray(parser))
     return new Or(
       parser.map(p => $p(p)),
@@ -43,7 +47,7 @@ $p.any = any;
 $p.some = some;
 $p.token = token;
 
-class Parser extends CallableInstance {
+abstract class Parser extends CallableInstance {
   action?: SemanticAction;
 
   constructor(action?: SemanticAction) {
@@ -52,11 +56,19 @@ class Parser extends CallableInstance {
   }
 
   then(parser: ParserInput, action?: SemanticAction): Parser {
-    return new Then([this, $p(parser, action)]);
+    const next = $p(parser, action);
+    return new Then([
+      ...(this instanceof Then && !this.action ? this.parsers : [this]),
+      ...(next instanceof Then && !next.action ? next.parsers : [next])
+    ]);
   }
 
   or(parser: ParserInput, action?: SemanticAction): Parser {
-    return new Or([this, $p(parser, action)]);
+    const next = $p(parser, action);
+    return new Or([
+      ...(this instanceof Or && !this.action ? this.parsers : [this]),
+      ...(next instanceof Or && !next.action ? next.parsers : [next])
+    ]);
   }
 
   mod(parser: ParserInput, action?: SemanticAction): Parser {
@@ -91,6 +103,10 @@ class Parser extends CallableInstance {
   ): Parser {
     return this.then(token(parser, identity, action));
   }
+
+  get json(): ParserJSON {
+    return throwError("Cannot get json from abstract Parser class");
+  }
 }
 
 class Then extends Parser {
@@ -99,6 +115,13 @@ class Then extends Parser {
   constructor(parsers: Parser[], action?: SemanticAction) {
     super(action);
     this.parsers = parsers;
+  }
+
+  get json(): ThenJSON {
+    return {
+      type: "Then",
+      parsers: this.parsers.map(parser => parser.json)
+    };
   }
 }
 
@@ -109,6 +132,13 @@ class Or extends Parser {
     super(action);
     this.parsers = parsers;
   }
+
+  get json(): OrJSON {
+    return {
+      type: "Or",
+      parsers: this.parsers.map(parser => parser.json)
+    };
+  }
 }
 
 class NonTerminal extends Parser {
@@ -117,6 +147,13 @@ class NonTerminal extends Parser {
   constructor(parser: Parser, action?: SemanticAction) {
     super(action);
     this.parser = parser;
+  }
+
+  get json(): NonTerminalJSON {
+    return {
+      type: "NonTerminal",
+      parser: this.parser.json
+    };
   }
 }
 
@@ -136,6 +173,15 @@ class Repeat extends Parser {
     this.min = min;
     this.max = max;
   }
+
+  get json(): RepeatJSON {
+    return {
+      type: "Repeat",
+      parser: this.parser.json,
+      min: this.min,
+      max: this.max
+    };
+  }
 }
 
 class Token extends Parser {
@@ -147,6 +193,14 @@ class Token extends Parser {
     this.parser = parser;
     this.identity = identity;
   }
+
+  get json(): TokenJSON {
+    return {
+      type: "Token",
+      parser: this.parser.json,
+      identity: this.identity
+    };
+  }
 }
 
 class Terminal extends Parser {
@@ -156,6 +210,13 @@ class Terminal extends Parser {
     super(action);
     this.literal = literal;
   }
+
+  get json(): TerminalJSON {
+    return {
+      type: "Terminal",
+      literal: this.literal
+    };
+  }
 }
 
 class RegexTerminal extends Parser {
@@ -164,5 +225,12 @@ class RegexTerminal extends Parser {
   constructor(pattern: RegExp, action?: SemanticAction) {
     super(action);
     this.pattern = pattern;
+  }
+
+  get json(): RegexTerminalJSON {
+    return {
+      type: "RegexTerminal",
+      pattern: String(this.pattern)
+    };
   }
 }
