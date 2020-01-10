@@ -31,7 +31,7 @@ interface AlternativeJSON {
 
 interface NonTerminalJSON {
   type: "NONTERMINAL";
-  parser: ParserJSON;
+  parser?: ParserJSON;
 }
 
 interface RepetitionJSON {
@@ -59,21 +59,20 @@ interface RegexJSON {
 
 type Expectation = TokenExpectation | LiteralExpectation | RegexExpectation;
 
-interface ExpectationShared {
+interface TokenExpectation {
   at: number;
-}
-
-interface TokenExpectation extends ExpectationShared {
   what: "TOKEN";
   identity: string;
 }
 
-interface LiteralExpectation extends ExpectationShared {
+interface LiteralExpectation {
+  at: number;
   what: "LITERAL";
   literal: string;
 }
 
-interface RegexExpectation extends ExpectationShared {
+interface RegexExpectation {
+  at: number;
   what: "REGEX";
   pattern: RegExp;
 }

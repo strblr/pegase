@@ -1,4 +1,4 @@
-import { isString, uniqWith, head } from "lodash";
+import { isString, uniqWith, head, isEmpty } from "lodash";
 import { throwError } from "./error";
 
 export abstract class Match {
@@ -20,23 +20,28 @@ export abstract class Match {
 export class SuccessMatch extends Match {
   readonly from: number;
   readonly to: number;
-  value: any;
   readonly children: any[];
+  value: any;
   private _parsed?: string;
 
   constructor(
     input: string,
     from: number,
     to: number,
-    children: any[],
-    action: SemanticAction
+    matches: SuccessMatch[],
+    action?: SemanticAction
   ) {
     super(input);
     this.from = from;
     this.to = to;
-    this.children = children;
-    const value = action(this);
-    if (value !== undefined) this.value = value;
+    this.children = matches.reduce(
+      (acc, success) => [
+        ...acc,
+        ...(success.value === undefined ? success.children : [success.value])
+      ],
+      [] as any[]
+    );
+    if (action) this.value = action(this);
   }
 
   get parsed(): string {
@@ -51,16 +56,16 @@ export class SuccessMatch extends Match {
 }
 
 export class MatchFail extends Match {
-  private readonly expectations: Expectation[];
-  private _expectations?: Expectation[];
+  private readonly _expectations: Expectation[];
+  private _uniqueExpectations?: Expectation[];
 
   static merge(fails: MatchFail[]): MatchFail {
-    if (fails.length === 0)
+    if (isEmpty(fails))
       return throwError("Cannot merge empty match fail array");
     return new MatchFail(
       (head(fails) as MatchFail).input,
       fails.reduce(
-        (acc, fail) => acc.concat(fail.expectations),
+        (acc, fail) => acc.concat(fail._expectations),
         [] as Expectation[]
       )
     );
@@ -68,12 +73,12 @@ export class MatchFail extends Match {
 
   constructor(input: string, expectations: Expectation[]) {
     super(input);
-    this.expectations = expectations;
+    this._expectations = expectations;
   }
 
   get expected(): Expectation[] {
-    if (!this._expectations)
-      this._expectations = uniqWith(this.expectations, (exp1, exp2) => {
+    if (!this._uniqueExpectations)
+      this._uniqueExpectations = uniqWith(this._expectations, (exp1, exp2) => {
         return (
           exp1.at === exp2.at &&
           ((exp1.what === "TOKEN" &&
@@ -87,6 +92,6 @@ export class MatchFail extends Match {
               String(exp1.pattern) === String(exp2.pattern)))
         );
       });
-    return this._expectations;
+    return this._uniqueExpectations;
   }
 }

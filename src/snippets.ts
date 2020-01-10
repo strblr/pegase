@@ -1,7 +1,6 @@
 import { $p } from "./parser";
 
-export const ε: Parser = $p("");
-export const eps: Parser = ε;
+export const eps: Parser = $p("");
 export const eol: Parser = $p(/\n|\r|(\r\n)/);
 
 export const space: Parser = $p(/\s/);

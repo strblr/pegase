@@ -1,5 +1,5 @@
 import CallableInstance from "callable-instance2/import";
-import { isString, isRegExp, isArray, head, last } from "lodash";
+import { isString, isRegExp, isArray, head, last, isEmpty } from "lodash";
 import { Match, SuccessMatch, MatchFail } from "./match";
 import { throwError } from "./error";
 
@@ -31,7 +31,7 @@ export function $p(parser: ParserInput, action?: SemanticAction): Parser {
 export const repeat = (
   parser: ParserInput,
   min: number,
-  max: number,
+  max: number = min,
   action?: SemanticAction
 ): Parser => new Repetition($p(parser, action), min, max);
 
@@ -87,9 +87,9 @@ $p.token = token;
  */
 
 abstract class Parser extends CallableInstance {
-  readonly action: SemanticAction;
+  readonly action?: SemanticAction;
 
-  protected constructor(action: SemanticAction) {
+  protected constructor(action?: SemanticAction) {
     super("then");
     this.action = action;
   }
@@ -117,7 +117,7 @@ abstract class Parser extends CallableInstance {
   repeat(
     parser: ParserInput,
     min: number,
-    max: number,
+    max: number = min,
     action?: SemanticAction
   ): Parser {
     return this.then(repeat(parser, min, max, action));
@@ -165,11 +165,9 @@ abstract class Parser extends CallableInstance {
 class Sequence extends Parser {
   readonly parsers: Parser[];
 
-  static defaultAction: SemanticAction = () => {};
-
   constructor(parsers: Parser[], action?: SemanticAction) {
-    super(action || Sequence.defaultAction);
-    if (parsers.length === 0)
+    super(action);
+    if (isEmpty(parsers))
       throwError("A sequence must be built from at least one parser");
     this.parsers = parsers;
   }
@@ -195,7 +193,7 @@ class Sequence extends Parser {
       input,
       (head(matches) as SuccessMatch).from,
       cursor,
-      matches.map(match => match.value).filter(value => value !== undefined),
+      matches,
       this.action
     );
   }
@@ -210,11 +208,9 @@ class Sequence extends Parser {
 class Alternative extends Parser {
   readonly parsers: Parser[];
 
-  static defaultAction: SemanticAction = () => {};
-
   constructor(parsers: Parser[], action?: SemanticAction) {
-    super(action || Alternative.defaultAction);
-    if (parsers.length === 0)
+    super(action);
+    if (isEmpty(parsers))
       throwError("An alternative must be built from at least one parser");
     this.parsers = parsers;
   }
@@ -237,7 +233,7 @@ class Alternative extends Parser {
           input,
           success.from,
           success.to,
-          success.value === undefined ? [] : [success.value],
+          [success],
           this.action
         );
       }
@@ -252,24 +248,30 @@ class Alternative extends Parser {
  * Static members should not be inherited.
  */
 
+export function rule(): NonTerminal {
+  return new NonTerminal();
+}
+
 class NonTerminal extends Parser {
-  readonly parser: Parser;
+  parser?: Parser;
 
-  static defaultAction: SemanticAction = () => {};
-
-  constructor(parser: Parser, action?: SemanticAction) {
-    super(action || NonTerminal.defaultAction);
+  constructor(parser?: Parser, action?: SemanticAction) {
+    super(action);
     this.parser = parser;
   }
 
   get json(): NonTerminalJSON {
     return {
       type: "NONTERMINAL",
-      parser: this.parser.json
+      parser: this.parser && this.parser.json
     };
   }
 
   _parse(input: string, skipper: Skipper, from: number, skip: boolean): Match {
+    if (!this.parser)
+      return throwError(
+        "Cannot parse non-terminal with undefined child parser"
+      );
     const match = this.parser._parse(input, skipper, from, skip);
     if (match.failed) return match;
     const success = match as SuccessMatch;
@@ -277,7 +279,7 @@ class NonTerminal extends Parser {
       input,
       success.from,
       success.to,
-      success.value === undefined ? [] : [success.value],
+      [success],
       this.action
     );
   }
@@ -294,15 +296,13 @@ class Repetition extends Parser {
   readonly min: number;
   readonly max: number;
 
-  static defaultAction: SemanticAction = () => {};
-
   constructor(
     parser: Parser,
     min: number,
     max: number,
     action?: SemanticAction
   ) {
-    super(action || Repetition.defaultAction);
+    super(action);
     this.parser = parser;
     if (min < 0 || min > max)
       throwError(`Invalid repetition range [${min}, ${max}]`);
@@ -320,7 +320,31 @@ class Repetition extends Parser {
   }
 
   _parse(input: string, skipper: Skipper, from: number, skip: boolean): Match {
-    for (let i = 0; ; ++i) {}
+    const matches: SuccessMatch[] = [];
+    let counter = 0,
+      cursor = from;
+
+    const succeed = (): Match => {
+      return new SuccessMatch(
+        input,
+        isEmpty(matches) ? from : (head(matches) as SuccessMatch).from,
+        isEmpty(matches) ? from : (last(matches) as SuccessMatch).to,
+        matches,
+        this.action
+      );
+    };
+
+    while (true) {
+      if (counter === this.max) return succeed();
+      const match = this.parser._parse(input, skipper, cursor, skip);
+      if (match.failed) return counter < this.min ? match : succeed();
+      else {
+        const success = match as SuccessMatch;
+        matches.push(success);
+        cursor = success.to;
+        counter++;
+      }
+    }
   }
 }
 
@@ -334,10 +358,8 @@ class Token extends Parser {
   readonly parser: Parser;
   readonly identity: string;
 
-  static defaultAction: SemanticAction = () => {};
-
   constructor(parser: Parser, identity: string, action?: SemanticAction) {
-    super(action || Token.defaultAction);
+    super(action);
     this.parser = parser;
     this.identity = identity;
   }
@@ -360,8 +382,8 @@ class Token extends Parser {
     if (match.failed)
       return new MatchFail(input, [
         {
-          what: "TOKEN",
           at: from,
+          what: "TOKEN",
           identity: this.identity
         }
       ]);
@@ -370,7 +392,7 @@ class Token extends Parser {
       input,
       success.from,
       success.to,
-      success.value === undefined ? [] : [success.value],
+      [success],
       this.action
     );
   }
@@ -385,10 +407,8 @@ class Token extends Parser {
 class LiteralTerminal extends Parser {
   readonly literal: string;
 
-  static defaultAction: SemanticAction = () => {};
-
   constructor(literal: string, action?: SemanticAction) {
-    super(action || LiteralTerminal.defaultAction);
+    super(action);
     this.literal = literal;
   }
 
@@ -408,8 +428,8 @@ class LiteralTerminal extends Parser {
     if (!input.startsWith(this.literal, from))
       return new MatchFail(input, [
         {
-          what: "LITERAL",
           at: from,
+          what: "LITERAL",
           literal: this.literal
         }
       ]);
@@ -433,10 +453,8 @@ class RegexTerminal extends Parser {
   readonly pattern: RegExp;
   private readonly _pattern: RegExp;
 
-  static defaultAction: SemanticAction = () => {};
-
   constructor(pattern: RegExp, action?: SemanticAction) {
-    super(action || RegexTerminal.defaultAction);
+    super(action);
     this.pattern = pattern;
     this._pattern = new RegExp(pattern, "y");
   }
@@ -459,8 +477,8 @@ class RegexTerminal extends Parser {
     if (result === null)
       return new MatchFail(input, [
         {
-          what: "REGEX",
           at: from,
+          what: "REGEX",
           pattern: this.pattern
         }
       ]);
