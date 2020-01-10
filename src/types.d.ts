@@ -1,66 +1,79 @@
 declare class Parser {}
 
-declare class Token {
-  identity: string;
-}
-
-declare class Terminal {
-  literal: string;
-}
-
-declare class RegexTerminal {
-  pattern: RegExp;
-}
+declare class SuccessMatch {}
 
 type ParserInputPrimitive = string | RegExp | Parser;
+
 type ParserInput = ParserInputPrimitive | ParserInputPrimitive[];
-type SemanticAction = (...nodes: any[]) => any;
+
+type Skipper = Parser | null;
+
+type SemanticAction = (match: SuccessMatch) => any;
 
 type ParserJSON =
-  | ThenJSON
-  | OrJSON
+  | SequenceJSON
+  | AlternativeJSON
   | NonTerminalJSON
-  | RepeatJSON
+  | RepetitionJSON
   | TokenJSON
-  | TerminalJSON
-  | RegexTerminalJSON;
+  | LiteralJSON
+  | RegexJSON;
 
-interface ParserBaseJSON {
-  type: string;
-}
-
-interface ThenJSON extends ParserBaseJSON {
+interface SequenceJSON {
+  type: "SEQUENCE";
   parsers: ParserJSON[];
 }
 
-interface OrJSON extends ParserBaseJSON {
+interface AlternativeJSON {
+  type: "ALTERNATIVE";
   parsers: ParserJSON[];
 }
 
-interface NonTerminalJSON extends ParserBaseJSON {
+interface NonTerminalJSON {
+  type: "NONTERMINAL";
   parser: ParserJSON;
 }
 
-interface RepeatJSON extends ParserBaseJSON {
+interface RepetitionJSON {
+  type: "REPETITION";
   parser: ParserJSON;
   min: number;
   max: number;
 }
 
-interface TokenJSON extends ParserBaseJSON {
+interface TokenJSON {
+  type: "TOKEN";
   parser: ParserJSON;
   identity: string;
 }
 
-interface TerminalJSON extends ParserBaseJSON {
+interface LiteralJSON {
+  type: "LITERAL";
   literal: string;
 }
 
-interface RegexTerminalJSON extends ParserBaseJSON {
+interface RegexJSON {
+  type: "REGEX";
   pattern: string;
 }
 
-interface Expectation {
+type Expectation = TokenExpectation | LiteralExpectation | RegexExpectation;
+
+interface ExpectationShared {
   at: number;
-  what: Token | Terminal | RegexTerminal;
+}
+
+interface TokenExpectation extends ExpectationShared {
+  what: "TOKEN";
+  identity: string;
+}
+
+interface LiteralExpectation extends ExpectationShared {
+  what: "LITERAL";
+  literal: string;
+}
+
+interface RegexExpectation extends ExpectationShared {
+  what: "REGEX";
+  pattern: RegExp;
 }

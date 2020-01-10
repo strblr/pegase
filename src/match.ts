@@ -1,38 +1,70 @@
-import { isString, uniqWith } from "lodash";
+import { isString, uniqWith, head } from "lodash";
+import { throwError } from "./error";
 
-class Match {
-  input: string;
+export abstract class Match {
+  readonly input: string;
 
-  constructor(input: string) {
+  protected constructor(input: string) {
     this.input = input;
+  }
+
+  get succeeded(): boolean {
+    return this instanceof SuccessMatch;
+  }
+
+  get failed(): boolean {
+    return this instanceof MatchFail;
   }
 }
 
 export class SuccessMatch extends Match {
-  from: number;
-  to: number;
-  private lazyParsed?: string;
+  readonly from: number;
+  readonly to: number;
+  value: any;
+  readonly children: any[];
+  private _parsed?: string;
 
-  constructor(input: string, from: number, to: number) {
+  constructor(
+    input: string,
+    from: number,
+    to: number,
+    children: any[],
+    action: SemanticAction
+  ) {
     super(input);
     this.from = from;
     this.to = to;
+    this.children = children;
+    const value = action(this);
+    if (value !== undefined) this.value = value;
   }
 
   get parsed(): string {
-    if (!isString(this.lazyParsed))
-      this.lazyParsed = this.input.substring(this.from, this.to);
-    return this.lazyParsed;
+    if (!isString(this._parsed))
+      this._parsed = this.input.substring(this.from, this.to);
+    return this._parsed;
   }
 
   get complete(): boolean {
-    return this.to === this.input.length - 1;
+    return this.to === this.input.length;
   }
 }
 
 export class MatchFail extends Match {
-  expectations: Expectation[];
-  private lazyExpectations?: Expectation[];
+  private readonly expectations: Expectation[];
+  private _expectations?: Expectation[];
+
+  static merge(fails: MatchFail[]): MatchFail {
+    if (fails.length === 0)
+      return throwError("Cannot merge empty match fail array");
+    return new MatchFail(
+      (head(fails) as MatchFail).input,
+      fails.reduce(
+        (acc, fail) => acc.concat(fail.expectations),
+        [] as Expectation[]
+      )
+    );
+  }
 
   constructor(input: string, expectations: Expectation[]) {
     super(input);
@@ -40,21 +72,21 @@ export class MatchFail extends Match {
   }
 
   get expected(): Expectation[] {
-    if (!this.lazyExpectations)
-      this.lazyExpectations = uniqWith(this.expectations, (exp1, exp2) => {
+    if (!this._expectations)
+      this._expectations = uniqWith(this.expectations, (exp1, exp2) => {
         return (
           exp1.at === exp2.at &&
-          ((exp1.what instanceof Token &&
-            exp2.what instanceof Token &&
-            exp1.what.identity === exp2.what.identity) ||
-            (exp1.what instanceof Terminal &&
-              exp2.what instanceof Terminal &&
-              exp1.what.literal === exp2.what.literal) ||
-            (exp1.what instanceof RegexTerminal &&
-              exp2.what instanceof RegexTerminal &&
-              String(exp1.what.pattern) === String(exp2.what.pattern)))
+          ((exp1.what === "TOKEN" &&
+            exp2.what === "TOKEN" &&
+            exp1.identity === exp2.identity) ||
+            (exp1.what === "LITERAL" &&
+              exp2.what === "LITERAL" &&
+              exp1.literal === exp2.literal) ||
+            (exp1.what === "REGEX" &&
+              exp2.what === "REGEX" &&
+              String(exp1.pattern) === String(exp2.pattern)))
         );
       });
-    return this.lazyExpectations;
+    return this._expectations;
   }
 }
