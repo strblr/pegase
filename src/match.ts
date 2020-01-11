@@ -1,6 +1,12 @@
 import { isString, uniqWith, head, isEmpty } from "lodash";
 import { throwError } from "./error";
 
+/**
+ * This is a static member.
+ *
+ * Static members should not be inherited.
+ */
+
 export abstract class Match {
   readonly input: string;
 
@@ -16,6 +22,12 @@ export abstract class Match {
     return this instanceof MatchFail;
   }
 }
+
+/**
+ * This is a static member.
+ *
+ * Static members should not be inherited.
+ */
 
 export class SuccessMatch extends Match {
   readonly from: number;
@@ -41,7 +53,9 @@ export class SuccessMatch extends Match {
       ],
       [] as any[]
     );
-    if (action) this.value = action(this);
+    if (action) this.value = action(this.parsed, this.children, this);
+    else if (matches.length === 1)
+      this.value = (head(matches) as SuccessMatch).value;
   }
 
   get parsed(): string {
@@ -54,6 +68,12 @@ export class SuccessMatch extends Match {
     return this.to === this.input.length;
   }
 }
+
+/**
+ * This is a static member.
+ *
+ * Static members should not be inherited.
+ */
 
 export class MatchFail extends Match {
   private readonly _expectations: Expectation[];

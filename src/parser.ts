@@ -22,6 +22,8 @@ export function $p(parser: ParserInput, action?: SemanticAction): Parser {
   return throwError("Unknown parser primitive as argument for $p");
 }
 
+export const _: (parser: ParserInput, action?: SemanticAction) => Parser = $p;
+
 /**
  * This is a static member.
  *
@@ -143,12 +145,24 @@ abstract class Parser extends CallableInstance {
     return this.then(token(parser, identity, action));
   }
 
+  do(action: SemanticAction): Parser {
+    return $p(this, action);
+  }
+
   get json(): ParserJSON {
     return throwError("Cannot get json from abstract Parser class");
   }
 
   parse(input: string, skipper: Skipper = $p(/\s*/)): Match {
     return this._parse(input, skipper, 0, true);
+  }
+
+  value(input: string, skipper: Skipper = $p(/\s*/)): any {
+    return (this.parse(input, skipper) as SuccessMatch).value;
+  }
+
+  children(input: string, skipper: Skipper = $p(/\s*/)): any[] {
+    return (this.parse(input, skipper) as SuccessMatch).children;
   }
 
   _parse(input: string, skipper: Skipper, from: number, skip: boolean): Match {

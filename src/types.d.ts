@@ -1,6 +1,9 @@
 declare class Parser {}
 
-declare class SuccessMatch {}
+declare class SuccessMatch {
+  readonly children: any[];
+  get parsed(): string;
+}
 
 type ParserInputPrimitive = string | RegExp | Parser;
 
@@ -8,7 +11,11 @@ type ParserInput = ParserInputPrimitive | ParserInputPrimitive[];
 
 type Skipper = Parser | null;
 
-type SemanticAction = (match: SuccessMatch) => any;
+type SemanticAction = (
+  raw: string,
+  children: any[],
+  match: SuccessMatch
+) => any;
 
 type ParserJSON =
   | SequenceJSON

@@ -1,5 +1,17 @@
 import { $p } from "./parser";
 
+export function raw(transformer?: (parsed: string) => any): SemanticAction {
+  return transformer ? parsed => transformer(parsed) : parsed => parsed;
+}
+
+export function children(
+  transformer?: (children: any[]) => any
+): SemanticAction {
+  return transformer
+    ? (_, children) => transformer(children)
+    : (_, children) => children;
+}
+
 export const eps: Parser = $p("");
 export const eol: Parser = $p(/\n|\r|(\r\n)/);
 
