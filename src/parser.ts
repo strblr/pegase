@@ -1,5 +1,4 @@
-import CallableInstance from "callable-instance2/import";
-import { isString, isRegExp, isArray, head, last, isEmpty } from "lodash";
+import { head, last, isEmpty } from "lodash";
 import { Match, SuccessMatch, MatchFail } from "./match";
 import { throwError } from "./error";
 
@@ -9,159 +8,22 @@ import { throwError } from "./error";
  * Static members should not be inherited.
  */
 
-export function $p(parser: ParserInput, action?: SemanticAction): Parser {
-  if (isString(parser)) return new LiteralTerminal(parser, action);
-  if (isRegExp(parser)) return new RegexTerminal(parser, action);
-  if (parser instanceof Parser)
-    return !action ? parser : new NonTerminal(parser, action);
-  if (isArray(parser))
-    return new Alternative(
-      parser.map(p => $p(p)),
-      action
-    );
-  return throwError("Unknown parser primitive as argument for $p");
-}
-
-export const _: (parser: ParserInput, action?: SemanticAction) => Parser = $p;
-
-/**
- * This is a static member.
- *
- * Static members should not be inherited.
- */
-
-export const repeat = (
-  parser: ParserInput,
-  min: number,
-  max: number = min,
-  action?: SemanticAction
-): Parser => new Repetition($p(parser, action), min, max);
-
-/**
- * This is a static member.
- *
- * Static members should not be inherited.
- */
-
-export const maybe = (parser: ParserInput, action?: SemanticAction): Parser =>
-  repeat(parser, 0, 1, action);
-
-/**
- * This is a static member.
- *
- * Static members should not be inherited.
- */
-
-export const any = (parser: ParserInput, action?: SemanticAction): Parser =>
-  repeat(parser, 0, Infinity, action);
-
-/**
- * This is a static member.
- *
- * Static members should not be inherited.
- */
-
-export const some = (parser: ParserInput, action?: SemanticAction): Parser =>
-  repeat(parser, 1, Infinity, action);
-
-/**
- * This is a static member.
- *
- * Static members should not be inherited.
- */
-
-export const token = (
-  parser: ParserInput,
-  identity: string,
-  action?: SemanticAction
-): Parser => new Token($p(parser), identity, action);
-
-$p.repeat = repeat;
-$p.maybe = maybe;
-$p.any = any;
-$p.some = some;
-$p.token = token;
-
-/**
- * This is a static member.
- *
- * Static members should not be inherited.
- */
-
-abstract class Parser extends CallableInstance {
+export abstract class Parser {
   readonly action?: SemanticAction;
 
   protected constructor(action?: SemanticAction) {
-    super("then");
     this.action = action;
   }
 
-  then(parser: ParserInput, action?: SemanticAction): Parser {
-    const next = $p(parser, action);
-    return new Sequence([
-      ...(this instanceof Sequence && !this.action ? this.parsers : [this]),
-      ...(next instanceof Sequence && !next.action ? next.parsers : [next])
-    ]);
-  }
-
-  or(parser: ParserInput, action?: SemanticAction): Parser {
-    const next = $p(parser, action);
-    return new Alternative([
-      ...(this instanceof Alternative && !this.action ? this.parsers : [this]),
-      ...(next instanceof Alternative && !next.action ? next.parsers : [next])
-    ]);
-  }
-
-  mod(parser: ParserInput, action?: SemanticAction): Parser {
-    return this.any($p(parser, action).then(this));
-  }
-
-  repeat(
-    parser: ParserInput,
-    min: number,
-    max: number = min,
-    action?: SemanticAction
-  ): Parser {
-    return this.then(repeat(parser, min, max, action));
-  }
-
-  maybe(parser: ParserInput, action?: SemanticAction): Parser {
-    return this.then(maybe(parser, action));
-  }
-
-  any(parser: ParserInput, action?: SemanticAction): Parser {
-    return this.then(any(parser, action));
-  }
-
-  some(parser: ParserInput, action?: SemanticAction): Parser {
-    return this.then(some(parser, action));
-  }
-
-  token(
-    parser: ParserInput,
-    identity: string,
-    action?: SemanticAction
-  ): Parser {
-    return this.then(token(parser, identity, action));
-  }
-
-  do(action: SemanticAction): Parser {
-    return $p(this, action);
-  }
-
-  get json(): ParserJSON {
-    return throwError("Cannot get json from abstract Parser class");
-  }
-
-  parse(input: string, skipper: Skipper = $p(/\s*/)): Match {
+  parse(input: string, skipper: Skipper = defaultSkipper): Match {
     return this._parse(input, skipper, 0, true);
   }
 
-  value(input: string, skipper: Skipper = $p(/\s*/)): any {
+  value(input: string, skipper: Skipper = defaultSkipper): any {
     return (this.parse(input, skipper) as SuccessMatch).value;
   }
 
-  children(input: string, skipper: Skipper = $p(/\s*/)): any[] {
+  children(input: string, skipper: Skipper = defaultSkipper): any[] {
     return (this.parse(input, skipper) as SuccessMatch).children;
   }
 
@@ -176,7 +38,7 @@ abstract class Parser extends CallableInstance {
  * Static members should not be inherited.
  */
 
-class Sequence extends Parser {
+export class Sequence extends Parser {
   readonly parsers: Parser[];
 
   constructor(parsers: Parser[], action?: SemanticAction) {
@@ -184,13 +46,6 @@ class Sequence extends Parser {
     if (isEmpty(parsers))
       throwError("A sequence must be built from at least one parser");
     this.parsers = parsers;
-  }
-
-  get json(): SequenceJSON {
-    return {
-      type: "SEQUENCE",
-      parsers: this.parsers.map(parser => parser.json)
-    };
   }
 
   _parse(input: string, skipper: Skipper, from: number, skip: boolean): Match {
@@ -219,7 +74,7 @@ class Sequence extends Parser {
  * Static members should not be inherited.
  */
 
-class Alternative extends Parser {
+export class Alternative extends Parser {
   readonly parsers: Parser[];
 
   constructor(parsers: Parser[], action?: SemanticAction) {
@@ -227,13 +82,6 @@ class Alternative extends Parser {
     if (isEmpty(parsers))
       throwError("An alternative must be built from at least one parser");
     this.parsers = parsers;
-  }
-
-  get json(): AlternativeJSON {
-    return {
-      type: "ALTERNATIVE",
-      parsers: this.parsers.map(parser => parser.json)
-    };
   }
 
   _parse(input: string, skipper: Skipper, from: number, skip: boolean): Match {
@@ -266,19 +114,12 @@ export function rule(): NonTerminal {
   return new NonTerminal();
 }
 
-class NonTerminal extends Parser {
+export class NonTerminal extends Parser {
   parser?: Parser;
 
   constructor(parser?: Parser, action?: SemanticAction) {
     super(action);
     this.parser = parser;
-  }
-
-  get json(): NonTerminalJSON {
-    return {
-      type: "NONTERMINAL",
-      parser: this.parser && this.parser.json
-    };
   }
 
   _parse(input: string, skipper: Skipper, from: number, skip: boolean): Match {
@@ -305,7 +146,7 @@ class NonTerminal extends Parser {
  * Static members should not be inherited.
  */
 
-class Repetition extends Parser {
+export class Repetition extends Parser {
   readonly parser: Parser;
   readonly min: number;
   readonly max: number;
@@ -322,15 +163,6 @@ class Repetition extends Parser {
       throwError(`Invalid repetition range [${min}, ${max}]`);
     this.min = min;
     this.max = max;
-  }
-
-  get json(): RepetitionJSON {
-    return {
-      type: "REPETITION",
-      parser: this.parser.json,
-      min: this.min,
-      max: this.max
-    };
   }
 
   _parse(input: string, skipper: Skipper, from: number, skip: boolean): Match {
@@ -368,7 +200,7 @@ class Repetition extends Parser {
  * Static members should not be inherited.
  */
 
-class Token extends Parser {
+export class Token extends Parser {
   readonly parser: Parser;
   readonly identity: string;
 
@@ -376,14 +208,6 @@ class Token extends Parser {
     super(action);
     this.parser = parser;
     this.identity = identity;
-  }
-
-  get json(): TokenJSON {
-    return {
-      type: "TOKEN",
-      parser: this.parser.json,
-      identity: this.identity
-    };
   }
 
   _parse(input: string, skipper: Skipper, from: number, skip: boolean): Match {
@@ -418,19 +242,12 @@ class Token extends Parser {
  * Static members should not be inherited.
  */
 
-class LiteralTerminal extends Parser {
+export class LiteralTerminal extends Parser {
   readonly literal: string;
 
   constructor(literal: string, action?: SemanticAction) {
     super(action);
     this.literal = literal;
-  }
-
-  get json(): LiteralJSON {
-    return {
-      type: "LITERAL",
-      literal: this.literal
-    };
   }
 
   _parse(input: string, skipper: Skipper, from: number, skip: boolean): Match {
@@ -463,7 +280,7 @@ class LiteralTerminal extends Parser {
  * Static members should not be inherited.
  */
 
-class RegexTerminal extends Parser {
+export class RegexTerminal extends Parser {
   readonly pattern: RegExp;
   private readonly _pattern: RegExp;
 
@@ -471,13 +288,6 @@ class RegexTerminal extends Parser {
     super(action);
     this.pattern = pattern;
     this._pattern = new RegExp(pattern, "y");
-  }
-
-  get json(): RegexJSON {
-    return {
-      type: "REGEX",
-      pattern: String(this.pattern)
-    };
   }
 
   _parse(input: string, skipper: Skipper, from: number, skip: boolean): Match {
@@ -505,3 +315,5 @@ class RegexTerminal extends Parser {
     );
   }
 }
+
+const defaultSkipper = new RegexTerminal(/\s*/);

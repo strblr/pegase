@@ -33,7 +33,7 @@ export class SuccessMatch extends Match {
   readonly from: number;
   readonly to: number;
   readonly children: any[];
-  value: any;
+  readonly value: any;
   private _parsed?: string;
 
   constructor(

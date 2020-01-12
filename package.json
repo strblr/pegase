@@ -26,7 +26,6 @@
   },
   "homepage": "https://github.com/ostrebler/quickparse#readme",
   "dependencies": {
-    "callable-instance2": "^1.0.0",
     "lodash": "^4.17.15"
   },
   "devDependencies": {

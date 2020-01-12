@@ -1,4 +1,4 @@
-import { $p } from "./parser";
+import { Token, RegexTerminal } from "./parser";
 
 export function raw(transformer?: (parsed: string) => any): SemanticAction {
   return transformer ? parsed => transformer(parsed) : parsed => parsed;
@@ -12,20 +12,48 @@ export function children(
     : (_, children) => children;
 }
 
-export const eps: Parser = $p("");
-export const eol: Parser = $p(/\n|\r|(\r\n)/);
+/*
+export const eps: Parser = _("");
 
-export const space: Parser = $p(/\s/);
-export const spaces: Parser = $p(/\s*/);
+export const eol: Parser = token(/\n|\r|(\r\n)/, "eol");
 
-export const alpha: Parser = $p(/[A-z]/);
-export const walpha: Parser = $p(/[A-zÀ-ÿ]/);
-export const word: Parser = $p(/[A-zÀ-ÿ]+/);
-export const ident: Parser = $p(/[_a-zA-Z][_a-zA-Z0-9]*/);
+export const space: Parser = token(/\s/, "space");
 
-export const digit: Parser = $p(/\d/);
-export const xdigit: Parser = $p(/[\dA-Fa-f]/);
-export const int: Parser = $p(/[-+]?\d+/);
-export const number: Parser = $p(
-  /[-+]?(?:\d*\.?\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?/
+export const spaces: Parser = token(/\s*!/, "spaces");
+
+export const alpha: Parser = token(/[A-z]/, "alpha");
+
+export const walpha: Parser = token(/[A-zÀ-ÿ]/, "walpha");
+
+export const word: Parser = token(/[A-zÀ-ÿ]+/, "word");
+
+export const digit: Parser = token(/\d/, "digit");
+
+export const xdigit: Parser = token(/[\dA-Fa-f]/, "xdigit");
+
+export const int: Parser = token(/[-+]?\d+/, "int");*/
+
+export const identifier: Parser = new Token(
+  new RegexTerminal(/[_a-zA-Z][_a-zA-Z0-9]*!/),
+  "identifier"
+);
+
+export const singleQuotedString: Parser = new Token(
+  new RegexTerminal(/'([^\\']|\\.)*'/),
+  "single-quoted string"
+);
+
+export const doubleQuotedString: Parser = new Token(
+  new RegexTerminal(/"([^\\"]|\\.)*"/),
+  "double-quoted string"
+);
+
+export const number: Parser = new Token(
+  new RegexTerminal(/[-+]?(?:\d*\.?\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?/),
+  "number"
+);
+
+export const integer: Parser = new Token(
+  new RegexTerminal(/[-+]?\d+/),
+  "integer"
 );
