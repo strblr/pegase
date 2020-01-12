@@ -1,7 +1,7 @@
-import { Token, RegexTerminal } from "./parser";
+import { Parser, Token, RegexTerminal } from "./parser";
 
-export function raw(transformer?: (parsed: string) => any): SemanticAction {
-  return transformer ? parsed => transformer(parsed) : parsed => parsed;
+export function raw(transformer?: (raw: string) => any): SemanticAction {
+  return transformer ? raw => transformer(raw) : raw => raw;
 }
 
 export function children(
@@ -34,8 +34,13 @@ export const xdigit: Parser = token(/[\dA-Fa-f]/, "xdigit");
 export const int: Parser = token(/[-+]?\d+/, "int");*/
 
 export const identifier: Parser = new Token(
-  new RegexTerminal(/[_a-zA-Z][_a-zA-Z0-9]*!/),
+  new RegexTerminal(/[_a-zA-Z][_a-zA-Z0-9]*/),
   "identifier"
+);
+
+export const extendedIdentifier: Parser = new Token(
+  new RegexTerminal(/[_$a-zA-Z][_$a-zA-Z0-9]*/),
+  "extended identifier"
 );
 
 export const singleQuotedString: Parser = new Token(
@@ -51,6 +56,11 @@ export const doubleQuotedString: Parser = new Token(
 export const number: Parser = new Token(
   new RegexTerminal(/[-+]?(?:\d*\.?\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?/),
   "number"
+);
+
+export const positiveInteger: Parser = new Token(
+  new RegexTerminal(/\d+/),
+  "positive integer"
 );
 
 export const integer: Parser = new Token(

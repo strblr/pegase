@@ -47,18 +47,18 @@ export class SuccessMatch extends Match {
     this.from = from;
     this.to = to;
     this.children = matches.reduce(
-      (acc, success) => [
+      (acc, match) => [
         ...acc,
-        ...(success.value === undefined ? success.children : [success.value])
+        ...(match.value === undefined ? match.children : [match.value])
       ],
       [] as any[]
     );
-    if (action) this.value = action(this.parsed, this.children, this);
+    if (action) this.value = action(this.raw, this.children, this);
     else if (matches.length === 1)
       this.value = (head(matches) as SuccessMatch).value;
   }
 
-  get parsed(): string {
+  get raw(): string {
     if (!isString(this._parsed))
       this._parsed = this.input.substring(this.from, this.to);
     return this._parsed;
@@ -101,6 +101,7 @@ export class MatchFail extends Match {
       this._uniqueExpectations = uniqWith(this._expectations, (exp1, exp2) => {
         return (
           exp1.at === exp2.at &&
+          exp1.polarity === exp2.polarity &&
           ((exp1.what === "TOKEN" &&
             exp2.what === "TOKEN" &&
             exp1.identity === exp2.identity) ||

@@ -1,13 +1,27 @@
 const { pegase, raw, number } = require("../lib/index");
 
-const grammar = pegase`
-  expr: term (('+' | '-') ${raw()} term)* ${45}
-  term: fact (('*' | '/') ${raw()} fact)* ${45}
-  fact: unit ('**' ${raw()} unit)* ${45}
-  unit: ${number} ${parseFloat} | '(' expr ')'
-`;
-
-console.log(grammar);
+console.log(
+  pegase`
+    pegase:
+         rule+
+       | derivation
+    rule:
+         identifier ":" derivation
+    derivation:
+         alternative ("|" alternative)*
+    alternative:
+         step+ ("@" integer)?
+    step:
+         ("&" | "!") atom
+       | atom ("?" | "+" | "*" | "{" integer ("," integer)? "}")?
+    atom:"ε"
+       | singleQuotedString
+       | doubleQuotedString
+       | integer
+       | identifier !":"
+       | "(" derivation ")"
+ `.raw
+);
 
 /*
 const mylist = "  42,12  ,8, -63";

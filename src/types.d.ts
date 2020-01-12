@@ -1,11 +1,8 @@
-declare class Parser {
-  readonly action?: SemanticAction;
-}
+declare class Parser {}
 
-declare class SuccessMatch {
-  readonly children: any[];
-  get parsed(): string;
-}
+declare class SuccessMatch {}
+
+type TemplateArgument = string | RegExp | Parser | SemanticAction;
 
 type SemanticAction = (
   raw: string,
@@ -13,26 +10,25 @@ type SemanticAction = (
   match: SuccessMatch
 ) => any;
 
-type TemplateArgument = string | RegExp | Parser | SemanticAction;
+type First = (FirstToken | FirstLiteral | FirstRegex) & {
+  polarity: boolean;
+};
 
-type Skipper = Parser | null;
-
-type Expectation = TokenExpectation | LiteralExpectation | RegexExpectation;
-
-interface TokenExpectation {
-  at: number;
+type FirstToken = {
   what: "TOKEN";
   identity: string;
-}
+};
 
-interface LiteralExpectation {
-  at: number;
+type FirstLiteral = {
   what: "LITERAL";
   literal: string;
-}
+};
 
-interface RegexExpectation {
-  at: number;
+type FirstRegex = {
   what: "REGEX";
   pattern: RegExp;
-}
+};
+
+type Expectation = First & {
+  at: number;
+};
