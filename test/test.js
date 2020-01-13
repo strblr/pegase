@@ -34,4 +34,9 @@ const g = pegase`
   $B: '1'
 `;
 
-console.log(g);
+const { pth } = pegase`
+  pth: pths $
+  pths: ('(' pths ')')+ | ε
+`;
+
+console.log(pth.parse("(()(()()))()"));
