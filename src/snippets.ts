@@ -1,18 +1,17 @@
 import { Parser, Token, LiteralTerminal, RegexTerminal } from "./parser";
 
-/*
-
-export const alpha: Parser = token(/[A-z]/, "alpha");
-
-export const walpha: Parser = token(/[A-zÀ-ÿ]/, "walpha");
-
-export const word: Parser = token(/[A-zÀ-ÿ]+/, "word");*/
-
 export const epsilon: Parser = new Token(new LiteralTerminal(""), "epsilon");
 
 export const space: Parser = new Token(new RegexTerminal(/\s/), "space");
 
 export const spaces: Parser = new Token(new RegexTerminal(/\s*/), "spaces");
+
+export const alpha: Parser = new Token(new RegexTerminal(/[A-z]/), "alpha");
+
+export const wideAlpha: Parser = new Token(
+  new RegexTerminal(/[A-zÀ-ÿ]/),
+  "wide alpha"
+);
 
 export const endOfLine: Parser = new Token(
   new RegexTerminal(/\n|\r|(\r\n)/),
@@ -29,9 +28,9 @@ export const identifier: Parser = new Token(
   "identifier"
 );
 
-export const extendedIdentifier: Parser = new Token(
-  new RegexTerminal(/[_$a-zA-Z][_$a-zA-Z0-9]*/),
-  "extended identifier"
+export const pegaseIdentifier: Parser = new Token(
+  new RegexTerminal(/([_a-zA-Z][_$a-zA-Z0-9]*)|(\$[_$a-zA-Z0-9]+)/),
+  "pegase identifier"
 );
 
 export const singleQuotedString: Parser = new Token(

@@ -1,31 +1,37 @@
-const { pegase, number, metagrammar } = require("../lib/index");
+const { pegase, number } = require("../lib/index");
+
+const doop = (left, op, right) => {
+  switch (op) {
+    case "+":
+      return left + right;
+    case "-":
+      return left - right;
+    case "*":
+      return left * right;
+    case "/":
+      return left / right;
+  }
+};
+
+const fold = (_, [first, ...rest]) =>
+  rest.reduce((acc, op, index) => {
+    return index % 2 ? acc : doop(acc, op, rest[index + 1]);
+  }, first);
 
 const grammar = pegase`
-  'a'   {    2   }
+  calc: expr $
+  expr: term (("+" | "-") term)* ${fold}
+  term: fact (("*" | "/") fact)* ${fold}
+  fact:
+      ${number} ${parseFloat}
+    | '(' expr ')'
 `;
 
-console.log(grammar.parse("a a"));
+console.log(">", grammar.calc.value("(( ((2)) + 4))*((5)  )  "));
 
-/*console.log(
-  pegase`
-    pegase:
-         rule+
-       | derivation
-    rule:
-         identifier ":" derivation
-    derivation:
-         alternative ("|" alternative)*
-    alternative:
-         step+ ("@" integer)?
-    step:
-         ("&" | "!") atom
-       | atom ("?" | "+" | "*" | "{" integer ("," integer)? "}")?
-    atom:"ε"
-       | "."
-       | singleQuotedString
-       | doubleQuotedString
-       | integer
-       | identifier !":"
-       | "(" derivation ")"
- `
-);*/
+const g = pegase`
+  A: $B '+' $B
+  $B: '1'
+`;
+
+console.log(g);

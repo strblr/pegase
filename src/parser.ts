@@ -300,8 +300,9 @@ export class Predicate extends Parser {
     skip: boolean,
     payload: any
   ): SuccessMatch {
+    let match: SuccessMatch | null = null;
     try {
-      this.parser._parse(input, skipper, from, skip, payload);
+      match = this.parser._parse(input, skipper, from, skip, payload);
     } catch (fail) {
       if (!(fail instanceof MatchFail) || this.polarity) throw fail;
       return new SuccessMatch(input, from, from, [], this.action, payload);
@@ -310,7 +311,7 @@ export class Predicate extends Parser {
       return new SuccessMatch(input, from, from, [], this.action, payload);
     throw new MatchFail(
       input,
-      this.first.map(first => ({ at: from, ...first }))
+      this.first.map(first => ({ at: (match as SuccessMatch).from, ...first }))
     );
   }
 }
@@ -322,10 +323,14 @@ export class Predicate extends Parser {
  */
 
 export class Token extends Parser {
-  readonly parser: Parser;
+  parser: Parser | null;
   readonly identity: string;
 
-  constructor(parser: Parser, identity: string, action?: SemanticAction) {
+  constructor(
+    parser: Parser | null,
+    identity: string,
+    action?: SemanticAction
+  ) {
     super(action);
     this.parser = parser;
     this.identity = identity;
@@ -348,6 +353,8 @@ export class Token extends Parser {
     skip: boolean,
     payload: any
   ): SuccessMatch {
+    if (!this.parser)
+      return throwError("Cannot parse token with undefined child parser");
     if (skipper && skip)
       from = skipper._parse(input, null, from, false, payload).to;
     try {
@@ -369,6 +376,10 @@ export class Token extends Parser {
           );
     }
   }
+}
+
+export function token(identity: string): Token {
+  return new Token(null, identity);
 }
 
 /**
@@ -474,3 +485,77 @@ export class RegexTerminal extends Parser {
 }
 
 const defaultSkipper = new RegexTerminal(/\s*/);
+
+/**
+ * This is a static member.
+ *
+ * Static members should not be inherited.
+ */
+
+export class StartTerminal extends Parser {
+  constructor(action?: SemanticAction) {
+    super(action);
+  }
+
+  get first(): First[] {
+    return [
+      {
+        polarity: true,
+        what: "START"
+      }
+    ];
+  }
+
+  _parse(
+    input: string,
+    skipper: Parser | null,
+    from: number,
+    skip: boolean,
+    payload: any
+  ): SuccessMatch {
+    if (from !== 0)
+      throw new MatchFail(
+        input,
+        this.first.map(first => ({ at: from, ...first }))
+      );
+    return new SuccessMatch(input, 0, 0, [], this.action, payload);
+  }
+}
+
+/**
+ * This is a static member.
+ *
+ * Static members should not be inherited.
+ */
+
+export class EndTerminal extends Parser {
+  constructor(action?: SemanticAction) {
+    super(action);
+  }
+
+  get first(): First[] {
+    return [
+      {
+        polarity: true,
+        what: "END"
+      }
+    ];
+  }
+
+  _parse(
+    input: string,
+    skipper: Parser | null,
+    from: number,
+    skip: boolean,
+    payload: any
+  ): SuccessMatch {
+    if (skipper && skip)
+      from = skipper._parse(input, null, from, false, payload).to;
+    if (from !== input.length)
+      throw new MatchFail(
+        input,
+        this.first.map(first => ({ at: from, ...first }))
+      );
+    return new SuccessMatch(input, from, from, [], this.action, payload);
+  }
+}

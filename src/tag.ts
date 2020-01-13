@@ -8,6 +8,7 @@ import {
 } from "lodash";
 import {
   rule,
+  token,
   Parser,
   Sequence,
   Alternative,
@@ -15,13 +16,15 @@ import {
   Predicate,
   LiteralTerminal,
   NonTerminal,
-  RegexTerminal
+  RegexTerminal,
+  StartTerminal,
+  EndTerminal
 } from "./parser";
 import {
   epsilon,
   spaces,
   anyCharacter,
-  extendedIdentifier,
+  pegaseIdentifier,
   positiveInteger,
   singleQuotedString,
   doubleQuotedString
@@ -36,8 +39,7 @@ import { throwError } from "./error";
  * Meta-grammar
  *
  * pegase:
- *      rule+
- *    | derivation
+ *      (rule+ | derivation) $
  * rule:
  *      identifier ":" derivation
  * derivation:
@@ -47,16 +49,19 @@ import { throwError } from "./error";
  * step:
  *      ("&" | "!") atom
  *    | atom ("?" | "+" | "*" | "{" integer ("," integer)? "}")?
- * atom:"ε"
- *    | "."
- *    | singleQuotedString
+ * atom:
+ *      singleQuotedString
  *    | doubleQuotedString
  *    | integer
  *    | identifier !":"
  *    | "(" derivation ")"
+ *    | "ε"
+ *    | "."
+ *    | "^"
+ *    | !identifier "$"
  */
 
-export const metagrammar = {
+const metagrammar = {
   pegase: rule(),
   rule: rule(),
   derivation: rule(),
@@ -71,9 +76,12 @@ export const metagrammar = {
  * Static members should not be inherited.
  */
 
-metagrammar.pegase.parser = new Alternative([
-  new Repetition(metagrammar.rule, 1, Infinity),
-  metagrammar.derivation
+metagrammar.pegase.parser = new Sequence([
+  new Alternative([
+    new Repetition(metagrammar.rule, 1, Infinity),
+    metagrammar.derivation
+  ]),
+  new EndTerminal()
 ]);
 
 /**
@@ -84,7 +92,7 @@ metagrammar.pegase.parser = new Alternative([
 
 metagrammar.rule.parser = new Sequence(
   [
-    new NonTerminal(extendedIdentifier, (raw: string) => raw),
+    new NonTerminal(pegaseIdentifier, raw => raw),
     new LiteralTerminal(":"),
     metagrammar.derivation
   ],
@@ -164,7 +172,7 @@ metagrammar.step.parser = new Alternative([
     [
       new Alternative(
         [new LiteralTerminal("&"), new LiteralTerminal("!")],
-        (raw: string) => raw
+        raw => raw
       ),
       metagrammar.atom
     ],
@@ -221,8 +229,6 @@ metagrammar.step.parser = new Alternative([
  */
 
 metagrammar.atom.parser = new Alternative([
-  new LiteralTerminal("ε", (): Parser => epsilon),
-  new LiteralTerminal(".", (): Parser => anyCharacter),
   new NonTerminal(
     singleQuotedString,
     (raw): Parser =>
@@ -248,9 +254,12 @@ metagrammar.atom.parser = new Alternative([
     }
   ),
   new Sequence(
-    [extendedIdentifier, new Predicate(new LiteralTerminal(":"), false)],
+    [pegaseIdentifier, new Predicate(new LiteralTerminal(":"), false)],
     (raw, _, payload): Parser => {
-      if (!(raw in payload.rules)) payload.rules[raw] = rule();
+      if (!(raw in payload.rules))
+        payload.rules[raw] = raw.startsWith("$")
+          ? token(raw.substring(1))
+          : rule();
       return payload.rules[raw];
     }
   ),
@@ -258,6 +267,13 @@ metagrammar.atom.parser = new Alternative([
     new LiteralTerminal("("),
     metagrammar.derivation,
     new LiteralTerminal(")")
+  ]),
+  new LiteralTerminal("ε", (): Parser => epsilon),
+  new LiteralTerminal(".", (): Parser => anyCharacter),
+  new LiteralTerminal("^", (): Parser => new StartTerminal()),
+  new Sequence([
+    new Predicate(pegaseIdentifier, false),
+    new LiteralTerminal("$", (): Parser => new EndTerminal())
   ])
 ]);
 
@@ -271,19 +287,25 @@ export function pegase(
   chunks: TemplateStringsArray,
   ...args: TemplateArgument[]
 ) {
-  const template: string = chunks.reduce((acc, chunk, index) => {
-    const ref =
-      index === chunks.length - 1
-        ? ""
-        : isFunction(args[index])
-        ? `@${index}`
-        : index;
-    return acc + chunk + ref;
-  }, "");
   const payload = {
     args,
     rules: Object.create(null)
   };
-  const result = metagrammar.pegase.value(template, spaces, payload);
-  return result || payload.rules;
+  return (
+    metagrammar.pegase.value(
+      chunks.reduce(
+        (acc, chunk, index) =>
+          acc +
+          chunk +
+          (index === chunks.length - 1
+            ? ""
+            : isFunction(args[index])
+            ? `@${index}`
+            : index),
+        ""
+      ),
+      spaces,
+      payload
+    ) || payload.rules
+  );
 }

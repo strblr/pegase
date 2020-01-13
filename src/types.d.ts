@@ -13,7 +13,13 @@ type SemanticAction = (
 
 type NonEmptyArray<T> = [T, ...T[]];
 
-type First = (FirstToken | FirstLiteral | FirstRegex) & {
+type First = (
+  | FirstToken
+  | FirstLiteral
+  | FirstRegex
+  | FirstStart
+  | FirstEnd
+) & {
   polarity: boolean;
 };
 
@@ -30,6 +36,14 @@ type FirstLiteral = {
 type FirstRegex = {
   what: "REGEX";
   pattern: RegExp;
+};
+
+type FirstStart = {
+  what: "START";
+};
+
+type FirstEnd = {
+  what: "END";
 };
 
 type Expectation = First & {

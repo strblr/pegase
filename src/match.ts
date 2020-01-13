@@ -46,7 +46,6 @@ export class SuccessMatch extends Match {
     super(input);
     this.from = from;
     this.to = to;
-    // console.log("Success parse : <", this.raw, ">");
     this.children = matches.reduce(
       (acc, match) => [
         ...acc,
@@ -57,7 +56,13 @@ export class SuccessMatch extends Match {
     if (action) {
       const value = action(this.raw, this.children, payload, this);
       if (value !== undefined) this.value = value;
-    } else if (matches.length === 1) this.value = matches[0].value;
+    } else {
+      const activeValueMatches = matches.filter(
+        match => match.value !== undefined
+      );
+      if (activeValueMatches.length === 1)
+        this.value = activeValueMatches[0].value;
+    }
   }
 
   get raw(): string {
