@@ -1,37 +1,28 @@
-import { Parser, Token, RegexTerminal } from "./parser";
-
-export function raw(transformer?: (raw: string) => any): SemanticAction {
-  return transformer ? raw => transformer(raw) : raw => raw;
-}
-
-export function children(
-  transformer?: (children: any[]) => any
-): SemanticAction {
-  return transformer
-    ? (_, children) => transformer(children)
-    : (_, children) => children;
-}
+import { Parser, Token, LiteralTerminal, RegexTerminal } from "./parser";
 
 /*
-export const eps: Parser = _("");
-
-export const eol: Parser = token(/\n|\r|(\r\n)/, "eol");
-
-export const space: Parser = token(/\s/, "space");
-
-export const spaces: Parser = token(/\s*!/, "spaces");
 
 export const alpha: Parser = token(/[A-z]/, "alpha");
 
 export const walpha: Parser = token(/[A-zÀ-ÿ]/, "walpha");
 
-export const word: Parser = token(/[A-zÀ-ÿ]+/, "word");
+export const word: Parser = token(/[A-zÀ-ÿ]+/, "word");*/
 
-export const digit: Parser = token(/\d/, "digit");
+export const epsilon: Parser = new Token(new LiteralTerminal(""), "epsilon");
 
-export const xdigit: Parser = token(/[\dA-Fa-f]/, "xdigit");
+export const space: Parser = new Token(new RegexTerminal(/\s/), "space");
 
-export const int: Parser = token(/[-+]?\d+/, "int");*/
+export const spaces: Parser = new Token(new RegexTerminal(/\s*/), "spaces");
+
+export const endOfLine: Parser = new Token(
+  new RegexTerminal(/\n|\r|(\r\n)/),
+  "end of line"
+);
+
+export const anyCharacter: Parser = new Token(
+  new RegexTerminal(/./),
+  "any character"
+);
 
 export const identifier: Parser = new Token(
   new RegexTerminal(/[_a-zA-Z][_a-zA-Z0-9]*/),
@@ -53,9 +44,11 @@ export const doubleQuotedString: Parser = new Token(
   "double-quoted string"
 );
 
-export const number: Parser = new Token(
-  new RegexTerminal(/[-+]?(?:\d*\.?\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?/),
-  "number"
+export const digit: Parser = new Token(new RegexTerminal(/\d/), "digit");
+
+export const hexDigit: Parser = new Token(
+  new RegexTerminal(/[\dA-Fa-f]/),
+  "hexadecimal digit"
 );
 
 export const positiveInteger: Parser = new Token(
@@ -63,7 +56,17 @@ export const positiveInteger: Parser = new Token(
   "positive integer"
 );
 
+export const negativeInteger: Parser = new Token(
+  new RegexTerminal(/-\d+/),
+  "negative integer"
+);
+
 export const integer: Parser = new Token(
   new RegexTerminal(/[-+]?\d+/),
   "integer"
+);
+
+export const number: Parser = new Token(
+  new RegexTerminal(/[-+]?(?:\d*\.?\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?/),
+  "number"
 );

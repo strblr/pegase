@@ -7,8 +7,11 @@ type TemplateArgument = string | RegExp | Parser | SemanticAction;
 type SemanticAction = (
   raw: string,
   children: any[],
+  payload: any,
   match: SuccessMatch
 ) => any;
+
+type NonEmptyArray<T> = [T, ...T[]];
 
 type First = (FirstToken | FirstLiteral | FirstRegex) & {
   polarity: boolean;
