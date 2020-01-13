@@ -438,13 +438,14 @@ export class LiteralTerminal extends Parser {
  */
 
 export class RegexTerminal extends Parser {
-  readonly pattern: RegExp;
-  private readonly _pattern: RegExp;
+  private readonly pattern: RegExp;
 
   constructor(pattern: RegExp, action?: SemanticAction) {
     super(action);
-    this.pattern = pattern;
-    this._pattern = new RegExp(pattern, "y");
+    this.pattern = new RegExp(
+      pattern,
+      pattern.flags.includes("y") ? pattern.flags : `${pattern.flags}y`
+    );
   }
 
   get first(): First[] {
@@ -466,8 +467,8 @@ export class RegexTerminal extends Parser {
   ): SuccessMatch {
     if (skipper && skip)
       from = skipper._parse(input, null, from, false, payload).to;
-    this._pattern.lastIndex = from;
-    const result = this._pattern.exec(input);
+    this.pattern.lastIndex = from;
+    const result = this.pattern.exec(input);
     if (result === null)
       throw new MatchFail(
         input,
