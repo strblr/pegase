@@ -1,8 +1,10 @@
 const { pegase, number, metagrammar } = require("../lib/index");
 
-console.log(pegase`
-  A: a  (("salk" | .) v) 
-`);
+const grammar = pegase`
+  'a'   {    2   }
+`;
+
+console.log(grammar.parse("a a"));
 
 /*console.log(
   pegase`

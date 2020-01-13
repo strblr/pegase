@@ -82,11 +82,19 @@ metagrammar.pegase.parser = new Alternative([
  * Static members should not be inherited.
  */
 
-metagrammar.rule.parser = new Sequence([
-  extendedIdentifier,
-  new LiteralTerminal(":"),
-  metagrammar.derivation
-]);
+metagrammar.rule.parser = new Sequence(
+  [
+    new NonTerminal(extendedIdentifier, (raw: string) => raw),
+    new LiteralTerminal(":"),
+    metagrammar.derivation
+  ],
+  (_, children, payload): void => {
+    const [identifier, derivation] = children as [string, Parser];
+    if (identifier in payload.rules)
+      payload.rules[identifier].parser = derivation;
+    else payload.rules[identifier] = derivation;
+  }
+);
 
 /**
  * This is a static member.
@@ -127,18 +135,21 @@ metagrammar.alternative.parser = new Sequence(
       1
     )
   ],
-  (_, children, payload) => {
+  (_, children, payload): Parser => {
     if (!isInteger(last(children)))
-      return new Sequence(children as NonEmptyArray<Parser>);
+      return children.length === 1
+        ? children[0]
+        : new Sequence(children as NonEmptyArray<Parser>);
     const index = last(children);
     if (index >= payload.args.length)
       return throwError(
         `Invalid action reference (@${index}) in parser expression`
       );
-    return new Sequence(
-      dropRight(children, 1) as NonEmptyArray<Parser>,
-      payload.args[index]
-    );
+    const action = payload.args[index];
+    children = dropRight(children, 1);
+    return children.length === 1
+      ? new NonTerminal(children[0], action)
+      : new Sequence(children as NonEmptyArray<Parser>, action);
   }
 );
 
@@ -149,32 +160,58 @@ metagrammar.alternative.parser = new Sequence(
  */
 
 metagrammar.step.parser = new Alternative([
-  new Sequence([
-    new Alternative([new LiteralTerminal("&"), new LiteralTerminal("!")]),
-    metagrammar.atom
-  ]),
-  new Sequence([
-    metagrammar.atom,
-    new Repetition(
-      new Alternative([
-        new LiteralTerminal("?"),
-        new LiteralTerminal("+"),
-        new LiteralTerminal("*"),
-        new Sequence([
-          new LiteralTerminal("{"),
-          positiveInteger,
-          new Repetition(
-            new Sequence([new LiteralTerminal(","), positiveInteger]),
-            0,
-            1
-          ),
-          new LiteralTerminal("}")
-        ])
-      ]),
-      0,
-      1
-    )
-  ])
+  new Sequence(
+    [
+      new Alternative(
+        [new LiteralTerminal("&"), new LiteralTerminal("!")],
+        (raw: string) => raw
+      ),
+      metagrammar.atom
+    ],
+    (_, children): Parser => {
+      const [operator, atom] = children as [string, Parser];
+      return new Predicate(atom, operator === "&");
+    }
+  ),
+  new Sequence(
+    [
+      metagrammar.atom,
+      new Repetition(
+        new Alternative([
+          new LiteralTerminal("?", raw => raw),
+          new LiteralTerminal("+", raw => raw),
+          new LiteralTerminal("*", raw => raw),
+          new Sequence([
+            new LiteralTerminal("{"),
+            new NonTerminal(positiveInteger, raw => parseInt(raw, 10)),
+            new Repetition(
+              new Sequence([
+                new LiteralTerminal(","),
+                new NonTerminal(positiveInteger, raw => parseInt(raw, 10))
+              ]),
+              0,
+              1
+            ),
+            new LiteralTerminal("}")
+          ])
+        ]),
+        0,
+        1
+      )
+    ],
+    (_, children): Parser => {
+      const [atom, ...quantifier] = children;
+      if (quantifier.length === 0) return atom;
+      if (quantifier[0] === "?") return new Repetition(atom, 0, 1);
+      if (quantifier[0] === "+") return new Repetition(atom, 1, Infinity);
+      if (quantifier[0] === "*") return new Repetition(atom, 0, Infinity);
+      return new Repetition(
+        atom,
+        quantifier[0],
+        quantifier.length === 2 ? quantifier[1] : quantifier[0]
+      );
+    }
+  )
 ]);
 
 /**
@@ -188,11 +225,12 @@ metagrammar.atom.parser = new Alternative([
   new LiteralTerminal(".", (): Parser => anyCharacter),
   new NonTerminal(
     singleQuotedString,
-    (raw): Parser => new LiteralTerminal(JSON.parse(raw))
+    (raw): Parser =>
+      new LiteralTerminal(JSON.parse(`"${raw.substring(1, raw.length - 1)}"`))
   ),
   new NonTerminal(
     doubleQuotedString,
-    raw => new LiteralTerminal(JSON.parse(raw), raw => raw)
+    (raw): Parser => new LiteralTerminal(JSON.parse(raw), raw => raw)
   ),
   new NonTerminal(
     positiveInteger,
@@ -246,5 +284,6 @@ export function pegase(
     args,
     rules: Object.create(null)
   };
-  return metagrammar.pegase.parse(template, spaces, payload);
+  const result = metagrammar.pegase.value(template, spaces, payload);
+  return result || payload.rules;
 }

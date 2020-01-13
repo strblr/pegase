@@ -1,3 +1,3 @@
 export function throwError(message: string): never {
-  throw new Error(`QuickParser Error: ${message}`);
+  throw new Error(`Pegase Error: ${message}`);
 }
