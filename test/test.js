@@ -31,8 +31,10 @@ console.log(">", grammar.calc.value("(( ((2)) + 4))*((5)  )  "));
 
 const g = pegase`
   A: $B '+' $B
-  $B: '1'
+  $B : '1''1'
 `;
+
+console.log(g.$B.parse("1"));
 
 const { pth } = pegase`
   pth: pths $

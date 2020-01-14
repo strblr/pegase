@@ -129,25 +129,28 @@ export class Alternative extends Parser {
     skip: boolean,
     payload: any
   ): SuccessMatch {
+    let match: SuccessMatch | null = null;
     // noinspection JSMismatchedCollectionQueryUpdate
     const fails: MatchFail[] = [];
     for (const parser of this.parsers) {
       try {
-        const match = parser._parse(input, from, skipper, skip, payload);
-        return new SuccessMatch(
-          input,
-          match.from,
-          match.to,
-          [match],
-          this.action,
-          payload
-        );
+        match = parser._parse(input, from, skipper, skip, payload);
+        break;
       } catch (fail) {
         if (fail instanceof MatchFail) fails.push(fail);
         else throw fail;
       }
     }
-    throw MatchFail.merge(fails as NonEmptyArray<MatchFail>);
+    if (!match) throw MatchFail.merge(fails as NonEmptyArray<MatchFail>);
+    else
+      return new SuccessMatch(
+        input,
+        match.from,
+        match.to,
+        [match],
+        this.action,
+        payload
+      );
   }
 }
 
@@ -353,19 +356,14 @@ export class Token extends Parser {
     payload: any
   ): SuccessMatch {
     if (!this.parser)
-      throw new Error("Cannot parse token with undefined child parser");
+      throw new Error(
+        `Cannot parse token ${this.identity} with undefined child parser`
+      );
     if (skipper && skip)
       from = skipper._parse(input, from, null, false, payload).to;
+    let match: SuccessMatch | null = null;
     try {
-      const match = this.parser._parse(input, from, skipper, false, payload);
-      return new SuccessMatch(
-        input,
-        match.from,
-        match.to,
-        [match],
-        this.action,
-        payload
-      );
+      match = this.parser._parse(input, from, skipper, false, payload);
     } catch (fail) {
       throw !(fail instanceof MatchFail)
         ? fail
@@ -378,6 +376,14 @@ export class Token extends Parser {
             }))
           );
     }
+    return new SuccessMatch(
+      input,
+      match.from,
+      match.to,
+      [match],
+      this.action,
+      payload
+    );
   }
 }
 

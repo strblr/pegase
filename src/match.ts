@@ -1,5 +1,4 @@
 import { isString, uniqWith } from "lodash";
-import instantiate = WebAssembly.instantiate;
 
 /**
  * This is a static member.
@@ -96,27 +95,24 @@ export class SuccessMatch extends Match {
  */
 
 export class MatchFail extends Match {
-  private readonly _expectations: PegaseError[];
-  private _uniqueExpectations?: PegaseError[];
+  private readonly _errors: PegaseError[];
+  private _uniqueErrors?: PegaseError[];
 
   static merge(fails: NonEmptyArray<MatchFail>): MatchFail {
     return new MatchFail(
       fails[0].input,
-      fails.reduce(
-        (acc, fail) => acc.concat(fail._expectations),
-        [] as PegaseError[]
-      )
+      fails.reduce((acc, fail) => acc.concat(fail._errors), [] as PegaseError[])
     );
   }
 
-  constructor(input: string, expectations: PegaseError[]) {
+  constructor(input: string, errors: PegaseError[]) {
     super(input);
-    this._expectations = expectations;
+    this._errors = errors;
   }
 
-  get expected(): PegaseError[] {
-    if (!this._uniqueExpectations)
-      this._uniqueExpectations = uniqWith(this._expectations, (exp1, exp2) => {
+  get errors(): PegaseError[] {
+    if (!this._uniqueErrors)
+      this._uniqueErrors = uniqWith(this._errors, (exp1, exp2) => {
         return (
           exp1.at === exp2.at &&
           exp1.type === exp2.type &&
@@ -137,6 +133,6 @@ export class MatchFail extends Match {
                   String(exp1.pattern) === String(exp2.pattern)))))
         );
       });
-    return this._uniqueExpectations;
+    return this._uniqueErrors;
   }
 }
