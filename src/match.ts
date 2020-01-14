@@ -1,4 +1,5 @@
 import { isString, uniqWith } from "lodash";
+import instantiate = WebAssembly.instantiate;
 
 /**
  * This is a static member.
@@ -54,8 +55,20 @@ export class SuccessMatch extends Match {
       [] as any[]
     );
     if (action) {
-      const value = action(this.raw, this.children, payload, this);
-      if (value !== undefined) this.value = value;
+      try {
+        const value = action(this.raw, this.children, payload, this);
+        if (value !== undefined) this.value = value;
+      } catch (error) {
+        throw !(error instanceof Error)
+          ? error
+          : new MatchFail(input, [
+              {
+                at: from,
+                type: "SEMANTIC_ERROR",
+                message: error.message
+              }
+            ]);
+      }
     } else {
       const activeValueMatches = matches.filter(
         match => match.value !== undefined
@@ -83,39 +96,45 @@ export class SuccessMatch extends Match {
  */
 
 export class MatchFail extends Match {
-  private readonly _expectations: Expectation[];
-  private _uniqueExpectations?: Expectation[];
+  private readonly _expectations: PegaseError[];
+  private _uniqueExpectations?: PegaseError[];
 
   static merge(fails: NonEmptyArray<MatchFail>): MatchFail {
     return new MatchFail(
       fails[0].input,
       fails.reduce(
         (acc, fail) => acc.concat(fail._expectations),
-        [] as Expectation[]
+        [] as PegaseError[]
       )
     );
   }
 
-  constructor(input: string, expectations: Expectation[]) {
+  constructor(input: string, expectations: PegaseError[]) {
     super(input);
     this._expectations = expectations;
   }
 
-  get expected(): Expectation[] {
+  get expected(): PegaseError[] {
     if (!this._uniqueExpectations)
       this._uniqueExpectations = uniqWith(this._expectations, (exp1, exp2) => {
         return (
           exp1.at === exp2.at &&
-          exp1.polarity === exp2.polarity &&
-          ((exp1.what === "TOKEN" &&
-            exp2.what === "TOKEN" &&
-            exp1.identity === exp2.identity) ||
-            (exp1.what === "LITERAL" &&
-              exp2.what === "LITERAL" &&
-              exp1.literal === exp2.literal) ||
-            (exp1.what === "REGEX" &&
-              exp2.what === "REGEX" &&
-              String(exp1.pattern) === String(exp2.pattern)))
+          exp1.type === exp2.type &&
+          ((exp1.type === "SEMANTIC_ERROR" &&
+            exp2.type === "SEMANTIC_ERROR" &&
+            exp1.message === exp2.message) ||
+            (exp1.type === "EXPECTATION_ERROR" &&
+              exp2.type === "EXPECTATION_ERROR" &&
+              exp1.polarity === exp2.polarity &&
+              ((exp1.what === "TOKEN" &&
+                exp2.what === "TOKEN" &&
+                exp1.identity === exp2.identity) ||
+                (exp1.what === "LITERAL" &&
+                  exp2.what === "LITERAL" &&
+                  exp1.literal === exp2.literal) ||
+                (exp1.what === "REGEX" &&
+                  exp2.what === "REGEX" &&
+                  String(exp1.pattern) === String(exp2.pattern)))))
         );
       });
     return this._uniqueExpectations;

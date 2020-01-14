@@ -46,6 +46,15 @@ type FirstEnd = {
   what: "END";
 };
 
-type Expectation = First & {
+type ExpectationError = First & {
+  type: "EXPECTATION_ERROR";
+};
+
+type SemanticError = {
+  type: "SEMANTIC_ERROR";
+  message: string;
+};
+
+type PegaseError = (ExpectationError | SemanticError) & {
   at: number;
 };

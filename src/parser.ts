@@ -1,6 +1,5 @@
 import { last, isEmpty } from "lodash";
 import { Match, SuccessMatch, MatchFail } from "./match";
-import { throwError } from "./error";
 
 /**
  * This is a static member.
@@ -16,7 +15,7 @@ export abstract class Parser {
   }
 
   get first(): First[] {
-    return throwError("Cannot get first from abstract Parser class");
+    throw new Error("Cannot get first from abstract Parser class");
   }
 
   parse(
@@ -25,7 +24,7 @@ export abstract class Parser {
     payload?: any
   ): Match {
     try {
-      return this._parse(input, skipper, 0, true, payload);
+      return this._parse(input, 0, skipper, true, payload);
     } catch (fail) {
       if (fail instanceof MatchFail) return fail;
       throw fail;
@@ -37,7 +36,7 @@ export abstract class Parser {
     skipper: Parser | null = defaultSkipper,
     payload?: any
   ): any {
-    return this._parse(input, skipper, 0, true, payload).value;
+    return this._parse(input, 0, skipper, true, payload).value;
   }
 
   children(
@@ -45,17 +44,17 @@ export abstract class Parser {
     skipper: Parser | null = defaultSkipper,
     payload?: any
   ): any[] {
-    return this._parse(input, skipper, 0, true, payload).children;
+    return this._parse(input, 0, skipper, true, payload).children;
   }
 
   _parse(
     input: string,
-    skipper: Parser | null,
     from: number,
+    skipper: Parser | null,
     skip: boolean,
     payload: any
   ): SuccessMatch {
-    return throwError("Cannot parse from abstract Parser class");
+    throw new Error("Cannot parse from abstract Parser class");
   }
 }
 
@@ -79,15 +78,15 @@ export class Sequence extends Parser {
 
   _parse(
     input: string,
-    skipper: Parser | null,
     from: number,
+    skipper: Parser | null,
     skip: boolean,
     payload: any
   ): SuccessMatch {
     const matches: SuccessMatch[] = [];
     let cursor = from;
     for (const parser of this.parsers) {
-      const match = parser._parse(input, skipper, cursor, skip, payload);
+      const match = parser._parse(input, cursor, skipper, skip, payload);
       matches.push(match);
       cursor = match.to;
     }
@@ -125,8 +124,8 @@ export class Alternative extends Parser {
 
   _parse(
     input: string,
-    skipper: Parser | null,
     from: number,
+    skipper: Parser | null,
     skip: boolean,
     payload: any
   ): SuccessMatch {
@@ -134,7 +133,7 @@ export class Alternative extends Parser {
     const fails: MatchFail[] = [];
     for (const parser of this.parsers) {
       try {
-        const match = parser._parse(input, skipper, from, skip, payload);
+        const match = parser._parse(input, from, skipper, skip, payload);
         return new SuccessMatch(
           input,
           match.from,
@@ -168,22 +167,20 @@ export class NonTerminal extends Parser {
 
   get first(): First[] {
     if (!this.parser)
-      return throwError("Cannot get first from undefined child parser");
+      throw new Error("Cannot get first from undefined child parser");
     return this.parser.first;
   }
 
   _parse(
     input: string,
-    skipper: Parser | null,
     from: number,
+    skipper: Parser | null,
     skip: boolean,
     payload: any
   ): SuccessMatch {
     if (!this.parser)
-      return throwError(
-        "Cannot parse non-terminal with undefined child parser"
-      );
-    const match = this.parser._parse(input, skipper, from, skip, payload);
+      throw new Error("Cannot parse non-terminal with undefined child parser");
+    const match = this.parser._parse(input, from, skipper, skip, payload);
     return new SuccessMatch(
       input,
       match.from,
@@ -218,8 +215,6 @@ export class Repetition extends Parser {
   ) {
     super(action);
     this.parser = parser;
-    if (min < 0 || max < 1 || max < min)
-      throwError(`Invalid repetition range [${min}, ${max}]`);
     this.min = min;
     this.max = max;
   }
@@ -230,8 +225,8 @@ export class Repetition extends Parser {
 
   _parse(
     input: string,
-    skipper: Parser | null,
     from: number,
+    skipper: Parser | null,
     skip: boolean,
     payload: any
   ): SuccessMatch {
@@ -253,7 +248,7 @@ export class Repetition extends Parser {
     while (true) {
       if (counter === this.max) return succeed();
       try {
-        const match = this.parser._parse(input, skipper, cursor, skip, payload);
+        const match = this.parser._parse(input, cursor, skipper, skip, payload);
         matches.push(match);
         cursor = match.to;
         counter++;
@@ -295,14 +290,14 @@ export class Predicate extends Parser {
 
   _parse(
     input: string,
-    skipper: Parser | null,
     from: number,
+    skipper: Parser | null,
     skip: boolean,
     payload: any
   ): SuccessMatch {
     let match: SuccessMatch | null = null;
     try {
-      match = this.parser._parse(input, skipper, from, skip, payload);
+      match = this.parser._parse(input, from, skipper, skip, payload);
     } catch (fail) {
       if (!(fail instanceof MatchFail) || this.polarity) throw fail;
       return new SuccessMatch(input, from, from, [], this.action, payload);
@@ -311,7 +306,11 @@ export class Predicate extends Parser {
       return new SuccessMatch(input, from, from, [], this.action, payload);
     throw new MatchFail(
       input,
-      this.first.map(first => ({ at: (match as SuccessMatch).from, ...first }))
+      this.first.map(first => ({
+        at: (match as SuccessMatch).from,
+        type: "EXPECTATION_ERROR",
+        ...first
+      }))
     );
   }
 }
@@ -348,17 +347,17 @@ export class Token extends Parser {
 
   _parse(
     input: string,
-    skipper: Parser | null,
     from: number,
+    skipper: Parser | null,
     skip: boolean,
     payload: any
   ): SuccessMatch {
     if (!this.parser)
-      return throwError("Cannot parse token with undefined child parser");
+      throw new Error("Cannot parse token with undefined child parser");
     if (skipper && skip)
-      from = skipper._parse(input, null, from, false, payload).to;
+      from = skipper._parse(input, from, null, false, payload).to;
     try {
-      const match = this.parser._parse(input, skipper, from, false, payload);
+      const match = this.parser._parse(input, from, skipper, false, payload);
       return new SuccessMatch(
         input,
         match.from,
@@ -372,7 +371,11 @@ export class Token extends Parser {
         ? fail
         : new MatchFail(
             input,
-            this.first.map(first => ({ at: from, ...first }))
+            this.first.map(first => ({
+              at: from,
+              type: "EXPECTATION_ERROR",
+              ...first
+            }))
           );
     }
   }
@@ -408,17 +411,21 @@ export class LiteralTerminal extends Parser {
 
   _parse(
     input: string,
-    skipper: Parser | null,
     from: number,
+    skipper: Parser | null,
     skip: boolean,
     payload: any
   ): SuccessMatch {
     if (skipper && skip)
-      from = skipper._parse(input, null, from, false, payload).to;
+      from = skipper._parse(input, from, null, false, payload).to;
     if (!input.startsWith(this.literal, from))
       throw new MatchFail(
         input,
-        this.first.map(first => ({ at: from, ...first }))
+        this.first.map(first => ({
+          at: from,
+          type: "EXPECTATION_ERROR",
+          ...first
+        }))
       );
     return new SuccessMatch(
       input,
@@ -460,19 +467,23 @@ export class RegexTerminal extends Parser {
 
   _parse(
     input: string,
-    skipper: Parser | null,
     from: number,
+    skipper: Parser | null,
     skip: boolean,
     payload: any
   ): SuccessMatch {
     if (skipper && skip)
-      from = skipper._parse(input, null, from, false, payload).to;
+      from = skipper._parse(input, from, null, false, payload).to;
     this.pattern.lastIndex = from;
     const result = this.pattern.exec(input);
     if (result === null)
       throw new MatchFail(
         input,
-        this.first.map(first => ({ at: from, ...first }))
+        this.first.map(first => ({
+          at: from,
+          type: "EXPECTATION_ERROR",
+          ...first
+        }))
       );
     return new SuccessMatch(
       input,
@@ -509,15 +520,19 @@ export class StartTerminal extends Parser {
 
   _parse(
     input: string,
-    skipper: Parser | null,
     from: number,
+    skipper: Parser | null,
     skip: boolean,
     payload: any
   ): SuccessMatch {
     if (from !== 0)
       throw new MatchFail(
         input,
-        this.first.map(first => ({ at: from, ...first }))
+        this.first.map(first => ({
+          at: from,
+          type: "EXPECTATION_ERROR",
+          ...first
+        }))
       );
     return new SuccessMatch(input, 0, 0, [], this.action, payload);
   }
@@ -545,17 +560,21 @@ export class EndTerminal extends Parser {
 
   _parse(
     input: string,
-    skipper: Parser | null,
     from: number,
+    skipper: Parser | null,
     skip: boolean,
     payload: any
   ): SuccessMatch {
     if (skipper && skip)
-      from = skipper._parse(input, null, from, false, payload).to;
+      from = skipper._parse(input, from, null, false, payload).to;
     if (from !== input.length)
       throw new MatchFail(
         input,
-        this.first.map(first => ({ at: from, ...first }))
+        this.first.map(first => ({
+          at: from,
+          type: "EXPECTATION_ERROR",
+          ...first
+        }))
       );
     return new SuccessMatch(input, from, from, [], this.action, payload);
   }

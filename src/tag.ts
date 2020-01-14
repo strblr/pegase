@@ -14,6 +14,7 @@ import {
   Alternative,
   Repetition,
   Predicate,
+  Token,
   LiteralTerminal,
   NonTerminal,
   RegexTerminal,
@@ -29,7 +30,6 @@ import {
   singleQuotedString,
   doubleQuotedString
 } from "./snippets";
-import { throwError } from "./error";
 
 /**
  * This is a static member.
@@ -98,9 +98,15 @@ metagrammar.rule.parser = new Sequence(
   ],
   (_, children, payload): void => {
     const [identifier, derivation] = children as [string, Parser];
-    if (identifier in payload.rules)
+    if (identifier in payload.rules) {
+      const parser = payload.rules[identifier];
+      if (
+        (!(parser instanceof NonTerminal) && !(parser instanceof Token)) ||
+        parser.parser
+      )
+        throw new Error(`Multiple definitions of non-terminal ${identifier}`);
       payload.rules[identifier].parser = derivation;
-    else payload.rules[identifier] = derivation;
+    } else payload.rules[identifier] = derivation;
   }
 );
 
@@ -150,7 +156,7 @@ metagrammar.alternative.parser = new Sequence(
         : new Sequence(children as NonEmptyArray<Parser>);
     const index = last(children);
     if (index >= payload.args.length)
-      return throwError(
+      throw new Error(
         `Invalid action reference (@${index}) in parser expression`
       );
     const action = payload.args[index];
@@ -213,11 +219,13 @@ metagrammar.step.parser = new Alternative([
       if (quantifier[0] === "?") return new Repetition(atom, 0, 1);
       if (quantifier[0] === "+") return new Repetition(atom, 1, Infinity);
       if (quantifier[0] === "*") return new Repetition(atom, 0, Infinity);
-      return new Repetition(
-        atom,
+      const [min, max] = [
         quantifier[0],
         quantifier.length === 2 ? quantifier[1] : quantifier[0]
-      );
+      ];
+      if (min < 0 || max < 1 || max < min)
+        throw new Error(`Invalid repetition range [${min}, ${max}]`);
+      return new Repetition(atom, min, max);
     }
   )
 ]);
@@ -243,12 +251,12 @@ metagrammar.atom.parser = new Alternative([
     (raw, _, payload): Parser => {
       const index = parseInt(raw, 10);
       if (index >= payload.args.length)
-        return throwError(`Invalid reference (${index}) in parser expression`);
+        throw new Error(`Invalid reference (${index}) in parser expression`);
       const item: TemplateArgument = payload.args[index];
       if (isString(item)) return new LiteralTerminal(item);
       if (isRegExp(item)) return new RegexTerminal(item);
       if (item instanceof Parser) return item;
-      return throwError(
+      throw new Error(
         `Argument for reference ${index} is invalid (should be a string, a regexp, or a Parser instance)`
       );
     }
