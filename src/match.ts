@@ -1,4 +1,45 @@
-import { isString, uniqWith } from "lodash";
+import { uniqWith } from "lodash";
+
+export type NonEmptyArray<T> = [T, ...T[]];
+
+export type SemanticAction = (
+  raw: string,
+  children: any[],
+  payload: any,
+  match: SuccessMatch
+) => any;
+
+export type First = {
+  polarity: boolean;
+} & (
+  | {
+      what: "TOKEN";
+      identity: string;
+    }
+  | {
+      what: "LITERAL";
+      literal: string;
+    }
+  | {
+      what: "REGEX";
+      pattern: RegExp;
+    }
+  | {
+      what: "START" | "END";
+    }
+);
+
+export type Failure = {
+  at: number;
+} & (
+  | ({
+      type: "EXPECTATION_ERROR";
+    } & First)
+  | {
+      type: "SEMANTIC_ERROR";
+      message: string;
+    }
+);
 
 /**
  * This is a static member.
@@ -31,9 +72,8 @@ export abstract class Match {
 export class SuccessMatch extends Match {
   readonly from: number;
   readonly to: number;
-  readonly children: any[];
   readonly value: any;
-  private _parsed?: string;
+  readonly children: any[];
 
   constructor(
     input: string,
@@ -53,22 +93,8 @@ export class SuccessMatch extends Match {
       ],
       [] as any[]
     );
-    if (action) {
-      try {
-        const value = action(this.raw, this.children, payload, this);
-        if (value !== undefined) this.value = value;
-      } catch (error) {
-        throw !(error instanceof Error)
-          ? error
-          : new MatchFail(input, [
-              {
-                at: from,
-                type: "SEMANTIC_ERROR",
-                message: error.message
-              }
-            ]);
-      }
-    } else {
+    if (action) this.value = action(this.raw, this.children, payload, this);
+    else {
       const activeValueMatches = matches.filter(
         match => match.value !== undefined
       );
@@ -78,9 +104,7 @@ export class SuccessMatch extends Match {
   }
 
   get raw(): string {
-    if (!isString(this._parsed))
-      this._parsed = this.input.substring(this.from, this.to);
-    return this._parsed;
+    return this.input.substring(this.from, this.to);
   }
 
   get complete(): boolean {
@@ -95,24 +119,24 @@ export class SuccessMatch extends Match {
  */
 
 export class MatchFail extends Match {
-  private readonly _errors: PegaseError[];
-  private _uniqueErrors?: PegaseError[];
-
   static merge(fails: NonEmptyArray<MatchFail>): MatchFail {
     return new MatchFail(
       fails[0].input,
-      fails.reduce((acc, fail) => acc.concat(fail._errors), [] as PegaseError[])
+      fails.reduce((acc, fail) => [...acc, ...fail._failures], [] as Failure[])
     );
   }
 
-  constructor(input: string, errors: PegaseError[]) {
+  constructor(input: string, failures: Failure[]) {
     super(input);
-    this._errors = errors;
+    this._failures = failures;
   }
 
-  get errors(): PegaseError[] {
-    if (!this._uniqueErrors)
-      this._uniqueErrors = uniqWith(this._errors, (exp1, exp2) => {
+  private readonly _failures: Failure[];
+  private _uniqueFailures?: Failure[];
+
+  get errors(): Failure[] {
+    if (!this._uniqueFailures)
+      this._uniqueFailures = uniqWith(this._failures, (exp1, exp2) => {
         return (
           exp1.at === exp2.at &&
           exp1.type === exp2.type &&
@@ -133,6 +157,6 @@ export class MatchFail extends Match {
                   String(exp1.pattern) === String(exp2.pattern)))))
         );
       });
-    return this._uniqueErrors;
+    return this._uniqueFailures;
   }
 }

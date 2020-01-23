@@ -21,6 +21,7 @@ import {
   StartTerminal,
   EndTerminal
 } from "./parser";
+import { SemanticAction } from "./match";
 import {
   epsilon,
   spaces,
@@ -30,6 +31,10 @@ import {
   singleQuotedString,
   doubleQuotedString
 } from "./snippets";
+
+type TemplateArgument = string | RegExp | Parser | SemanticAction;
+
+// TODO add '/' as an alternative to '|' and add support for '%'
 
 /**
  * This is a static member.
