@@ -273,7 +273,7 @@ export class Predicate extends Parser {
         input,
         this.first.map(first => ({
           at: (match as SuccessMatch).from,
-          type: "EXPECTATION_ERROR",
+          type: "EXPECTATION_FAIL",
           ...first
         }))
       );
@@ -374,7 +374,7 @@ export class LiteralTerminal extends Parser {
         input,
         this.first.map(first => ({
           at: from,
-          type: "EXPECTATION_ERROR",
+          type: "EXPECTATION_FAIL",
           ...first
         }))
       );
@@ -429,7 +429,7 @@ export class RegexTerminal extends Parser {
         input,
         this.first.map(first => ({
           at: from,
-          type: "EXPECTATION_ERROR",
+          type: "EXPECTATION_FAIL",
           ...first
         }))
       );
@@ -473,7 +473,7 @@ export class StartTerminal extends Parser {
       input,
       this.first.map(first => ({
         at: from,
-        type: "EXPECTATION_ERROR",
+        type: "EXPECTATION_FAIL",
         ...first
       }))
     );
@@ -512,7 +512,7 @@ export class EndTerminal extends Parser {
       input,
       this.first.map(first => ({
         at: from,
-        type: "EXPECTATION_ERROR",
+        type: "EXPECTATION_FAIL",
         ...first
       }))
     );

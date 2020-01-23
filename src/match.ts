@@ -1,4 +1,4 @@
-import { uniqWith } from "lodash";
+import { isEqual, uniqWith } from "lodash";
 
 export type NonEmptyArray<T> = [T, ...T[]];
 
@@ -33,10 +33,10 @@ export type Failure = {
   at: number;
 } & (
   | ({
-      type: "EXPECTATION_ERROR";
+      type: "EXPECTATION_FAIL";
     } & First)
   | {
-      type: "SEMANTIC_ERROR";
+      type: "SEMANTIC_FAIL";
       message: string;
     }
 );
@@ -134,29 +134,9 @@ export class MatchFail extends Match {
   private readonly _failures: Failure[];
   private _uniqueFailures?: Failure[];
 
-  get errors(): Failure[] {
+  get failures(): Failure[] {
     if (!this._uniqueFailures)
-      this._uniqueFailures = uniqWith(this._failures, (exp1, exp2) => {
-        return (
-          exp1.at === exp2.at &&
-          exp1.type === exp2.type &&
-          ((exp1.type === "SEMANTIC_ERROR" &&
-            exp2.type === "SEMANTIC_ERROR" &&
-            exp1.message === exp2.message) ||
-            (exp1.type === "EXPECTATION_ERROR" &&
-              exp2.type === "EXPECTATION_ERROR" &&
-              exp1.polarity === exp2.polarity &&
-              ((exp1.what === "TOKEN" &&
-                exp2.what === "TOKEN" &&
-                exp1.identity === exp2.identity) ||
-                (exp1.what === "LITERAL" &&
-                  exp2.what === "LITERAL" &&
-                  exp1.literal === exp2.literal) ||
-                (exp1.what === "REGEX" &&
-                  exp2.what === "REGEX" &&
-                  String(exp1.pattern) === String(exp2.pattern)))))
-        );
-      });
+      this._uniqueFailures = uniqWith(this._failures, isEqual);
     return this._uniqueFailures;
   }
 }

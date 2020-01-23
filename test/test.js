@@ -1,5 +1,12 @@
 const { pegase, number } = require("../lib/index");
 
+const G = pegase`
+  A: B % "+"
+  B: "1"
+`;
+console.log(G.A.children("1+1+1+1+1"));
+
+/*
 const doop = (left, op, right) => {
   switch (op) {
     case "+":
@@ -13,32 +20,28 @@ const doop = (left, op, right) => {
   }
 };
 
-const fold = (_, [first, ...rest]) =>
-  rest.reduce((acc, op, index) => {
+const fold = (_, [first, ...rest]) => {
+  rest.length !== 0 && console.log([first, ...rest]);
+  return rest.reduce((acc, op, index) => {
     return index % 2 ? acc : doop(acc, op, rest[index + 1]);
   }, first);
+};
 
-const grammar = pegase`
+const { calc } = pegase`
   calc: expr $
-  expr: term (("+" | "-") term)* ${fold}
+  expr: term % ("+" | "-") ${fold}
   term: fact (("*" | "/") fact)* ${fold}
   fact:
       ${number} ${parseFloat}
     | '(' expr ')'
 `;
 
-console.log(">", grammar.calc.value("(( ((2)) + 4))*((5)  )  "));
+console.log(">", calc.value("(( ((2)) + 4))*((5)  -1)  "));
 
 const g = pegase`
   A: $B '+' $B
-  $B : '1''1'
+  $B : '1'   '1'
 `;
 
-console.log(g.$B.parse("1"));
-
-const { pth } = pegase`
-  pth: pths $
-  pths: ('(' pths ')')+ | ε
-`;
-
-console.log(pth.parse("(()(()()))()"));
+console.log(g.A.parse("   11 +    11 "));
+*/

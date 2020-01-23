@@ -4,6 +4,7 @@ import {
   isFunction,
   isInteger,
   last,
+  drop,
   dropRight
 } from "lodash";
 import {
@@ -21,7 +22,7 @@ import {
   StartTerminal,
   EndTerminal
 } from "./parser";
-import { SemanticAction } from "./match";
+import { NonEmptyArray, SemanticAction, SuccessMatch } from "./match";
 import {
   epsilon,
   spaces,
@@ -34,7 +35,7 @@ import {
 
 type TemplateArgument = string | RegExp | Parser | SemanticAction;
 
-// TODO add '/' as an alternative to '|' and add support for '%'
+// TODO add support for '%'
 
 /**
  * This is a static member.
@@ -48,10 +49,12 @@ type TemplateArgument = string | RegExp | Parser | SemanticAction;
  * rule:
  *      identifier ":" derivation
  * derivation:
- *      alternative ("|" alternative)*
+ *      alternative (("|" | "/") alternative)*
  * alternative:
  *      step+ ("@" integer)?
  * step:
+ *      item ("%" item)*
+ * item:
  *      ("&" | "!") atom
  *    | atom ("?" | "+" | "*" | "{" integer ("," integer)? "}")?
  * atom:
@@ -72,6 +75,7 @@ const metagrammar = {
   derivation: rule(),
   alternative: rule(),
   step: rule(),
+  item: rule(),
   atom: rule()
 };
 
@@ -125,7 +129,10 @@ metagrammar.derivation.parser = new Sequence(
   [
     metagrammar.alternative,
     new Repetition(
-      new Sequence([new LiteralTerminal("|"), metagrammar.alternative]),
+      new Sequence([
+        new Alternative([new LiteralTerminal("|"), new LiteralTerminal("/")]),
+        metagrammar.alternative
+      ]),
       0,
       Infinity
     )
@@ -178,7 +185,37 @@ metagrammar.alternative.parser = new Sequence(
  * Static members should not be inherited.
  */
 
-metagrammar.step.parser = new Alternative([
+metagrammar.step.parser = new Sequence(
+  [
+    metagrammar.item,
+    new Repetition(
+      new Sequence([new LiteralTerminal("%"), metagrammar.item]),
+      0,
+      Infinity
+    )
+  ],
+  (_, children): Parser => {
+    if (children.length === 1) return children[0];
+    console.log("children", children);
+    const r = drop(children).reduce(
+      (acc, child) =>
+        new Sequence([
+          acc,
+          new Repetition(new Sequence([child, acc]), 0, Infinity)
+        ]),
+      children[0]
+    );
+    return r;
+  }
+);
+
+/**
+ * This is a static member.
+ *
+ * Static members should not be inherited.
+ */
+
+metagrammar.item.parser = new Alternative([
   new Sequence(
     [
       new Alternative(
@@ -300,25 +337,22 @@ export function pegase(
   chunks: TemplateStringsArray,
   ...args: TemplateArgument[]
 ) {
+  const grammar = chunks.reduce(
+    (acc, chunk, index) =>
+      acc +
+      chunk +
+      (index === chunks.length - 1
+        ? ""
+        : isFunction(args[index])
+        ? `@${index}`
+        : index),
+    ""
+  );
   const payload = {
     args,
     rules: Object.create(null)
   };
-  return (
-    metagrammar.pegase.value(
-      chunks.reduce(
-        (acc, chunk, index) =>
-          acc +
-          chunk +
-          (index === chunks.length - 1
-            ? ""
-            : isFunction(args[index])
-            ? `@${index}`
-            : index),
-        ""
-      ),
-      spaces,
-      payload
-    ) || payload.rules
-  );
+  const match = metagrammar.pegase.parse(grammar, spaces, payload);
+  if (match instanceof SuccessMatch) return match.value || payload.rules;
+  throw match;
 }
