@@ -1,4 +1,4 @@
-import { random, times } from "lodash";
+import { random, sum, times } from "lodash";
 import {
   First,
   Match,
@@ -67,7 +67,7 @@ export abstract class Parser {
     payload: any
   ): Match;
 
-  abstract _generate(space: Spacer, weights: WeightMap): string;
+  abstract _generate(spacer: Spacer, weights: WeightMap): string;
 }
 
 /**
@@ -108,13 +108,11 @@ export class Sequence extends Parser {
     );
   }
 
-  _generate(skipper: Skipper = defaultSkipper, weights: WeightMap): string {
-    if (weights.has(this)) weights.set(this, weights.get(this)! / 2);
-    else weights.set(this, 1);
+  _generate(spacer: Spacer, weights: WeightMap): string {
     return this.parsers
       .map(parser => {
         const weightsCopy = new Map<Parser, number>(weights);
-        return parser._generate(skipper, weightsCopy);
+        return parser._generate(spacer, weightsCopy);
       })
       .join("");
   }
@@ -160,13 +158,26 @@ export class Alternative extends Parser {
     return MatchFail.merge(fails as NonEmptyArray<MatchFail>);
   }
 
-  _generate(skipper: Skipper = defaultSkipper, weights: WeightMap): string {
-    if (weights.has(this)) weights.set(this, weights.get(this)! / 2);
-    else weights.set(this, 1);
-    return this.parsers[random(0, this.parsers.length - 1)]._generate(
-      skipper,
-      weights
-    );
+  _generate(spacer: Spacer, weights: WeightMap): string {
+    const childWeights = this.parsers.map(parser => {
+      const weight = weights.get(parser);
+      if (weight === undefined) {
+        weights.set(parser, 1);
+        return 1;
+      } else {
+        weights.set(parser, weight / 2);
+        return weight / 2;
+      }
+    });
+    const totalWeights = sum(childWeights);
+    const random = Math.random() * totalWeights;
+    let acc = 0,
+      index = 0;
+    for (; index !== childWeights.length; ++index) {
+      acc += childWeights[index];
+      if (random < acc) break;
+    }
+    return this.parsers[index]._generate(spacer, weights);
   }
 }
 
@@ -206,12 +217,12 @@ export class NonTerminal extends Parser {
     return match;
   }
 
-  generate(skipper: Skipper = defaultSkipper): string {
+  _generate(spacer: Spacer, weights: WeightMap): string {
     if (!this.parser)
       throw new Error(
         "Cannot generate string from non-terminal with undefined child parser"
       );
-    return this.parser.generate(skipper);
+    return this.parser._generate(spacer, weights);
   }
 }
 
@@ -272,10 +283,13 @@ export class Repetition extends Parser {
     }
   }
 
-  generate(skipper: Skipper = defaultSkipper): string {
+  _generate(spacer: Spacer, weights: WeightMap): string {
     return times(
       random(this.min, this.max === Infinity ? this.min + 1 : this.max),
-      () => this.parser.generate(skipper)
+      () => {
+        const weightsCopy = new Map<Parser, number>(weights);
+        return this.parser._generate(spacer, weightsCopy);
+      }
     ).join("");
   }
 }
@@ -327,7 +341,7 @@ export class Predicate extends Parser {
     }
   }
 
-  generate(skipper: Skipper = defaultSkipper): string {
+  _generate(spacer: Spacer, weights: WeightMap): string {
     return "";
   }
 }
@@ -392,12 +406,12 @@ export class Token extends Parser {
     );
   }
 
-  generate(skipper: Skipper = defaultSkipper): string {
+  _generate(spacer: Spacer, weights: WeightMap): string {
     if (!this.parser)
       throw new Error(
         `Cannot generate string from token ${this.identity} with undefined child parser`
       );
-    return " ".repeat(random(1, 1)) + this.parser.generate(null);
+    return " ".repeat(random(1, 1)) + this.parser._generate(null, weights);
   }
 }
 
@@ -454,7 +468,7 @@ export class LiteralTerminal extends Parser {
     );
   }
 
-  generate(skipper: Skipper = defaultSkipper): string {
+  _generate(spacer: Spacer, weights: WeightMap): string {
     return " ".repeat(random(1, 1)) + this.literal;
   }
 }
@@ -513,7 +527,7 @@ export class RegexTerminal extends Parser {
     );
   }
 
-  generate(skipper: Skipper = defaultSkipper): string {
+  _generate(spacer: Spacer, weights: WeightMap): string {
     return " ".repeat(random(1, 1)) + "n";
   }
 }
@@ -553,7 +567,7 @@ export class StartTerminal extends Parser {
     );
   }
 
-  generate(skipper: Skipper = defaultSkipper): string {
+  _generate(spacer: Spacer, weights: WeightMap): string {
     return "";
   }
 }
@@ -596,7 +610,7 @@ export class EndTerminal extends Parser {
     );
   }
 
-  generate(skipper: Skipper = defaultSkipper): string {
+  _generate(spacer: Spacer, weights: WeightMap): string {
     return "";
   }
 }
