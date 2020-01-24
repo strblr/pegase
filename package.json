@@ -1,11 +1,13 @@
 {
-  "name": "quickparse",
+  "name": "pegase",
   "version": "1.0.0",
-  "description": "A fast inline intuitive PEG parser for Javascript",
-  "main": "index.js",
+  "description": "A fast, inline and intuitive PEG parser generator for Javascript",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "scripts": {
-    "test": "node test/test.js",
-    "build": "tsc"
+    "test": "jest",
+    "build": "tsc",
+    "prepare": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -30,6 +32,7 @@
   },
   "devDependencies": {
     "@types/lodash": "^4.14.149",
+    "jest": "^25.1.0",
     "typescript": "^3.7.4"
   }
 }

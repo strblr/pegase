@@ -1,3 +1,4 @@
+import { random, times } from "lodash";
 import {
   First,
   Match,
@@ -8,6 +9,10 @@ import {
 } from "./match";
 
 type Skipper = Parser | null;
+
+type WeightMap = Map<Parser, number>;
+
+type Spacer = Parser | null;
 
 type FirstSet = First[];
 
@@ -50,12 +55,19 @@ export abstract class Parser {
     throw match;
   }
 
+  generate(spacer: Spacer = defaultSkipper): string {
+    const weights = new Map<Parser, number>();
+    return this._generate(spacer, weights);
+  }
+
   abstract _parse(
     input: string,
     from: number,
     skipper: Skipper,
     payload: any
   ): Match;
+
+  abstract _generate(space: Spacer, weights: WeightMap): string;
 }
 
 /**
@@ -94,6 +106,17 @@ export class Sequence extends Parser {
       this.action,
       payload
     );
+  }
+
+  _generate(skipper: Skipper = defaultSkipper, weights: WeightMap): string {
+    if (weights.has(this)) weights.set(this, weights.get(this)! / 2);
+    else weights.set(this, 1);
+    return this.parsers
+      .map(parser => {
+        const weightsCopy = new Map<Parser, number>(weights);
+        return parser._generate(skipper, weightsCopy);
+      })
+      .join("");
   }
 }
 
@@ -136,6 +159,15 @@ export class Alternative extends Parser {
     }
     return MatchFail.merge(fails as NonEmptyArray<MatchFail>);
   }
+
+  _generate(skipper: Skipper = defaultSkipper, weights: WeightMap): string {
+    if (weights.has(this)) weights.set(this, weights.get(this)! / 2);
+    else weights.set(this, 1);
+    return this.parsers[random(0, this.parsers.length - 1)]._generate(
+      skipper,
+      weights
+    );
+  }
 }
 
 /**
@@ -172,6 +204,14 @@ export class NonTerminal extends Parser {
         payload
       );
     return match;
+  }
+
+  generate(skipper: Skipper = defaultSkipper): string {
+    if (!this.parser)
+      throw new Error(
+        "Cannot generate string from non-terminal with undefined child parser"
+      );
+    return this.parser.generate(skipper);
   }
 }
 
@@ -231,6 +271,13 @@ export class Repetition extends Parser {
       else return succeed();
     }
   }
+
+  generate(skipper: Skipper = defaultSkipper): string {
+    return times(
+      random(this.min, this.max === Infinity ? this.min + 1 : this.max),
+      () => this.parser.generate(skipper)
+    ).join("");
+  }
 }
 
 /**
@@ -278,6 +325,10 @@ export class Predicate extends Parser {
         }))
       );
     }
+  }
+
+  generate(skipper: Skipper = defaultSkipper): string {
+    return "";
   }
 }
 
@@ -331,7 +382,22 @@ export class Token extends Parser {
         this.action,
         payload
       );
-    return match;
+    return new MatchFail(
+      input,
+      this.first.map(first => ({
+        at: from,
+        type: "EXPECTATION_FAIL",
+        ...first
+      }))
+    );
+  }
+
+  generate(skipper: Skipper = defaultSkipper): string {
+    if (!this.parser)
+      throw new Error(
+        `Cannot generate string from token ${this.identity} with undefined child parser`
+      );
+    return " ".repeat(random(1, 1)) + this.parser.generate(null);
   }
 }
 
@@ -386,6 +452,10 @@ export class LiteralTerminal extends Parser {
       this.action,
       payload
     );
+  }
+
+  generate(skipper: Skipper = defaultSkipper): string {
+    return " ".repeat(random(1, 1)) + this.literal;
   }
 }
 
@@ -442,6 +512,10 @@ export class RegexTerminal extends Parser {
       payload
     );
   }
+
+  generate(skipper: Skipper = defaultSkipper): string {
+    return " ".repeat(random(1, 1)) + "n";
+  }
 }
 
 const defaultSkipper = new RegexTerminal(/\s*/);
@@ -477,6 +551,10 @@ export class StartTerminal extends Parser {
         ...first
       }))
     );
+  }
+
+  generate(skipper: Skipper = defaultSkipper): string {
+    return "";
   }
 }
 
@@ -516,5 +594,9 @@ export class EndTerminal extends Parser {
         ...first
       }))
     );
+  }
+
+  generate(skipper: Skipper = defaultSkipper): string {
+    return "";
   }
 }

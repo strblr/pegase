@@ -4,7 +4,6 @@ import {
   isFunction,
   isInteger,
   last,
-  drop,
   dropRight
 } from "lodash";
 import {
@@ -195,16 +194,18 @@ metagrammar.step.parser = new Sequence(
     )
   ],
   (_, children): Parser => {
-    if (children.length === 1) return children[0];
-    console.log("children", children);
-    const r = drop(children).reduce(
+    const [item, ...rest] = children;
+    if (rest.length === 0) return item;
+    // console.log("Got", [item, ...rest]);
+    const r = rest.reduce(
       (acc, child) =>
         new Sequence([
           acc,
           new Repetition(new Sequence([child, acc]), 0, Infinity)
         ]),
-      children[0]
+      item
     );
+    // console.log("End", r);
     return r;
   }
 );

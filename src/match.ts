@@ -94,13 +94,7 @@ export class SuccessMatch extends Match {
       [] as any[]
     );
     if (action) this.value = action(this.raw, this.children, payload, this);
-    else {
-      const activeValueMatches = matches.filter(
-        match => match.value !== undefined
-      );
-      if (activeValueMatches.length === 1)
-        this.value = activeValueMatches[0].value;
-    }
+    else if (this.children.length === 1) this.value = this.children[0];
   }
 
   get raw(): string {
