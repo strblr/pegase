@@ -49,9 +49,9 @@ test("Math expressions should be correctly calculated", () => {
 
   const { calc } = pegase`
     calc: expr $
-    expr: term (("+" | "-") term)* ${fold}
-    term: fact (("*" | "/") fact)* ${fold}
-    fact: '1' ${parseFloat}
+    expr: term % ("+" | "-") ${fold}
+    term: fact % ("*" | "/") ${fold}
+    fact: ${number} ${parseFloat}
         | '(' expr ')'
   `;
 
