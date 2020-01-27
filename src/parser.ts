@@ -36,7 +36,7 @@ export abstract class Parser {
   }
 
   value(input: string, skipper: Skipper = defaultSkipper, payload?: any): any {
-    const match = this._parse(input, 0, skipper, payload);
+    const match = this.parse(input, skipper, payload);
     if (match instanceof SuccessMatch) return match.value;
     throw match;
   }
@@ -46,9 +46,21 @@ export abstract class Parser {
     skipper: Skipper = defaultSkipper,
     payload?: any
   ): any[] {
-    const match = this._parse(input, 0, skipper, payload);
+    const match = this.parse(input, skipper, payload);
     if (match instanceof SuccessMatch) return match.children;
     throw match;
+  }
+
+  wait(
+    input: string,
+    skipper: Skipper = defaultSkipper,
+    payload?: any
+  ): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const match = this.parse(input, skipper, payload);
+      if (match instanceof SuccessMatch) resolve(match.value);
+      else reject(match);
+    });
   }
 
   abstract _parse(
