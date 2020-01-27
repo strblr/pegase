@@ -93,8 +93,21 @@ export class SuccessMatch extends Match {
       ],
       [] as any[]
     );
-    if (action) this.value = action(this.raw, this.children, payload, this);
-    else if (this.children.length === 1) this.value = this.children[0];
+    if (action) {
+      try {
+        this.value = action(this.raw, this.children, payload, this);
+      } catch (error) {
+        if (error instanceof Error)
+          return (new MatchFail(input, [
+            {
+              at: from,
+              type: "SEMANTIC_FAIL",
+              message: error.message
+            }
+          ]) as unknown) as SuccessMatch;
+        throw error;
+      }
+    } else if (this.children.length === 1) this.value = this.children[0];
   }
 
   get raw(): string {

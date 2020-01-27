@@ -12,19 +12,6 @@ test("Modulos in grammars should work", () => {
   expect(grammar.children("1 ,1,1 |1,1, 1  ,   1,1|1 |   1,1 ")).toEqual(
     finalCount
   );
-
-  const { S } = pegase`
-    S: NP VP
-    PP: P NP
-    NP: Det N | Det N PP | 'I'
-    VP: V NP | VP PP
-    V: 'shot' | 'killed' | 'wounded'
-    Det: 'an' | 'my' 
-    N: 'elephant' | 'pajamas' | 'cat' | 'dog'
-    P: 'in' | 'outside'
-  `;
-
-  console.log(S.generate());
 });
 
 test("Math expressions should be correctly calculated", () => {
@@ -55,9 +42,7 @@ test("Math expressions should be correctly calculated", () => {
         | '(' expr ')'
   `;
 
-  console.log(calc.generate());
-
-  /*expect(calc.value("2 + 3")).toBe(5);
+  expect(calc.value("2 + 3")).toBe(5);
   expect(calc.value("2 * 3")).toBe(6);
   expect(calc.value("2 * -3")).toBe(-6);
   expect(calc.value("89")).toBe(89);
@@ -106,5 +91,5 @@ test("Math expressions should be correctly calculated", () => {
     calc.value(
       " ( (( ( (485.56) -  318.95) *( 486.17/465.96 -  324.49/-122.8 )+ -422.8) * 167.73+-446.4 *-88.31) -271.61/ ( (( 496.31 / ((  -169.3*  453.70) ) )/-52.22 )* (( (-134.9* (-444.1-(( 278.79 * (  -384.5)) ) / (-270.6/  396.89-(  -391.5/150.39-  -422.9 )* -489.2 ) )+-38.02 )) )) )"
     )
-  ).toBeCloseTo(71470.126502);*/
+  ).toBeCloseTo(71470.126502);
 });
