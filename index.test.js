@@ -1,4 +1,9 @@
-const { pegase, number } = require("./lib/index");
+const {
+  pegase,
+  number,
+  identifier,
+  doubleQuotedString
+} = require("./lib/index");
 
 test("Modulos in grammars should work", () => {
   function count(_, children) {
@@ -12,6 +17,14 @@ test("Modulos in grammars should work", () => {
   expect(grammar.children("1 ,1,1 |1,1, 1  ,   1,1|1 |   1,1 ")).toEqual(
     finalCount
   );
+});
+
+test("XML should be correctly converted to in-memory JSON", () => {
+  const g = pegase`
+    xml: tag*
+    tag: '<' ${identifier} atb* '>' xml '<' '/' ${identifier} '>'
+    atb: ${identifier} '=' ${doubleQuotedString}
+  `;
 });
 
 test("Math expressions should be correctly calculated", () => {
