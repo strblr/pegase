@@ -1,45 +1,5 @@
 import { isEqual, uniqWith } from "lodash";
-
-export type NonEmptyArray<T> = [T, ...T[]];
-
-export type SemanticAction = (
-  raw: string,
-  children: any[],
-  payload: any,
-  match: SuccessMatch
-) => any;
-
-export type First = {
-  polarity: boolean;
-} & (
-  | {
-      what: "TOKEN";
-      identity: string;
-    }
-  | {
-      what: "LITERAL";
-      literal: string;
-    }
-  | {
-      what: "REGEX";
-      pattern: RegExp;
-    }
-  | {
-      what: "START" | "END";
-    }
-);
-
-export type Failure = {
-  at: number;
-} & (
-  | ({
-      type: "EXPECTATION_FAIL";
-    } & First)
-  | {
-      type: "SEMANTIC_FAIL";
-      message: string;
-    }
-);
+import { Failure, NonEmptyArray, Options, SemanticAction } from "./types";
 
 /**
  * This is a static member.
@@ -81,7 +41,7 @@ export class SuccessMatch extends Match {
     to: number,
     matches: SuccessMatch[],
     action: SemanticAction | null,
-    payload: any
+    options: Options
   ) {
     super(input);
     this.from = from;
@@ -95,7 +55,7 @@ export class SuccessMatch extends Match {
     );
     if (action) {
       try {
-        this.value = action(this.raw, this.children, payload, this);
+        this.value = action(this.raw, this.children, options.payload, this);
       } catch (error) {
         if (error instanceof Error)
           return (new MatchFail(input, [

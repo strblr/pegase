@@ -21,26 +21,19 @@ import {
   StartTerminal,
   EndTerminal
 } from "./parser";
-import { NonEmptyArray, SemanticAction, SuccessMatch } from "./match";
+import { SuccessMatch } from "./match";
 import {
-  epsilon,
-  spaces,
-  anyCharacter,
-  pegaseIdentifier,
-  positiveInteger,
-  singleQuotedString,
-  doubleQuotedString
+  char,
+  doubleStr,
+  eps,
+  natural,
+  pegaseId,
+  singleStr,
+  spaces
 } from "./snippets";
-
-type TemplateArgument = string | RegExp | Parser | SemanticAction;
-
-// TODO add support for '%'
+import { NonEmptyArray, TagArgument } from "./types";
 
 /**
- * This is a static member.
- *
- * Static members should not be inherited.
- *
  * Meta-grammar
  *
  * pegase:
@@ -100,21 +93,22 @@ metagrammar.pegase.parser = new Sequence([
 
 metagrammar.rule.parser = new Sequence(
   [
-    new NonTerminal(pegaseIdentifier, raw => raw),
+    new NonTerminal(pegaseId, raw => raw),
     new LiteralTerminal(":"),
     metagrammar.derivation
   ],
   (_, children, payload): void => {
     const [identifier, derivation] = children as [string, Parser];
-    if (identifier in payload.rules) {
+    if (!(identifier in payload.rules)) payload.rules[identifier] = derivation;
+    else {
       const parser = payload.rules[identifier];
       if (
         (!(parser instanceof NonTerminal) && !(parser instanceof Token)) ||
         parser.parser
       )
         throw new Error(`Multiple definitions of non-terminal ${identifier}`);
-      payload.rules[identifier].parser = derivation;
-    } else payload.rules[identifier] = derivation;
+      parser.parser = derivation;
+    }
   }
 );
 
@@ -154,7 +148,7 @@ metagrammar.alternative.parser = new Sequence(
     new Repetition(
       new Sequence([
         new LiteralTerminal("@"),
-        new NonTerminal(positiveInteger, raw => parseInt(raw, 10))
+        new NonTerminal(natural, raw => parseInt(raw, 10))
       ]),
       0,
       1
@@ -194,10 +188,9 @@ metagrammar.step.parser = new Sequence(
     )
   ],
   (_, children): Parser => {
-    const [item, ...rest] = children;
+    const [item, ...rest] = children as NonEmptyArray<Parser>;
     if (rest.length === 0) return item;
-    // console.log("Got", [item, ...rest]);
-    const r = rest.reduce(
+    return rest.reduce(
       (acc, child) =>
         new Sequence([
           acc,
@@ -205,8 +198,6 @@ metagrammar.step.parser = new Sequence(
         ]),
       item
     );
-    // console.log("End", r);
-    return r;
   }
 );
 
@@ -240,11 +231,11 @@ metagrammar.item.parser = new Alternative([
           new LiteralTerminal("*", raw => raw),
           new Sequence([
             new LiteralTerminal("{"),
-            new NonTerminal(positiveInteger, raw => parseInt(raw, 10)),
+            new NonTerminal(natural, raw => parseInt(raw, 10)),
             new Repetition(
               new Sequence([
                 new LiteralTerminal(","),
-                new NonTerminal(positiveInteger, raw => parseInt(raw, 10))
+                new NonTerminal(natural, raw => parseInt(raw, 10))
               ]),
               0,
               1
@@ -281,21 +272,21 @@ metagrammar.item.parser = new Alternative([
 
 metagrammar.atom.parser = new Alternative([
   new NonTerminal(
-    singleQuotedString,
-    (raw): Parser =>
+    singleStr,
+    raw =>
       new LiteralTerminal(JSON.parse(`"${raw.substring(1, raw.length - 1)}"`))
   ),
   new NonTerminal(
-    doubleQuotedString,
-    (raw): Parser => new LiteralTerminal(JSON.parse(raw), raw => raw)
+    doubleStr,
+    raw => new LiteralTerminal(JSON.parse(raw), raw => raw)
   ),
   new NonTerminal(
-    positiveInteger,
+    natural,
     (raw, _, payload): Parser => {
       const index = parseInt(raw, 10);
       if (index >= payload.args.length)
         throw new Error(`Invalid reference (${index}) in parser expression`);
-      const item: TemplateArgument = payload.args[index];
+      const item: TagArgument = payload.args[index];
       if (isString(item)) return new LiteralTerminal(item);
       if (isRegExp(item)) return new RegexTerminal(item);
       if (item instanceof Parser) return item;
@@ -305,7 +296,7 @@ metagrammar.atom.parser = new Alternative([
     }
   ),
   new Sequence(
-    [pegaseIdentifier, new Predicate(new LiteralTerminal(":"), false)],
+    [pegaseId, new Predicate(new LiteralTerminal(":"), false)],
     (raw, _, payload): Parser => {
       if (!(raw in payload.rules))
         payload.rules[raw] = raw.startsWith("$")
@@ -319,12 +310,12 @@ metagrammar.atom.parser = new Alternative([
     metagrammar.derivation,
     new LiteralTerminal(")")
   ]),
-  new LiteralTerminal("ε", (): Parser => epsilon),
-  new LiteralTerminal(".", (): Parser => anyCharacter),
-  new LiteralTerminal("^", (): Parser => new StartTerminal()),
+  new LiteralTerminal("ε", () => eps),
+  new LiteralTerminal(".", () => char),
+  new LiteralTerminal("^", () => new StartTerminal()),
   new Sequence([
-    new Predicate(pegaseIdentifier, false),
-    new LiteralTerminal("$", (): Parser => new EndTerminal())
+    new Predicate(pegaseId, false),
+    new LiteralTerminal("$", () => new EndTerminal())
   ])
 ]);
 
@@ -334,10 +325,7 @@ metagrammar.atom.parser = new Alternative([
  * Static members should not be inherited.
  */
 
-export function pegase(
-  chunks: TemplateStringsArray,
-  ...args: TemplateArgument[]
-) {
+export function pegase(chunks: TemplateStringsArray, ...args: TagArgument[]) {
   const grammar = chunks.reduce(
     (acc, chunk, index) =>
       acc +
@@ -353,7 +341,7 @@ export function pegase(
     args,
     rules: Object.create(null)
   };
-  const match = metagrammar.pegase.parse(grammar, spaces, payload);
+  const match = metagrammar.pegase.parse(grammar, { skipper: spaces, payload });
   if (match instanceof SuccessMatch) return match.value || payload.rules;
   throw match;
 }

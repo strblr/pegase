@@ -1,16 +1,5 @@
-import { random, sum, times } from "lodash";
-import {
-  First,
-  Match,
-  SuccessMatch,
-  MatchFail,
-  SemanticAction,
-  NonEmptyArray
-} from "./match";
-
-type Skipper = Parser | null;
-
-type FirstSet = First[];
+import { Match, SuccessMatch, MatchFail } from "./match";
+import { FirstSet, NonEmptyArray, Options, SemanticAction } from "./types";
 
 /**
  * This is a static member.
@@ -27,48 +16,23 @@ export abstract class Parser {
 
   abstract get first(): FirstSet;
 
-  parse(
-    input: string,
-    skipper: Skipper = defaultSkipper,
-    payload?: any
-  ): Match {
-    return this._parse(input, 0, skipper, payload);
+  parse(input: string, options: Partial<Options>): Match {
+    return this._parse(input, 0, { ...defaultOptions, ...options });
   }
 
-  value(input: string, skipper: Skipper = defaultSkipper, payload?: any): any {
-    const match = this.parse(input, skipper, payload);
+  value(input: string, options: Partial<Options>): any {
+    const match = this.parse(input, options);
     if (match instanceof SuccessMatch) return match.value;
     throw match;
   }
 
-  children(
-    input: string,
-    skipper: Skipper = defaultSkipper,
-    payload?: any
-  ): any[] {
-    const match = this.parse(input, skipper, payload);
+  children(input: string, options: Partial<Options>): any[] {
+    const match = this.parse(input, options);
     if (match instanceof SuccessMatch) return match.children;
     throw match;
   }
 
-  wait(
-    input: string,
-    skipper: Skipper = defaultSkipper,
-    payload?: any
-  ): Promise<any> {
-    return new Promise((resolve, reject) => {
-      const match = this.parse(input, skipper, payload);
-      if (match instanceof SuccessMatch) resolve(match.value);
-      else reject(match);
-    });
-  }
-
-  abstract _parse(
-    input: string,
-    from: number,
-    skipper: Skipper,
-    payload: any
-  ): Match;
+  abstract _parse(input: string, from: number, options: Options): Match;
 }
 
 /**
@@ -89,11 +53,11 @@ export class Sequence extends Parser {
     return this.parsers[0].first;
   }
 
-  _parse(input: string, from: number, skipper: Skipper, payload: any): Match {
+  _parse(input: string, from: number, options: Options): Match {
     const matches: SuccessMatch[] = [];
     let cursor = from;
     for (const parser of this.parsers) {
-      const match = parser._parse(input, cursor, skipper, payload);
+      const match = parser._parse(input, cursor, options);
       if (match instanceof SuccessMatch) {
         matches.push(match);
         cursor = match.to;
@@ -105,7 +69,7 @@ export class Sequence extends Parser {
       cursor,
       matches,
       this.action,
-      payload
+      options
     );
   }
 }
@@ -131,11 +95,10 @@ export class Alternative extends Parser {
     );
   }
 
-  _parse(input: string, from: number, skipper: Skipper, payload: any): Match {
-    // noinspection JSMismatchedCollectionQueryUpdate
+  _parse(input: string, from: number, options: Options): Match {
     const fails: MatchFail[] = [];
     for (const parser of this.parsers) {
-      const match = parser._parse(input, from, skipper, payload);
+      const match = parser._parse(input, from, options);
       if (match instanceof SuccessMatch)
         return new SuccessMatch(
           input,
@@ -143,7 +106,7 @@ export class Alternative extends Parser {
           match.to,
           [match],
           this.action,
-          payload
+          options
         );
       fails.push(match as MatchFail);
     }
@@ -171,10 +134,10 @@ export class NonTerminal extends Parser {
     return this.parser.first;
   }
 
-  _parse(input: string, from: number, skipper: Skipper, payload: any): Match {
+  _parse(input: string, from: number, options: Options): Match {
     if (!this.parser)
       throw new Error("Cannot parse non-terminal with undefined child parser");
-    const match = this.parser._parse(input, from, skipper, payload);
+    const match = this.parser._parse(input, from, options);
     if (match instanceof SuccessMatch)
       return new SuccessMatch(
         input,
@@ -182,14 +145,10 @@ export class NonTerminal extends Parser {
         match.to,
         [match],
         this.action,
-        payload
+        options
       );
     return match;
   }
-}
-
-export function rule(): NonTerminal {
-  return new NonTerminal(null);
 }
 
 /**
@@ -219,7 +178,7 @@ export class Repetition extends Parser {
     return this.parser.first;
   }
 
-  _parse(input: string, from: number, skipper: Skipper, payload: any): Match {
+  _parse(input: string, from: number, options: Options): Match {
     const matches: SuccessMatch[] = [];
     let counter = 0,
       cursor = from;
@@ -230,12 +189,12 @@ export class Repetition extends Parser {
         matches.length === 0 ? from : matches[matches.length - 1].to,
         matches,
         this.action,
-        payload
+        options
       );
     };
     while (true) {
       if (counter === this.max) return succeed();
-      const match = this.parser._parse(input, cursor, skipper, payload);
+      const match = this.parser._parse(input, cursor, options);
       if (match instanceof SuccessMatch) {
         matches.push(match);
         cursor = match.to;
@@ -274,21 +233,23 @@ export class Predicate extends Parser {
     }));
   }
 
-  _parse(input: string, from: number, skipper: Skipper, payload: any): Match {
-    const match = this.parser._parse(input, from, skipper, payload);
+  _parse(input: string, from: number, options: Options): Match {
+    const match = this.parser._parse(input, from, options);
     if (match instanceof MatchFail) {
       if (this.polarity) return match;
-      return new SuccessMatch(input, from, from, [], this.action, payload);
+      return new SuccessMatch(input, from, from, [], this.action, options);
     } else {
       if (this.polarity)
-        return new SuccessMatch(input, from, from, [], this.action, payload);
+        return new SuccessMatch(input, from, from, [], this.action, options);
       return new MatchFail(
         input,
-        this.first.map(first => ({
-          at: (match as SuccessMatch).from,
-          type: "EXPECTATION_FAIL",
-          ...first
-        }))
+        options.diagnose
+          ? this.first.map(first => ({
+              at: (match as SuccessMatch).from,
+              type: "EXPECTATION_FAIL",
+              ...first
+            }))
+          : []
       );
     }
   }
@@ -324,17 +285,18 @@ export class Token extends Parser {
     ];
   }
 
-  _parse(input: string, from: number, skipper: Skipper, payload: any): Match {
+  _parse(input: string, from: number, options: Options): Match {
     if (!this.parser)
       throw new Error(
         `Cannot parse token ${this.identity} with undefined child parser`
       );
-    if (skipper) {
-      const skipMatch = skipper._parse(input, from, null, payload);
-      if (skipMatch instanceof SuccessMatch) from = skipMatch.to;
-      else return skipMatch;
+    const optionsNoSkip = { ...options, skipper: null };
+    if (options.skipper) {
+      const match = options.skipper._parse(input, from, optionsNoSkip);
+      if (match instanceof SuccessMatch) from = match.to;
+      else return match;
     }
-    const match = this.parser._parse(input, from, null, payload);
+    const match = this.parser._parse(input, from, optionsNoSkip);
     if (match instanceof SuccessMatch)
       return new SuccessMatch(
         input,
@@ -342,21 +304,19 @@ export class Token extends Parser {
         match.to,
         [match],
         this.action,
-        payload
+        options
       );
     return new MatchFail(
       input,
-      this.first.map(first => ({
-        at: from,
-        type: "EXPECTATION_FAIL",
-        ...first
-      }))
+      options.diagnose
+        ? this.first.map(first => ({
+            at: from,
+            type: "EXPECTATION_FAIL",
+            ...first
+          }))
+        : []
     );
   }
-}
-
-export function token(identity: string): Token {
-  return new Token(null, identity);
 }
 
 /**
@@ -383,20 +343,25 @@ export class LiteralTerminal extends Parser {
     ];
   }
 
-  _parse(input: string, from: number, skipper: Skipper, payload: any): Match {
-    if (skipper) {
-      const skipMatch = skipper._parse(input, from, null, payload);
-      if (skipMatch instanceof SuccessMatch) from = skipMatch.to;
-      else return skipMatch;
+  _parse(input: string, from: number, options: Options): Match {
+    if (options.skipper) {
+      const match = options.skipper._parse(input, from, {
+        ...options,
+        skipper: null
+      });
+      if (match instanceof SuccessMatch) from = match.to;
+      else return match;
     }
     if (!input.startsWith(this.literal, from))
       return new MatchFail(
         input,
-        this.first.map(first => ({
-          at: from,
-          type: "EXPECTATION_FAIL",
-          ...first
-        }))
+        options.diagnose
+          ? this.first.map(first => ({
+              at: from,
+              type: "EXPECTATION_FAIL",
+              ...first
+            }))
+          : []
       );
     return new SuccessMatch(
       input,
@@ -404,7 +369,7 @@ export class LiteralTerminal extends Parser {
       from + this.literal.length,
       [],
       this.action,
-      payload
+      options
     );
   }
 }
@@ -436,22 +401,27 @@ export class RegexTerminal extends Parser {
     ];
   }
 
-  _parse(input: string, from: number, skipper: Skipper, payload: any): Match {
-    if (skipper) {
-      const skipMatch = skipper._parse(input, from, null, payload);
-      if (skipMatch instanceof SuccessMatch) from = skipMatch.to;
-      else return skipMatch;
+  _parse(input: string, from: number, options: Options): Match {
+    if (options.skipper) {
+      const match = options.skipper._parse(input, from, {
+        ...options,
+        skipper: null
+      });
+      if (match instanceof SuccessMatch) from = match.to;
+      else return match;
     }
     this.pattern.lastIndex = from;
     const result = this.pattern.exec(input);
     if (result === null)
       return new MatchFail(
         input,
-        this.first.map(first => ({
-          at: from,
-          type: "EXPECTATION_FAIL",
-          ...first
-        }))
+        options.diagnose
+          ? this.first.map(first => ({
+              at: from,
+              type: "EXPECTATION_FAIL",
+              ...first
+            }))
+          : []
       );
     return new SuccessMatch(
       input,
@@ -459,12 +429,10 @@ export class RegexTerminal extends Parser {
       from + result[0].length,
       [],
       this.action,
-      payload
+      options
     );
   }
 }
-
-const defaultSkipper = new RegexTerminal(/\s*/);
 
 /**
  * This is a static member.
@@ -486,16 +454,18 @@ export class StartTerminal extends Parser {
     ];
   }
 
-  _parse(input: string, from: number, skipper: Skipper, payload: any): Match {
+  _parse(input: string, from: number, options: Options): Match {
     if (from === 0)
-      return new SuccessMatch(input, 0, 0, [], this.action, payload);
+      return new SuccessMatch(input, 0, 0, [], this.action, options);
     return new MatchFail(
       input,
-      this.first.map(first => ({
-        at: from,
-        type: "EXPECTATION_FAIL",
-        ...first
-      }))
+      options.diagnose
+        ? this.first.map(first => ({
+            at: from,
+            type: "EXPECTATION_FAIL",
+            ...first
+          }))
+        : []
     );
   }
 }
@@ -520,21 +490,46 @@ export class EndTerminal extends Parser {
     ];
   }
 
-  _parse(input: string, from: number, skipper: Skipper, payload: any): Match {
-    if (skipper) {
-      const skipMatch = skipper._parse(input, from, null, payload);
-      if (skipMatch instanceof SuccessMatch) from = skipMatch.to;
-      else return skipMatch;
+  _parse(input: string, from: number, options: Options): Match {
+    if (options.skipper) {
+      const match = options.skipper._parse(input, from, {
+        ...options,
+        skipper: null
+      });
+      if (match instanceof SuccessMatch) from = match.to;
+      else return match;
     }
     if (from === input.length)
-      return new SuccessMatch(input, from, from, [], this.action, payload);
+      return new SuccessMatch(input, from, from, [], this.action, options);
     return new MatchFail(
       input,
-      this.first.map(first => ({
-        at: from,
-        type: "EXPECTATION_FAIL",
-        ...first
-      }))
+      options.diagnose
+        ? this.first.map(first => ({
+            at: from,
+            type: "EXPECTATION_FAIL",
+            ...first
+          }))
+        : []
     );
   }
+}
+
+/**
+ * This is a static member.
+ *
+ * Static members should not be inherited.
+ */
+
+const defaultOptions: Options = {
+  skipper: new RegexTerminal(/\s*/),
+  diagnose: false,
+  payload: undefined
+};
+
+export function rule(): NonTerminal {
+  return new NonTerminal(null);
+}
+
+export function token(identity: string): Token {
+  return new Token(null, identity);
 }

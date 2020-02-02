@@ -1,9 +1,4 @@
-const {
-  pegase,
-  number,
-  identifier,
-  doubleQuotedString
-} = require("./lib/index");
+const { pegase, number, basicId, doubleStr } = require("./lib/index");
 
 test("Modulos in grammars should work", () => {
   function count(_, children) {
@@ -20,11 +15,27 @@ test("Modulos in grammars should work", () => {
 });
 
 test("XML should be correctly converted to in-memory JSON", () => {
+  function toAttr(_, [ident, lit]) {
+    return { [ident]: lit };
+  }
+
+  function raw(str) {
+    return str;
+  }
+
+  function parseLit(lit) {
+    return JSON.parse(`"${lit.substring(1, lit.length - 1)}"`);
+  }
+
   const g = pegase`
     xml: tag*
-    tag: '<' ${identifier} atb* '>' xml '<' '/' ${identifier} '>'
-    atb: ${identifier} '=' ${doubleQuotedString}
+    tag: '<' $ident attribute* '>' xml '<' '/' $ident '>'
+    attribute: $ident '=' $literal ${toAttr}
+    $ident: ${basicId} ${raw}
+    $literal: ${doubleStr} ${parseLit}
   `;
+
+  console.log(g);
 });
 
 test("Math expressions should be correctly calculated", () => {
