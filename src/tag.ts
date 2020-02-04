@@ -92,21 +92,16 @@ metagrammar.pegase.parser = new Sequence([
  */
 
 metagrammar.rule.parser = new Sequence(
-  [
-    new NonTerminal(pegaseId, raw => raw),
-    new LiteralTerminal(":"),
-    metagrammar.derivation
-  ],
-  (_, children, payload): void => {
-    const [identifier, derivation] = children as [string, Parser];
-    if (!(identifier in payload.rules)) payload.rules[identifier] = derivation;
+  [pegaseId, new LiteralTerminal(":"), metagrammar.derivation],
+  (_, [id, derivation], payload): void => {
+    if (!(id in payload.rules)) payload.rules[id] = derivation;
     else {
-      const parser = payload.rules[identifier];
+      const parser = payload.rules[id];
       if (
         (!(parser instanceof NonTerminal) && !(parser instanceof Token)) ||
         parser.parser
       )
-        throw new Error(`Multiple definitions of non-terminal ${identifier}`);
+        throw new Error(`Multiple definitions of non-terminal ${id}`);
       parser.parser = derivation;
     }
   }
@@ -145,14 +140,7 @@ metagrammar.derivation.parser = new Sequence(
 metagrammar.alternative.parser = new Sequence(
   [
     new Repetition(metagrammar.step, 1, Infinity),
-    new Repetition(
-      new Sequence([
-        new LiteralTerminal("@"),
-        new NonTerminal(natural, raw => parseInt(raw, 10))
-      ]),
-      0,
-      1
-    )
+    new Repetition(new Sequence([new LiteralTerminal("@"), natural]), 0, 1)
   ],
   (_, children, payload): Parser => {
     if (!isInteger(last(children)))
@@ -231,12 +219,9 @@ metagrammar.item.parser = new Alternative([
           new LiteralTerminal("*", raw => raw),
           new Sequence([
             new LiteralTerminal("{"),
-            new NonTerminal(natural, raw => parseInt(raw, 10)),
+            natural,
             new Repetition(
-              new Sequence([
-                new LiteralTerminal(","),
-                new NonTerminal(natural, raw => parseInt(raw, 10))
-              ]),
+              new Sequence([new LiteralTerminal(","), natural]),
               0,
               1
             ),
@@ -271,19 +256,14 @@ metagrammar.item.parser = new Alternative([
  */
 
 metagrammar.atom.parser = new Alternative([
-  new NonTerminal(
-    singleStr,
-    raw =>
-      new LiteralTerminal(JSON.parse(`"${raw.substring(1, raw.length - 1)}"`))
-  ),
+  new NonTerminal(singleStr, (_, [literal]) => new LiteralTerminal(literal)),
   new NonTerminal(
     doubleStr,
-    raw => new LiteralTerminal(JSON.parse(raw), raw => raw)
+    (_, [literal]) => new LiteralTerminal(literal, raw => raw)
   ),
   new NonTerminal(
     natural,
-    (raw, _, payload): Parser => {
-      const index = parseInt(raw, 10);
+    (_, [index], payload): Parser => {
       if (index >= payload.args.length)
         throw new Error(`Invalid reference (${index}) in parser expression`);
       const item: TagArgument = payload.args[index];
@@ -297,12 +277,12 @@ metagrammar.atom.parser = new Alternative([
   ),
   new Sequence(
     [pegaseId, new Predicate(new LiteralTerminal(":"), false)],
-    (raw, _, payload): Parser => {
-      if (!(raw in payload.rules))
-        payload.rules[raw] = raw.startsWith("$")
-          ? token(raw.substring(1))
+    (_, [id], payload): Parser => {
+      if (!(id in payload.rules))
+        payload.rules[id] = id.startsWith("$")
+          ? token(id.substring(1))
           : rule();
-      return payload.rules[raw];
+      return payload.rules[id];
     }
   ),
   new Sequence([

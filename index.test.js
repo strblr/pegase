@@ -15,27 +15,86 @@ test("Modulos in grammars should work", () => {
 });
 
 test("XML should be correctly converted to in-memory JSON", () => {
-  function toAttr(_, [ident, lit]) {
-    return { [ident]: lit };
+  function groupTags(_, children) {
+    return children;
   }
 
-  function raw(str) {
-    return str;
+  function emitTag(_, [openId, attributes, children, closeId]) {
+    if (openId !== closeId)
+      throw new Error("Openning and closing tags must match");
+    return {
+      tag: openId,
+      attributes,
+      children
+    };
   }
 
-  function parseLit(lit) {
-    return JSON.parse(`"${lit.substring(1, lit.length - 1)}"`);
+  function emitText(raw) {
+    return raw;
   }
 
-  const g = pegase`
-    xml: tag*
-    tag: '<' $ident attribute* '>' xml '<' '/' $ident '>'
-    attribute: $ident '=' $literal ${toAttr}
-    $ident: ${basicId} ${raw}
-    $literal: ${doubleStr} ${parseLit}
+  function merge(_, children) {
+    return Object.assign({}, ...children);
+  }
+
+  function collect(_, [id, literal]) {
+    return { [id]: literal };
+  }
+
+  const { xml } = pegase`
+    xml:
+      tag* ${groupTags}
+      
+    tag:
+      '<' ${basicId} attributes '>' xml '<' '/' ${basicId} '>' ${emitTag}
+    | $text
+    
+    attributes:
+      attribute* ${merge}
+      
+    attribute:
+      ${basicId} '=' ${doubleStr} ${collect}
+      
+    $text:
+      (!'<' .)+ ${emitText}
   `;
 
-  console.log(g);
+  expect(
+    xml.value(`
+      <ul class="mylist">
+        <li>item 1</li>
+        <li>item 2, click <a href="/item1">here</a></li>
+      </ul>
+    `)
+  ).toEqual([
+    {
+      tag: "ul",
+      attributes: {
+        class: "mylist"
+      },
+      children: [
+        {
+          tag: "li",
+          attributes: {},
+          children: ["item 1"]
+        },
+        {
+          tag: "li",
+          attributes: {},
+          children: [
+            "item 2, click ",
+            {
+              tag: "a",
+              attributes: {
+                href: "/item1"
+              },
+              children: ["here"]
+            }
+          ]
+        }
+      ]
+    }
+  ]);
 });
 
 test("Math expressions should be correctly calculated", () => {

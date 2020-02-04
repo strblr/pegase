@@ -5,18 +5,18 @@ export type NonEmptyArray<T> = [T, ...T[]];
 
 export type TagArgument = string | RegExp | Parser | SemanticAction;
 
-export type Options = {
-  skipper: Parser | null;
-  diagnose: boolean;
-  payload: any;
-};
-
 export type SemanticAction = (
   raw: string,
   children: any[],
   payload: any,
   match: SuccessMatch
 ) => any;
+
+export type Options = {
+  skipper: Parser | null;
+  diagnose: boolean;
+  payload: any;
+};
 
 export type FirstSet = First[];
 

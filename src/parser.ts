@@ -32,6 +32,14 @@ export abstract class Parser {
     throw match;
   }
 
+  get omit() {
+    return new NonTerminal(this, () => undefined);
+  }
+
+  get raw() {
+    return new NonTerminal(this, raw => raw);
+  }
+
   abstract _parse(input: string, from: number, options: Options): Match;
 }
 

@@ -32,8 +32,8 @@ export abstract class Match {
 export class SuccessMatch extends Match {
   readonly from: number;
   readonly to: number;
-  readonly value: any;
   readonly children: any[];
+  readonly value: any;
 
   constructor(
     input: string,
@@ -46,7 +46,7 @@ export class SuccessMatch extends Match {
     super(input);
     this.from = from;
     this.to = to;
-    this.children = matches.reduce(
+    const children = matches.reduce(
       (acc, match) => [
         ...acc,
         ...(match.value === undefined ? match.children : [match.value])
@@ -54,8 +54,9 @@ export class SuccessMatch extends Match {
       [] as any[]
     );
     if (action) {
+      this.children = [];
       try {
-        this.value = action(this.raw, this.children, options.payload, this);
+        this.value = action(this.raw, children, options.payload, this);
       } catch (error) {
         if (error instanceof Error)
           return (new MatchFail(input, [
@@ -67,7 +68,10 @@ export class SuccessMatch extends Match {
           ]) as unknown) as SuccessMatch;
         throw error;
       }
-    } else if (this.children.length === 1) this.value = this.children[0];
+    } else if (children.length === 1) {
+      this.children = [];
+      this.value = children[0];
+    } else this.children = children;
   }
 
   get raw(): string {
