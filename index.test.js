@@ -121,8 +121,7 @@ test("Math expressions should be correctly calculated", () => {
     calc: expr $
     expr: term % ("+" | "-") ${fold}
     term: fact % ("*" | "/") ${fold}
-    fact: ${number} ${parseFloat}
-        | '(' expr ')'
+    fact: ${number} | '(' expr ')'
   `;
 
   expect(calc.value("2 + 3")).toBe(5);
