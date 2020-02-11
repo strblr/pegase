@@ -31,7 +31,7 @@ import {
   singleStr,
   spaces
 } from "./snippets";
-import { NonEmptyArray, TagArgument } from "./types";
+import { MetaContext, NonEmptyArray, TagArgument } from "./types";
 
 /**
  * Meta-grammar
@@ -62,13 +62,13 @@ import { NonEmptyArray, TagArgument } from "./types";
  */
 
 const metagrammar = {
-  pegase: rule(),
-  rule: rule(),
-  derivation: rule(),
-  alternative: rule(),
-  step: rule(),
-  item: rule(),
-  atom: rule()
+  pegase: rule<Parser<any, any> | undefined, any>(),
+  rule: rule<undefined, any>(),
+  derivation: rule<Parser<any, any>, any>(),
+  alternative: rule<Parser<any, any>, any>(),
+  step: rule<Parser<any, any>, any>(),
+  item: rule<Parser<any, any>, any>(),
+  atom: rule<Parser<any, any>, any>()
 };
 
 /**
@@ -305,7 +305,10 @@ metagrammar.atom.parser = new Alternative([
  * Static members should not be inherited.
  */
 
-export function pegase(chunks: TemplateStringsArray, ...args: TagArgument[]) {
+export function pegase<TContext>(
+  chunks: TemplateStringsArray,
+  ...args: TagArgument<TContext>[]
+) {
   const grammar = chunks.reduce(
     (acc, chunk, index) =>
       acc +
@@ -317,11 +320,11 @@ export function pegase(chunks: TemplateStringsArray, ...args: TagArgument[]) {
         : index),
     ""
   );
-  const payload = {
+  const context: MetaContext<TContext> = {
     args,
     rules: Object.create(null)
   };
-  const match = metagrammar.pegase.parse(grammar, { skipper: spaces, payload });
-  if (match instanceof SuccessMatch) return match.value || payload.rules;
+  const match = metagrammar.pegase.parse(grammar, { skipper: spaces, context });
+  if (match instanceof SuccessMatch) return match.value || context.rules;
   throw match;
 }

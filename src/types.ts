@@ -3,19 +3,30 @@ import { SuccessMatch } from "./match";
 
 export type NonEmptyArray<T> = [T, ...T[]];
 
-export type TagArgument = string | RegExp | Parser | SemanticAction;
+export type TagArgument<TContext> =
+  | string
+  | RegExp
+  | Parser<any, TContext>
+  | SemanticAction<any, TContext>;
 
-export type SemanticAction = (
+export type SemanticAction<TValue, TContext> = (
   raw: string,
   children: any[],
-  payload: any,
-  match: SuccessMatch
-) => any;
+  context: TContext,
+  match: SuccessMatch<TValue, TContext>
+) => TValue;
 
-export type Options = {
-  skipper: Parser | null;
+export type MetaContext<TContext> = {
+  args: TagArgument<TContext>[];
+  rules: {
+    [id: string]: Parser<any, TContext>;
+  };
+};
+
+export type Options<TContext> = {
+  skipper: Parser<any, TContext> | null;
   diagnose: boolean;
-  payload: any;
+  context: TContext;
 };
 
 export type FirstSet = First[];

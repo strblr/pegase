@@ -29,23 +29,26 @@ export abstract class Match {
  * Static members should not be inherited.
  */
 
-export class SuccessMatch extends Match {
+export class SuccessMatch<TValue, TContext> extends Match {
   readonly from: number;
   readonly to: number;
   readonly children: any[];
-  readonly value: any;
+  readonly value: TValue;
 
   constructor(
     input: string,
     from: number,
     to: number,
-    matches: SuccessMatch[],
-    action: SemanticAction | null,
-    options: Options
+    matches: SuccessMatch<any, TContext>[],
+    action: SemanticAction<TValue, TContext> | null,
+    options: Options<TContext>
   ) {
     super(input);
     this.from = from;
     this.to = to;
+    this.children = [];
+    this.value = undefined as any;
+
     const children = matches.reduce(
       (acc, match) => [
         ...acc,
@@ -53,23 +56,22 @@ export class SuccessMatch extends Match {
       ],
       [] as any[]
     );
+
     if (action) {
-      this.children = [];
       try {
-        this.value = action(this.raw, children, options.payload, this);
+        this.value = action(this.raw, children, options.context, this);
       } catch (error) {
         if (error instanceof Error)
-          return (new MatchFail(input, [
+          return new MatchFail(input, [
             {
               at: from,
               type: "SEMANTIC_FAIL",
               message: error.message
             }
-          ]) as unknown) as SuccessMatch;
+          ]) as any;
         throw error;
       }
     } else if (children.length === 1) {
-      this.children = [];
       this.value = children[0];
     } else this.children = children;
   }

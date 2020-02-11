@@ -7,40 +7,53 @@ import { FirstSet, NonEmptyArray, Options, SemanticAction } from "./types";
  * Static members should not be inherited.
  */
 
-export abstract class Parser {
-  readonly action: SemanticAction | null;
+export abstract class Parser<TValue, TContext> {
+  protected readonly action: SemanticAction<TValue, TContext> | null;
 
-  protected constructor(action?: SemanticAction) {
+  protected constructor(action?: SemanticAction<TValue, TContext>) {
     this.action = action || null;
   }
 
   abstract get first(): FirstSet;
 
-  parse(input: string, options: Partial<Options>): Match {
+  parse(
+    input: string,
+    options: Partial<Options<TContext>> = defaultOptions
+  ): Match {
     return this._parse(input, 0, { ...defaultOptions, ...options });
   }
 
-  value(input: string, options: Partial<Options>): any {
+  value(
+    input: string,
+    options: Partial<Options<TContext>> = defaultOptions
+  ): TValue {
     const match = this.parse(input, options);
     if (match instanceof SuccessMatch) return match.value;
     throw match;
   }
 
-  children(input: string, options: Partial<Options>): any[] {
+  children(
+    input: string,
+    options: Partial<Options<TContext>> = defaultOptions
+  ): any[] {
     const match = this.parse(input, options);
     if (match instanceof SuccessMatch) return match.children;
     throw match;
   }
 
-  get omit() {
-    return new NonTerminal(this, () => undefined);
+  get omit(): NonTerminal<undefined, TContext> {
+    return new NonTerminal<undefined, TContext>(this, () => undefined);
   }
 
-  get raw() {
-    return new NonTerminal(this, raw => raw);
+  get raw(): NonTerminal<string, TContext> {
+    return new NonTerminal<string, TContext>(this, raw => raw);
   }
 
-  abstract _parse(input: string, from: number, options: Options): Match;
+  abstract _parse(
+    input: string,
+    from: number,
+    options: Options<TContext>
+  ): Match;
 }
 
 /**
@@ -49,10 +62,13 @@ export abstract class Parser {
  * Static members should not be inherited.
  */
 
-export class Sequence extends Parser {
-  readonly parsers: NonEmptyArray<Parser>;
+export class Sequence<TValue, TContext> extends Parser<TValue, TContext> {
+  private readonly parsers: NonEmptyArray<Parser<any, TContext>>;
 
-  constructor(parsers: NonEmptyArray<Parser>, action?: SemanticAction) {
+  constructor(
+    parsers: NonEmptyArray<Parser<any, TContext>>,
+    action?: SemanticAction<TValue, TContext>
+  ) {
     super(action);
     this.parsers = parsers;
   }
@@ -61,8 +77,8 @@ export class Sequence extends Parser {
     return this.parsers[0].first;
   }
 
-  _parse(input: string, from: number, options: Options): Match {
-    const matches: SuccessMatch[] = [];
+  _parse(input: string, from: number, options: Options<TContext>): Match {
+    const matches: SuccessMatch<any, TContext>[] = [];
     let cursor = from;
     for (const parser of this.parsers) {
       const match = parser._parse(input, cursor, options);
@@ -71,7 +87,7 @@ export class Sequence extends Parser {
         cursor = match.to;
       } else return match;
     }
-    return new SuccessMatch(
+    return new SuccessMatch<TValue, TContext>(
       input,
       matches[0].from,
       cursor,
@@ -88,10 +104,13 @@ export class Sequence extends Parser {
  * Static members should not be inherited.
  */
 
-export class Alternative extends Parser {
-  readonly parsers: NonEmptyArray<Parser>;
+export class Alternative<TValue, TContext> extends Parser<TValue, TContext> {
+  private readonly parsers: NonEmptyArray<Parser<any, TContext>>;
 
-  constructor(parsers: NonEmptyArray<Parser>, action?: SemanticAction) {
+  constructor(
+    parsers: NonEmptyArray<Parser<any, TContext>>,
+    action?: SemanticAction<TValue, TContext>
+  ) {
     super(action);
     this.parsers = parsers;
   }
@@ -103,12 +122,12 @@ export class Alternative extends Parser {
     );
   }
 
-  _parse(input: string, from: number, options: Options): Match {
+  _parse(input: string, from: number, options: Options<TContext>): Match {
     const fails: MatchFail[] = [];
     for (const parser of this.parsers) {
       const match = parser._parse(input, from, options);
       if (match instanceof SuccessMatch)
-        return new SuccessMatch(
+        return new SuccessMatch<TValue, TContext>(
           input,
           match.from,
           match.to,
@@ -128,10 +147,13 @@ export class Alternative extends Parser {
  * Static members should not be inherited.
  */
 
-export class NonTerminal extends Parser {
-  parser: Parser | null;
+export class NonTerminal<TValue, TContext> extends Parser<TValue, TContext> {
+  parser: Parser<any, TContext> | null;
 
-  constructor(parser: Parser | null, action?: SemanticAction) {
+  constructor(
+    parser: Parser<any, TContext> | null,
+    action?: SemanticAction<TValue, TContext>
+  ) {
     super(action);
     this.parser = parser;
   }
@@ -142,12 +164,12 @@ export class NonTerminal extends Parser {
     return this.parser.first;
   }
 
-  _parse(input: string, from: number, options: Options): Match {
+  _parse(input: string, from: number, options: Options<TContext>): Match {
     if (!this.parser)
       throw new Error("Cannot parse non-terminal with undefined child parser");
     const match = this.parser._parse(input, from, options);
     if (match instanceof SuccessMatch)
-      return new SuccessMatch(
+      return new SuccessMatch<TValue, TContext>(
         input,
         match.from,
         match.to,
@@ -165,16 +187,16 @@ export class NonTerminal extends Parser {
  * Static members should not be inherited.
  */
 
-export class Repetition extends Parser {
-  readonly parser: Parser;
-  readonly min: number;
-  readonly max: number;
+export class Repetition<TValue, TContext> extends Parser<TValue, TContext> {
+  private readonly parser: Parser<any, TContext>;
+  private readonly min: number;
+  private readonly max: number;
 
   constructor(
-    parser: Parser,
+    parser: Parser<any, TContext>,
     min: number,
     max: number,
-    action?: SemanticAction
+    action?: SemanticAction<TValue, TContext>
   ) {
     super(action);
     this.parser = parser;
@@ -186,12 +208,12 @@ export class Repetition extends Parser {
     return this.parser.first;
   }
 
-  _parse(input: string, from: number, options: Options): Match {
-    const matches: SuccessMatch[] = [];
+  _parse(input: string, from: number, options: Options<TContext>): Match {
+    const matches: SuccessMatch<any, TContext>[] = [];
     let counter = 0,
       cursor = from;
-    const succeed = (): SuccessMatch => {
-      return new SuccessMatch(
+    const succeed = () => {
+      return new SuccessMatch<TValue, TContext>(
         input,
         matches.length === 0 ? from : matches[0].from,
         matches.length === 0 ? from : matches[matches.length - 1].to,
@@ -219,15 +241,20 @@ export class Repetition extends Parser {
  * Static members should not be inherited.
  */
 
-export class Predicate extends Parser {
-  readonly parser: Parser;
-  readonly polarity: boolean;
+export class Predicate<TContext> extends Parser<undefined, TContext> {
+  private readonly parser: Parser<any, TContext>;
+  private readonly polarity: boolean;
 
-  constructor(parser: Parser, polarity: boolean, action?: SemanticAction) {
+  constructor(
+    parser: Parser<any, TContext>,
+    polarity: boolean,
+    action?: SemanticAction<any, TContext>
+  ) {
     super(
       action &&
         ((...args) => {
           action(...args);
+          return undefined;
         })
     );
     this.parser = parser;
@@ -241,19 +268,33 @@ export class Predicate extends Parser {
     }));
   }
 
-  _parse(input: string, from: number, options: Options): Match {
+  _parse(input: string, from: number, options: Options<TContext>): Match {
     const match = this.parser._parse(input, from, options);
     if (match instanceof MatchFail) {
       if (this.polarity) return match;
-      return new SuccessMatch(input, from, from, [], this.action, options);
+      return new SuccessMatch<undefined, TContext>(
+        input,
+        from,
+        from,
+        [],
+        this.action,
+        options
+      );
     } else {
       if (this.polarity)
-        return new SuccessMatch(input, from, from, [], this.action, options);
+        return new SuccessMatch<undefined, TContext>(
+          input,
+          from,
+          from,
+          [],
+          this.action,
+          options
+        );
       return new MatchFail(
         input,
         options.diagnose
           ? this.first.map(first => ({
-              at: (match as SuccessMatch).from,
+              at: (match as SuccessMatch<any, TContext>).from,
               type: "EXPECTATION_FAIL",
               ...first
             }))
@@ -269,14 +310,14 @@ export class Predicate extends Parser {
  * Static members should not be inherited.
  */
 
-export class Token extends Parser {
-  parser: Parser | null;
-  readonly identity: string;
+export class Token<TValue, TContext> extends Parser<TValue, TContext> {
+  parser: Parser<any, TContext> | null;
+  private readonly identity: string;
 
   constructor(
-    parser: Parser | null,
+    parser: Parser<any, TContext> | null,
     identity: string,
-    action?: SemanticAction
+    action?: SemanticAction<TValue, TContext>
   ) {
     super(action);
     this.parser = parser;
@@ -293,7 +334,7 @@ export class Token extends Parser {
     ];
   }
 
-  _parse(input: string, from: number, options: Options): Match {
+  _parse(input: string, from: number, options: Options<TContext>): Match {
     if (!this.parser)
       throw new Error(
         `Cannot parse token ${this.identity} with undefined child parser`
@@ -306,7 +347,7 @@ export class Token extends Parser {
     }
     const match = this.parser._parse(input, from, optionsNoSkip);
     if (match instanceof SuccessMatch)
-      return new SuccessMatch(
+      return new SuccessMatch<TValue, TContext>(
         input,
         match.from,
         match.to,
@@ -333,10 +374,13 @@ export class Token extends Parser {
  * Static members should not be inherited.
  */
 
-export class LiteralTerminal extends Parser {
-  readonly literal: string;
+export class LiteralTerminal<TValue, TContext> extends Parser<
+  TValue,
+  TContext
+> {
+  private readonly literal: string;
 
-  constructor(literal: string, action?: SemanticAction) {
+  constructor(literal: string, action?: SemanticAction<TValue, TContext>) {
     super(action);
     this.literal = literal;
   }
@@ -351,7 +395,7 @@ export class LiteralTerminal extends Parser {
     ];
   }
 
-  _parse(input: string, from: number, options: Options): Match {
+  _parse(input: string, from: number, options: Options<TContext>): Match {
     if (options.skipper) {
       const match = options.skipper._parse(input, from, {
         ...options,
@@ -371,7 +415,7 @@ export class LiteralTerminal extends Parser {
             }))
           : []
       );
-    return new SuccessMatch(
+    return new SuccessMatch<TValue, TContext>(
       input,
       from,
       from + this.literal.length,
@@ -388,10 +432,10 @@ export class LiteralTerminal extends Parser {
  * Static members should not be inherited.
  */
 
-export class RegexTerminal extends Parser {
+export class RegexTerminal<TValue, TContext> extends Parser<TValue, TContext> {
   private readonly pattern: RegExp;
 
-  constructor(pattern: RegExp, action?: SemanticAction) {
+  constructor(pattern: RegExp, action?: SemanticAction<TValue, TContext>) {
     super(action);
     this.pattern = new RegExp(
       pattern,
@@ -409,7 +453,7 @@ export class RegexTerminal extends Parser {
     ];
   }
 
-  _parse(input: string, from: number, options: Options): Match {
+  _parse(input: string, from: number, options: Options<TContext>): Match {
     if (options.skipper) {
       const match = options.skipper._parse(input, from, {
         ...options,
@@ -431,7 +475,7 @@ export class RegexTerminal extends Parser {
             }))
           : []
       );
-    return new SuccessMatch(
+    return new SuccessMatch<TValue, TContext>(
       input,
       from,
       from + result[0].length,
@@ -448,8 +492,8 @@ export class RegexTerminal extends Parser {
  * Static members should not be inherited.
  */
 
-export class StartTerminal extends Parser {
-  constructor(action?: SemanticAction) {
+export class StartTerminal<TValue, TContext> extends Parser<TValue, TContext> {
+  constructor(action?: SemanticAction<TValue, TContext>) {
     super(action);
   }
 
@@ -462,9 +506,16 @@ export class StartTerminal extends Parser {
     ];
   }
 
-  _parse(input: string, from: number, options: Options): Match {
+  _parse(input: string, from: number, options: Options<TContext>): Match {
     if (from === 0)
-      return new SuccessMatch(input, 0, 0, [], this.action, options);
+      return new SuccessMatch<TValue, TContext>(
+        input,
+        0,
+        0,
+        [],
+        this.action,
+        options
+      );
     return new MatchFail(
       input,
       options.diagnose
@@ -484,8 +535,8 @@ export class StartTerminal extends Parser {
  * Static members should not be inherited.
  */
 
-export class EndTerminal extends Parser {
-  constructor(action?: SemanticAction) {
+export class EndTerminal<TValue, TContext> extends Parser<TValue, TContext> {
+  constructor(action?: SemanticAction<TValue, TContext>) {
     super(action);
   }
 
@@ -498,7 +549,7 @@ export class EndTerminal extends Parser {
     ];
   }
 
-  _parse(input: string, from: number, options: Options): Match {
+  _parse(input: string, from: number, options: Options<TContext>): Match {
     if (options.skipper) {
       const match = options.skipper._parse(input, from, {
         ...options,
@@ -508,7 +559,14 @@ export class EndTerminal extends Parser {
       else return match;
     }
     if (from === input.length)
-      return new SuccessMatch(input, from, from, [], this.action, options);
+      return new SuccessMatch<TValue, TContext>(
+        input,
+        from,
+        from,
+        [],
+        this.action,
+        options
+      );
     return new MatchFail(
       input,
       options.diagnose
@@ -528,16 +586,16 @@ export class EndTerminal extends Parser {
  * Static members should not be inherited.
  */
 
-const defaultOptions: Options = {
+const defaultOptions: Options<any> = {
   skipper: new RegexTerminal(/\s*/),
   diagnose: false,
-  payload: undefined
+  context: undefined
 };
 
-export function rule(): NonTerminal {
-  return new NonTerminal(null);
+export function rule<TValue, TContext>() {
+  return new NonTerminal<TValue, TContext>(null);
 }
 
-export function token(identity: string): Token {
-  return new Token(null, identity);
+export function token<TValue, TContext>(identity: string) {
+  return new Token<TValue, TContext>(null, identity);
 }
