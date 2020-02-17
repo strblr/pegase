@@ -2,9 +2,9 @@ import { Match, SuccessMatch, MatchFail } from "./match";
 import { FirstSet, NonEmptyArray, Options, SemanticAction } from "./types";
 
 /**
- * This is a static member.
+ * class Parser
  *
- * Static members should not be inherited.
+ * Base class for all parsers.
  */
 
 export abstract class Parser<TValue, TContext> {
@@ -57,8 +57,8 @@ export abstract class Parser<TValue, TContext> {
     return new NonTerminal(this, raw => raw);
   }
 
-  token(identity: string): Parser<TValue, TContext> {
-    return new Token(this, identity);
+  get token(): Parser<TValue, TContext> {
+    return new Token(this);
   }
 
   get skip(): Parser<TValue, TContext> {
@@ -78,9 +78,10 @@ export abstract class Parser<TValue, TContext> {
 }
 
 /**
- * This is a static member.
+ * class Sequence
  *
- * Static members should not be inherited.
+ * Syntax: p1 p2 ... pn
+ * Description: Parses sequentially from p1 to pn. Fails if one of the child parser fails.
  */
 
 export class Sequence<TValue, TContext> extends Parser<TValue, TContext> {
@@ -120,9 +121,10 @@ export class Sequence<TValue, TContext> extends Parser<TValue, TContext> {
 }
 
 /**
- * This is a static member.
+ * class Alternative
  *
- * Static members should not be inherited.
+ * Syntax: p1 | p2 | ... | pn
+ * Description: Parses sequentially from p1 to pn. Succeeds as soon as one of the child parser succeeds.
  */
 
 export class Alternative<TValue, TContext> extends Parser<TValue, TContext> {
@@ -163,20 +165,21 @@ export class Alternative<TValue, TContext> extends Parser<TValue, TContext> {
 }
 
 /**
- * This is a static member.
+ * class NonTerminal
  *
- * Static members should not be inherited.
+ * Syntax: This is not directly embodied by a specific syntax and is more of a utility parser.
+ * Description: Tries to parse its child parser. Succeeds or fails accordingly.
  */
 
 export class NonTerminal<TValue, TContext> extends Parser<TValue, TContext> {
   parser: Parser<any, TContext> | null;
 
   constructor(
-    parser: Parser<any, TContext> | null,
+    parser?: Parser<any, TContext>,
     action?: SemanticAction<TValue, TContext>
   ) {
     super(action);
-    this.parser = parser;
+    this.parser = parser || null;
   }
 
   get first(): FirstSet {
@@ -203,9 +206,10 @@ export class NonTerminal<TValue, TContext> extends Parser<TValue, TContext> {
 }
 
 /**
- * This is a static member.
+ * class Sequence
  *
- * Static members should not be inherited.
+ * Syntax: p? or p+ or p* or p{n} or p{n, m}
+ * Description: Tries to parse p as many times as possible given a specific repetition range.
  */
 
 export class Repetition<TValue, TContext> extends Parser<TValue, TContext> {
@@ -257,9 +261,10 @@ export class Repetition<TValue, TContext> extends Parser<TValue, TContext> {
 }
 
 /**
- * This is a static member.
+ * class Predicate
  *
- * Static members should not be inherited.
+ * Syntax: &p ou !p
+ * Description: Tries to match p without consuming any input. Fails or succeeds according to the polarity.
  */
 
 export class Predicate<TContext> extends Parser<undefined, TContext> {
@@ -326,9 +331,10 @@ export class Predicate<TContext> extends Parser<undefined, TContext> {
 }
 
 /**
- * This is a static member.
+ * class SkipTrigger
  *
- * Static members should not be inherited.
+ * Syntax: skip[p] or unskip[p]
+ * Description: Tries to match p while reactivating or deactivating skipping.
  */
 
 export class SkipTrigger<TValue, TContext> extends Parser<TValue, TContext> {
@@ -368,33 +374,37 @@ export class SkipTrigger<TValue, TContext> extends Parser<TValue, TContext> {
 }
 
 /**
- * This is a static member.
+ * class Token
  *
- * Static members should not be inherited.
+ * Syntax: $ruleName: <derivation>
+ * Description: Matches its child parser while deactivating skipping, but can do pre-skipping.
  */
 
 export class Token<TValue, TContext> extends Parser<TValue, TContext> {
   parser: Parser<any, TContext> | null;
-  private readonly identity: string;
+  private readonly identity: string | null;
 
   constructor(
-    parser: Parser<any, TContext> | null,
-    identity: string,
+    parser?: Parser<any, TContext>,
+    identity?: string,
     action?: SemanticAction<TValue, TContext>
   ) {
     super(action);
-    this.parser = parser;
-    this.identity = identity;
+    this.parser = parser || null;
+    this.identity = identity || null;
   }
 
   get first(): FirstSet {
-    return [
-      {
-        polarity: true,
-        what: "TOKEN",
-        identity: this.identity
-      }
-    ];
+    if (this.identity)
+      return [
+        {
+          polarity: true,
+          what: "TOKEN",
+          identity: this.identity
+        }
+      ];
+    else if (this.parser) return this.parser.first;
+    throw new Error("Cannot get first from undefined child parser");
   }
 
   _parse(input: string, from: number, options: Options<TContext>): Match {
@@ -432,9 +442,10 @@ export class Token<TValue, TContext> extends Parser<TValue, TContext> {
 }
 
 /**
- * This is a static member.
+ * class LiteralTerminal
  *
- * Static members should not be inherited.
+ * Syntax: 'str' or "str"
+ * Description: Tries to match the literal as-is.
  */
 
 export class LiteralTerminal<TValue, TContext> extends Parser<
@@ -490,9 +501,10 @@ export class LiteralTerminal<TValue, TContext> extends Parser<
 }
 
 /**
- * This is a static member.
+ * class RegexTerminal
  *
- * Static members should not be inherited.
+ * Syntax: Has to be used as a template string parameter (${/my_regexp/}).
+ * Description: Tries to match the given RegExp.
  */
 
 export class RegexTerminal<TValue, TContext> extends Parser<TValue, TContext> {
@@ -550,9 +562,10 @@ export class RegexTerminal<TValue, TContext> extends Parser<TValue, TContext> {
 }
 
 /**
- * This is a static member.
+ * class StartTerminal
  *
- * Static members should not be inherited.
+ * Syntax: ^
+ * Description: Succeeds if the input iterator points to the very beginning
  */
 
 export class StartTerminal<TValue, TContext> extends Parser<TValue, TContext> {
@@ -593,9 +606,10 @@ export class StartTerminal<TValue, TContext> extends Parser<TValue, TContext> {
 }
 
 /**
- * This is a static member.
+ * class EndTerminal
  *
- * Static members should not be inherited.
+ * Syntax: $
+ * Description: Succeeds if the input iterator points to the end after optional pre-skipping
  */
 
 export class EndTerminal<TValue, TContext> extends Parser<TValue, TContext> {
@@ -644,9 +658,7 @@ export class EndTerminal<TValue, TContext> extends Parser<TValue, TContext> {
 }
 
 /**
- * This is a static member.
- *
- * Static members should not be inherited.
+ * Utility
  */
 
 const defaultOptions: Options<any> = {
@@ -657,9 +669,9 @@ const defaultOptions: Options<any> = {
 };
 
 export function rule<TValue, TContext>() {
-  return new NonTerminal<TValue, TContext>(null);
+  return new NonTerminal<TValue, TContext>();
 }
 
-export function token<TValue, TContext>(identity: string) {
-  return new Token<TValue, TContext>(null, identity);
+export function token<TValue, TContext>(identity?: string) {
+  return new Token<TValue, TContext>(undefined, identity);
 }

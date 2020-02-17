@@ -2,9 +2,9 @@ import { isEqual, uniqWith } from "lodash";
 import { Failure, NonEmptyArray, Options, SemanticAction } from "./types";
 
 /**
- * This is a static member.
+ * class Match
  *
- * Static members should not be inherited.
+ * Base class embodying a parsing result.
  */
 
 export abstract class Match {
@@ -24,9 +24,9 @@ export abstract class Match {
 }
 
 /**
- * This is a static member.
+ * class SuccessMatch
  *
- * Static members should not be inherited.
+ * Stores relevant information in case of a successful parsing.
  */
 
 export class SuccessMatch<TValue, TContext> extends Match {
@@ -57,7 +57,7 @@ export class SuccessMatch<TValue, TContext> extends Match {
       [] as any[]
     );
 
-    if (action) {
+    if (action)
       try {
         this.value = action(this.raw, children, options.context, this);
       } catch (error) {
@@ -71,9 +71,8 @@ export class SuccessMatch<TValue, TContext> extends Match {
           ]) as any;
         throw error;
       }
-    } else if (children.length === 1) {
-      this.value = children[0];
-    } else this.children = children;
+    else if (children.length === 1) this.value = children[0];
+    else this.children = children;
   }
 
   get raw(): string {
@@ -86,9 +85,9 @@ export class SuccessMatch<TValue, TContext> extends Match {
 }
 
 /**
- * This is a static member.
+ * class MatchFail
  *
- * Static members should not be inherited.
+ * Stores relevant information in case of a unsuccessful parsing.
  */
 
 export class MatchFail extends Match {
