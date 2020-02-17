@@ -18,13 +18,12 @@ export type SemanticAction<TValue, TContext> = (
 
 export type MetaContext<TContext> = {
   args: TagArgument<TContext>[];
-  rules: {
-    [id: string]: Parser<any, TContext>;
-  };
+  rules: Record<string, Parser<any, TContext>>;
 };
 
 export type Options<TContext> = {
   skipper: Parser<any, TContext> | null;
+  skip: boolean;
   diagnose: boolean;
   context: TContext;
 };

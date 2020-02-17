@@ -41,19 +41,40 @@ export abstract class Parser<TValue, TContext> {
     throw match;
   }
 
-  get omit(): NonTerminal<undefined, TContext> {
-    return new NonTerminal<undefined, TContext>(this, () => undefined);
-  }
-
-  get raw(): NonTerminal<string, TContext> {
-    return new NonTerminal<string, TContext>(this, raw => raw);
-  }
-
   abstract _parse(
     input: string,
     from: number,
     options: Options<TContext>
   ): Match;
+
+  // Directives
+
+  get omit(): Parser<undefined, TContext> {
+    return new NonTerminal(this, () => undefined);
+  }
+
+  get raw(): Parser<string, TContext> {
+    return new NonTerminal(this, raw => raw);
+  }
+
+  token(identity: string): Parser<TValue, TContext> {
+    return new Token(this, identity);
+  }
+
+  get skip(): Parser<TValue, TContext> {
+    return new SkipTrigger(this, true);
+  }
+
+  get unskip(): Parser<TValue, TContext> {
+    return new SkipTrigger(this, false);
+  }
+
+  get matches(): Parser<boolean, TContext> {
+    return new Alternative([
+      new NonTerminal(this, () => true),
+      new LiteralTerminal("", () => false)
+    ]);
+  }
 }
 
 /**
@@ -310,6 +331,48 @@ export class Predicate<TContext> extends Parser<undefined, TContext> {
  * Static members should not be inherited.
  */
 
+export class SkipTrigger<TValue, TContext> extends Parser<TValue, TContext> {
+  private readonly parser: Parser<any, TContext>;
+  private readonly trigger: boolean;
+
+  constructor(
+    parser: Parser<any, TContext>,
+    trigger: boolean,
+    action?: SemanticAction<any, TContext>
+  ) {
+    super(action);
+    this.parser = parser;
+    this.trigger = trigger;
+  }
+
+  get first(): FirstSet {
+    return this.parser.first;
+  }
+
+  _parse(input: string, from: number, options: Options<TContext>): Match {
+    const match = this.parser._parse(input, from, {
+      ...options,
+      skip: this.trigger
+    });
+    if (match instanceof SuccessMatch)
+      return new SuccessMatch<TValue, TContext>(
+        input,
+        match.from,
+        match.to,
+        [match],
+        this.action,
+        options
+      );
+    return match;
+  }
+}
+
+/**
+ * This is a static member.
+ *
+ * Static members should not be inherited.
+ */
+
 export class Token<TValue, TContext> extends Parser<TValue, TContext> {
   parser: Parser<any, TContext> | null;
   private readonly identity: string;
@@ -339,8 +402,8 @@ export class Token<TValue, TContext> extends Parser<TValue, TContext> {
       throw new Error(
         `Cannot parse token ${this.identity} with undefined child parser`
       );
-    const optionsNoSkip = { ...options, skipper: null };
-    if (options.skipper) {
+    const optionsNoSkip = { ...options, skip: false };
+    if (options.skip && options.skipper) {
       const match = options.skipper._parse(input, from, optionsNoSkip);
       if (match instanceof SuccessMatch) from = match.to;
       else return match;
@@ -396,10 +459,10 @@ export class LiteralTerminal<TValue, TContext> extends Parser<
   }
 
   _parse(input: string, from: number, options: Options<TContext>): Match {
-    if (options.skipper) {
+    if (options.skip && options.skipper) {
       const match = options.skipper._parse(input, from, {
         ...options,
-        skipper: null
+        skip: false
       });
       if (match instanceof SuccessMatch) from = match.to;
       else return match;
@@ -454,10 +517,10 @@ export class RegexTerminal<TValue, TContext> extends Parser<TValue, TContext> {
   }
 
   _parse(input: string, from: number, options: Options<TContext>): Match {
-    if (options.skipper) {
+    if (options.skip && options.skipper) {
       const match = options.skipper._parse(input, from, {
         ...options,
-        skipper: null
+        skip: false
       });
       if (match instanceof SuccessMatch) from = match.to;
       else return match;
@@ -550,10 +613,10 @@ export class EndTerminal<TValue, TContext> extends Parser<TValue, TContext> {
   }
 
   _parse(input: string, from: number, options: Options<TContext>): Match {
-    if (options.skipper) {
+    if (options.skip && options.skipper) {
       const match = options.skipper._parse(input, from, {
         ...options,
-        skipper: null
+        skip: false
       });
       if (match instanceof SuccessMatch) from = match.to;
       else return match;
@@ -588,6 +651,7 @@ export class EndTerminal<TValue, TContext> extends Parser<TValue, TContext> {
 
 const defaultOptions: Options<any> = {
   skipper: new RegexTerminal(/\s*/),
+  skip: true,
   diagnose: false,
   context: undefined
 };
