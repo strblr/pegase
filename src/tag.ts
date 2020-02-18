@@ -7,8 +7,6 @@ import {
   dropRight
 } from "lodash";
 import {
-  rule,
-  token,
   Parser,
   Sequence,
   Alternative,
@@ -30,8 +28,18 @@ import {
   TagArgument
 } from "./types";
 
+export function rule<TValue, TContext>() {
+  return new NonTerminal<TValue, TContext>();
+}
+
+export function token<TValue, TContext>(identity?: string) {
+  return new Token<TValue, TContext>(undefined, identity);
+}
+
 /**
- * Meta-grammar
+ * The meta-grammar
+ *
+ ***************************************************
  *
  * pegase:
  *      (rule+ | derivation) $
@@ -50,7 +58,7 @@ import {
  *      singleQuotedString
  *    | doubleQuotedString
  *    | integer
- *    | identifier !":"
+ *    | identifier !":" ("[" derivation "]")?
  *    | "(" derivation ")"
  *    | "ε"
  *    | "."
@@ -68,11 +76,7 @@ const metagrammar = {
   atom: rule<Parser<any, any>, MetaContext<any>>()
 };
 
-/**
- * This is a static member.
- *
- * Static members should not be inherited.
- */
+/***************************************************/
 
 metagrammar.pegase.parser = new Sequence([
   new Alternative([
@@ -82,11 +86,7 @@ metagrammar.pegase.parser = new Sequence([
   new EndTerminal()
 ]);
 
-/**
- * This is a static member.
- *
- * Static members should not be inherited.
- */
+/***************************************************/
 
 metagrammar.rule.parser = new Sequence(
   [pegaseId, new LiteralTerminal(":"), metagrammar.derivation],
@@ -104,11 +104,7 @@ metagrammar.rule.parser = new Sequence(
   }
 );
 
-/**
- * This is a static member.
- *
- * Static members should not be inherited.
- */
+/***************************************************/
 
 metagrammar.derivation.parser = new Sequence(
   [
@@ -128,11 +124,7 @@ metagrammar.derivation.parser = new Sequence(
   }
 );
 
-/**
- * This is a static member.
- *
- * Static members should not be inherited.
- */
+/***************************************************/
 
 metagrammar.alternative.parser = new Sequence(
   [
@@ -157,11 +149,7 @@ metagrammar.alternative.parser = new Sequence(
   }
 );
 
-/**
- * This is a static member.
- *
- * Static members should not be inherited.
- */
+/***************************************************/
 
 metagrammar.step.parser = new Sequence(
   [
@@ -186,11 +174,7 @@ metagrammar.step.parser = new Sequence(
   }
 );
 
-/**
- * This is a static member.
- *
- * Static members should not be inherited.
- */
+/***************************************************/
 
 metagrammar.item.parser = new Alternative([
   new Sequence(
@@ -246,11 +230,7 @@ metagrammar.item.parser = new Alternative([
   )
 ]);
 
-/**
- * This is a static member.
- *
- * Static members should not be inherited.
- */
+/***************************************************/
 
 metagrammar.atom.parser = new Alternative([
   new NonTerminal(
@@ -276,11 +256,29 @@ metagrammar.atom.parser = new Alternative([
     }
   ),
   new Sequence(
-    [pegaseId, new Predicate(new LiteralTerminal(":"), false)],
-    (_, [id], { rules }): Parser<any, any> => {
-      if (!(id in rules))
-        rules[id] = id.startsWith("$") ? token(id.substring(1)) : rule();
-      return rules[id];
+    [
+      pegaseId,
+      new Predicate(new LiteralTerminal(":"), false),
+      new Repetition(
+        new Sequence([
+          new LiteralTerminal("["),
+          metagrammar.derivation,
+          new LiteralTerminal("]")
+        ]),
+        0,
+        1
+      )
+    ],
+    (_, [id, derivation], { rules }): Parser<any, any> => {
+      if (!derivation) {
+        if (!(id in rules))
+          rules[id] = id.startsWith("$") ? token(id.substring(1)) : rule();
+        return rules[id];
+      } else {
+        if (["omit", "raw", "token", "skip", "unskip", "matches"].includes(id))
+          return derivation[id];
+        throw new Error(`Invalid directive <${id}>`);
+      }
     }
   ),
   new Sequence([
@@ -298,9 +296,7 @@ metagrammar.atom.parser = new Alternative([
 ]);
 
 /**
- * This is a static member.
- *
- * Static members should not be inherited.
+ * The template tag function
  */
 
 export function pegase<TContext>(

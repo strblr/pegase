@@ -16,48 +16,70 @@ export type SemanticAction<TValue, TContext> = (
   match: SuccessMatch<TValue, TContext>
 ) => TValue;
 
-export type MetaContext<TContext> = {
+export type MetaContext<TContext> = Readonly<{
   args: TagArgument<TContext>[];
   rules: Record<string, Parser<any, TContext>>;
-};
+}>;
 
-export type Options<TContext> = {
+export type Options<TContext> = Readonly<{
+  from: number;
   skipper: Parser<any, TContext> | null;
   skip: boolean;
   diagnose: boolean;
+  cached: boolean;
   context: TContext;
-};
+}>;
 
-export type FirstSet = First[];
+export type Internals<TContext> = Readonly<{
+  cache: Map<Parser<any, TContext>, SuccessMatch<any, TContext>>[];
+  warnings: Warning[];
+  failures: Failure[];
+}>;
 
-export type First = {
-  polarity: boolean;
-} & (
-  | {
-      what: "TOKEN";
-      identity: string;
-    }
-  | {
-      what: "LITERAL";
-      literal: string;
-    }
-  | {
-      what: "REGEX";
-      pattern: RegExp;
-    }
-  | {
-      what: "START" | "END";
-    }
-);
+export type ParseReport<TValue, TContext> = Readonly<{
+  match: SuccessMatch<TValue, TContext> | null;
+  warnings: Warning[];
+  failures: Failure[];
+}>;
 
-export type Failure = {
+export type First = Readonly<
+  {
+    polarity: boolean;
+  } & (
+    | {
+        what: "TOKEN";
+        identity: string;
+      }
+    | {
+        what: "LITERAL";
+        literal: string;
+      }
+    | {
+        what: "REGEX";
+        pattern: RegExp;
+      }
+    | {
+        what: "START" | "END";
+      }
+  )
+>;
+
+export type Warning = Readonly<{
   at: number;
-} & (
-  | ({
-      type: "EXPECTATION_FAIL";
-    } & First)
-  | {
-      type: "SEMANTIC_FAIL";
-      message: string;
-    }
-);
+  type: "SEMANTIC_WARNING";
+  message: string;
+}>;
+
+export type Failure = Readonly<
+  {
+    at: number;
+  } & (
+    | ({
+        type: "EXPECTATION_FAILURE";
+      } & First)
+    | {
+        type: "SEMANTIC_FAILURE";
+        message: string;
+      }
+  )
+>;

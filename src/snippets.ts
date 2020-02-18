@@ -59,8 +59,8 @@ export const number = makeToken<number>(
   raw => parseFloat(raw)
 );
 
-export const basicId = makeToken<string>(
-  "basicId",
+export const ident = makeToken<string>(
+  "ident",
   /[_a-zA-Z][_a-zA-Z0-9]*/,
   raw => raw
 );

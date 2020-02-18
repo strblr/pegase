@@ -1,5 +1,13 @@
-import { Match, SuccessMatch, MatchFail } from "./match";
-import { FirstSet, NonEmptyArray, Options, SemanticAction } from "./types";
+import { SuccessMatch } from "./match";
+import {
+  Failure,
+  First,
+  Internals,
+  NonEmptyArray,
+  Options,
+  ParseReport,
+  SemanticAction
+} from "./types";
 
 /**
  * class Parser
@@ -14,38 +22,47 @@ export abstract class Parser<TValue, TContext> {
     this.action = action || null;
   }
 
-  abstract get first(): FirstSet;
+  abstract get first(): First[];
 
   parse(
     input: string,
     options: Partial<Options<TContext>> = defaultOptions
-  ): Match {
-    return this._parse(input, 0, { ...defaultOptions, ...options });
+  ): ParseReport<TValue, TContext> {
+    const internals: Internals<TContext> = {
+      cache: [],
+      warnings: [],
+      failures: []
+    };
+    return {
+      match: this._parse(input, { ...defaultOptions, ...options }, internals),
+      warnings: internals.warnings,
+      failures: internals.failures
+    };
   }
+
+  abstract _parse(
+    input: string,
+    options: Options<TContext>,
+    internals: Internals<TContext>
+  ): SuccessMatch<TValue, TContext> | null;
 
   value(
     input: string,
     options: Partial<Options<TContext>> = defaultOptions
   ): TValue {
-    const match = this.parse(input, options);
-    if (match instanceof SuccessMatch) return match.value;
-    throw match;
+    const { match, failures } = this.parse(input, options);
+    if (match) return match.value;
+    throw failures;
   }
 
   children(
     input: string,
     options: Partial<Options<TContext>> = defaultOptions
   ): any[] {
-    const match = this.parse(input, options);
-    if (match instanceof SuccessMatch) return match.children;
-    throw match;
+    const { match, failures } = this.parse(input, options);
+    if (match) return match.children;
+    throw failures;
   }
-
-  abstract _parse(
-    input: string,
-    from: number,
-    options: Options<TContext>
-  ): Match;
 
   // Directives
 
@@ -95,27 +112,35 @@ export class Sequence<TValue, TContext> extends Parser<TValue, TContext> {
     this.parsers = parsers;
   }
 
-  get first(): FirstSet {
+  get first(): First[] {
     return this.parsers[0].first;
   }
 
-  _parse(input: string, from: number, options: Options<TContext>): Match {
+  _parse(
+    input: string,
+    options: Options<TContext>,
+    internals: Internals<TContext>
+  ): SuccessMatch<TValue, TContext> | null {
     const matches: SuccessMatch<any, TContext>[] = [];
-    let cursor = from;
+    let cursor = options.from;
     for (const parser of this.parsers) {
-      const match = parser._parse(input, cursor, options);
-      if (match instanceof SuccessMatch) {
-        matches.push(match);
-        cursor = match.to;
-      } else return match;
+      const match = parser._parse(
+        input,
+        { ...options, from: cursor },
+        internals
+      );
+      if (!match) return null;
+      matches.push(match);
+      cursor = match.to;
     }
-    return new SuccessMatch<TValue, TContext>(
+    return success(
       input,
       matches[0].from,
       cursor,
       matches,
       this.action,
-      options
+      options,
+      internals
     );
   }
 }
@@ -126,6 +151,12 @@ export class Sequence<TValue, TContext> extends Parser<TValue, TContext> {
  * Syntax: p1 | p2 | ... | pn
  * Description: Parses sequentially from p1 to pn. Succeeds as soon as one of the child parser succeeds.
  */
+
+/*
+ * A: B $
+ * B: "a" "b" | "c"
+ *
+ * */
 
 export class Alternative<TValue, TContext> extends Parser<TValue, TContext> {
   private readonly parsers: NonEmptyArray<Parser<any, TContext>>;
@@ -138,29 +169,32 @@ export class Alternative<TValue, TContext> extends Parser<TValue, TContext> {
     this.parsers = parsers;
   }
 
-  get first(): FirstSet {
+  get first(): First[] {
     return this.parsers.reduce(
       (acc, parser) => [...acc, ...parser.first],
-      [] as FirstSet
+      [] as First[]
     );
   }
 
-  _parse(input: string, from: number, options: Options<TContext>): Match {
-    const fails: MatchFail[] = [];
+  _parse(
+    input: string,
+    options: Options<TContext>,
+    internals: Internals<TContext>
+  ): SuccessMatch<TValue, TContext> | null {
     for (const parser of this.parsers) {
-      const match = parser._parse(input, from, options);
-      if (match instanceof SuccessMatch)
-        return new SuccessMatch<TValue, TContext>(
+      const match = parser._parse(input, options, internals);
+      if (match)
+        return success(
           input,
           match.from,
           match.to,
           [match],
           this.action,
-          options
+          options,
+          internals
         );
-      fails.push(match as MatchFail);
     }
-    return MatchFail.merge(fails as NonEmptyArray<MatchFail>);
+    return null;
   }
 }
 
@@ -182,26 +216,34 @@ export class NonTerminal<TValue, TContext> extends Parser<TValue, TContext> {
     this.parser = parser || null;
   }
 
-  get first(): FirstSet {
+  get first(): First[] {
     if (!this.parser)
-      throw new Error("Cannot get first from undefined child parser");
+      throw new Error(
+        "Cannot get first-set in non-terminal from undefined child parser"
+      );
     return this.parser.first;
   }
 
-  _parse(input: string, from: number, options: Options<TContext>): Match {
+  _parse(
+    input: string,
+    options: Options<TContext>,
+    internals: Internals<TContext>
+  ): SuccessMatch<TValue, TContext> | null {
     if (!this.parser)
       throw new Error("Cannot parse non-terminal with undefined child parser");
-    const match = this.parser._parse(input, from, options);
-    if (match instanceof SuccessMatch)
-      return new SuccessMatch<TValue, TContext>(
+    const match = this.parser._parse(input, options, internals);
+    return (
+      match &&
+      success(
         input,
         match.from,
         match.to,
         [match],
         this.action,
-        options
-      );
-    return match;
+        options,
+        internals
+      )
+    );
   }
 }
 
@@ -229,32 +271,41 @@ export class Repetition<TValue, TContext> extends Parser<TValue, TContext> {
     this.max = max;
   }
 
-  get first(): FirstSet {
+  get first(): First[] {
     return this.parser.first;
   }
 
-  _parse(input: string, from: number, options: Options<TContext>): Match {
+  _parse(
+    input: string,
+    options: Options<TContext>,
+    internals: Internals<TContext>
+  ): SuccessMatch<TValue, TContext> | null {
     const matches: SuccessMatch<any, TContext>[] = [];
     let counter = 0,
-      cursor = from;
+      cursor = options.from;
     const succeed = () => {
-      return new SuccessMatch<TValue, TContext>(
+      return success(
         input,
-        matches.length === 0 ? from : matches[0].from,
-        matches.length === 0 ? from : matches[matches.length - 1].to,
+        matches.length === 0 ? options.from : matches[0].from,
+        matches.length === 0 ? options.from : matches[matches.length - 1].to,
         matches,
         this.action,
-        options
+        options,
+        internals
       );
     };
     while (true) {
       if (counter === this.max) return succeed();
-      const match = this.parser._parse(input, cursor, options);
-      if (match instanceof SuccessMatch) {
+      const match = this.parser._parse(
+        input,
+        { ...options, from: cursor },
+        internals
+      );
+      if (match) {
         matches.push(match);
         cursor = match.to;
         counter++;
-      } else if (counter < this.min) return match;
+      } else if (counter < this.min) return null;
       else return succeed();
     }
   }
@@ -287,45 +338,50 @@ export class Predicate<TContext> extends Parser<undefined, TContext> {
     this.polarity = polarity;
   }
 
-  get first(): FirstSet {
+  get first(): First[] {
     return this.parser.first.map(first => ({
       ...first,
       polarity: this.polarity === first.polarity
     }));
   }
 
-  _parse(input: string, from: number, options: Options<TContext>): Match {
-    const match = this.parser._parse(input, from, options);
-    if (match instanceof MatchFail) {
-      if (this.polarity) return match;
-      return new SuccessMatch<undefined, TContext>(
+  _parse(
+    input: string,
+    options: Options<TContext>,
+    internals: Internals<TContext>
+  ): SuccessMatch<undefined, TContext> | null {
+    const match = this.parser._parse(input, options, internals);
+    if (!match) {
+      if (this.polarity) return null;
+      return success(
         input,
-        from,
-        from,
+        options.from,
+        options.from,
         [],
         this.action,
-        options
+        options,
+        internals
       );
     } else {
       if (this.polarity)
-        return new SuccessMatch<undefined, TContext>(
+        return success(
           input,
-          from,
-          from,
+          options.from,
+          options.from,
           [],
           this.action,
-          options
+          options,
+          internals
         );
-      return new MatchFail(
-        input,
-        options.diagnose
-          ? this.first.map(first => ({
-              at: (match as SuccessMatch<any, TContext>).from,
-              type: "EXPECTATION_FAIL",
-              ...first
-            }))
-          : []
-      );
+      options.diagnose &&
+        internals.failures.push(
+          ...(this.first.map(first => ({
+            at: match.from,
+            type: "EXPECTATION_FAILURE",
+            ...first
+          })) as Failure[])
+        );
+      return null;
     }
   }
 }
@@ -351,7 +407,7 @@ export class SkipTrigger<TValue, TContext> extends Parser<TValue, TContext> {
     this.trigger = trigger;
   }
 
-  get first(): FirstSet {
+  get first(): First[] {
     return this.parser.first;
   }
 
@@ -394,7 +450,7 @@ export class Token<TValue, TContext> extends Parser<TValue, TContext> {
     this.identity = identity || null;
   }
 
-  get first(): FirstSet {
+  get first(): First[] {
     if (this.identity)
       return [
         {
@@ -459,7 +515,7 @@ export class LiteralTerminal<TValue, TContext> extends Parser<
     this.literal = literal;
   }
 
-  get first(): FirstSet {
+  get first(): First[] {
     return [
       {
         polarity: true,
@@ -518,7 +574,7 @@ export class RegexTerminal<TValue, TContext> extends Parser<TValue, TContext> {
     );
   }
 
-  get first(): FirstSet {
+  get first(): First[] {
     return [
       {
         polarity: true,
@@ -573,7 +629,7 @@ export class StartTerminal<TValue, TContext> extends Parser<TValue, TContext> {
     super(action);
   }
 
-  get first(): FirstSet {
+  get first(): First[] {
     return [
       {
         polarity: true,
@@ -617,7 +673,7 @@ export class EndTerminal<TValue, TContext> extends Parser<TValue, TContext> {
     super(action);
   }
 
-  get first(): FirstSet {
+  get first(): First[] {
     return [
       {
         polarity: true,
@@ -662,16 +718,48 @@ export class EndTerminal<TValue, TContext> extends Parser<TValue, TContext> {
  */
 
 const defaultOptions: Options<any> = {
+  from: 0,
   skipper: new RegexTerminal(/\s*/),
   skip: true,
-  diagnose: false,
+  diagnose: true,
+  cached: false,
   context: undefined
 };
 
-export function rule<TValue, TContext>() {
-  return new NonTerminal<TValue, TContext>();
+function preskip<TContext>(
+  input: string,
+  options: Options<TContext>,
+  internals: Internals<TContext>
+) {
+  if (!options.skip || !options.skipper) return true;
+  const match = options.skipper._parse(input, {
+    ...options,
+    skip: false
+  });
+  if (!match) return false;
+  options.from = match.to;
+  return true;
 }
 
-export function token<TValue, TContext>(identity?: string) {
-  return new Token<TValue, TContext>(undefined, identity);
+function success<TValue, TContext>(
+  input: string,
+  from: number,
+  to: number,
+  matches: SuccessMatch<any, TContext>[],
+  action: SemanticAction<TValue, TContext> | null,
+  options: Options<TContext>,
+  internals: Internals<TContext>
+) {
+  try {
+    return new SuccessMatch(input, from, to, matches, action, options);
+  } catch (error) {
+    if (error instanceof Error)
+      internals.failures.push({
+        at: from,
+        type: "SEMANTIC_FAILURE",
+        message: error.message
+      });
+    else throw error;
+    return null;
+  }
 }
