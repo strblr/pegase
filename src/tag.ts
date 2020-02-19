@@ -19,7 +19,6 @@ import {
   StartTerminal,
   EndTerminal
 } from "./parser";
-import { SuccessMatch } from "./match";
 import { char, doubleStr, eps, natural, pegaseId, singleStr } from "./snippets";
 import {
   MetaContext,
@@ -318,7 +317,7 @@ export function pegase<TContext>(
     args,
     rules: Object.create(null)
   };
-  const match = metagrammar.pegase.parse(grammar, { context });
-  if (match instanceof SuccessMatch) return match.value || context.rules;
-  throw match;
+  const report = metagrammar.pegase.parse(grammar, { context });
+  if (report.match) return report.match.value || context.rules;
+  throw report.logs;
 }

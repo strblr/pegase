@@ -1,5 +1,5 @@
 import { Parser } from "./parser";
-import { SuccessMatch } from "./match";
+import { Match } from "./match";
 
 export type NonEmptyArray<T> = [T, ...T[]];
 
@@ -13,7 +13,7 @@ export type SemanticAction<TValue, TContext> = (
   raw: string,
   children: any[],
   context: TContext,
-  match: SuccessMatch<TValue, TContext>
+  match: Match<TValue, TContext>
 ) => TValue;
 
 export type MetaContext<TContext> = Readonly<{
@@ -28,18 +28,6 @@ export type Options<TContext> = Readonly<{
   diagnose: boolean;
   cached: boolean;
   context: TContext;
-}>;
-
-export type Internals<TContext> = Readonly<{
-  cache: Map<Parser<any, TContext>, SuccessMatch<any, TContext>>[];
-  warnings: Warning[];
-  failures: Failure[];
-}>;
-
-export type ParseReport<TValue, TContext> = Readonly<{
-  match: SuccessMatch<TValue, TContext> | null;
-  warnings: Warning[];
-  failures: Failure[];
 }>;
 
 export type First = Readonly<
@@ -65,21 +53,16 @@ export type First = Readonly<
 >;
 
 export type Warning = Readonly<{
-  at: number;
   type: "SEMANTIC_WARNING";
   message: string;
 }>;
 
 export type Failure = Readonly<
-  {
-    at: number;
-  } & (
-    | ({
-        type: "EXPECTATION_FAILURE";
-      } & First)
-    | {
-        type: "SEMANTIC_FAILURE";
-        message: string;
-      }
-  )
+  | ({
+      type: "EXPECTATION_FAILURE";
+    } & First)
+  | {
+      type: "SEMANTIC_FAILURE";
+      message: string;
+    }
 >;

@@ -1,12 +1,12 @@
 import { Options, SemanticAction } from "./types";
 
 /**
- * class SuccessMatch
+ * class Match
  *
- * Stores relevant information in case of a successful parsing.
+ * Stores relevant information in case of a successful parsing match.
  */
 
-export class SuccessMatch<TValue, TContext> {
+export class Match<TValue, TContext> {
   readonly input: string;
   readonly from: number;
   readonly to: number;
@@ -17,7 +17,7 @@ export class SuccessMatch<TValue, TContext> {
     input: string,
     from: number,
     to: number,
-    matches: SuccessMatch<any, TContext>[],
+    matches: Match<any, TContext>[],
     action: SemanticAction<TValue, TContext> | null,
     options: Options<TContext>
   ) {

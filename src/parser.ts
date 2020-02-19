@@ -1,13 +1,7 @@
-import { SuccessMatch } from "./match";
-import {
-  Failure,
-  First,
-  Internals,
-  NonEmptyArray,
-  Options,
-  ParseReport,
-  SemanticAction
-} from "./types";
+import { Tracker } from "./tracker";
+import { Match } from "./match";
+import { Report } from "./report";
+import { First, NonEmptyArray, Options, SemanticAction } from "./types";
 
 /**
  * class Parser
@@ -27,41 +21,34 @@ export abstract class Parser<TValue, TContext> {
   parse(
     input: string,
     options: Partial<Options<TContext>> = defaultOptions
-  ): ParseReport<TValue, TContext> {
-    const internals: Internals<TContext> = {
-      cache: [],
-      warnings: [],
-      failures: []
-    };
-    return {
-      match: this._parse(input, { ...defaultOptions, ...options }, internals),
-      warnings: internals.warnings,
-      failures: internals.failures
-    };
+  ): Report<TValue, TContext> {
+    const opts = { ...defaultOptions, ...options };
+    const tracker = new Tracker<TContext>();
+    return new Report(input, this._parse(input, opts, tracker), opts, tracker);
   }
 
   abstract _parse(
     input: string,
     options: Options<TContext>,
-    internals: Internals<TContext>
-  ): SuccessMatch<TValue, TContext> | null;
+    tracker: Tracker<TContext>
+  ): Match<TValue, TContext> | null;
 
   value(
     input: string,
     options: Partial<Options<TContext>> = defaultOptions
   ): TValue {
-    const { match, failures } = this.parse(input, options);
-    if (match) return match.value;
-    throw failures;
+    const report = this.parse(input, options);
+    if (report.match) return report.match.value;
+    throw report.logs;
   }
 
   children(
     input: string,
     options: Partial<Options<TContext>> = defaultOptions
   ): any[] {
-    const { match, failures } = this.parse(input, options);
-    if (match) return match.children;
-    throw failures;
+    const report = this.parse(input, options);
+    if (report.match) return report.match.children;
+    throw report.logs;
   }
 
   // Directives
@@ -119,16 +106,12 @@ export class Sequence<TValue, TContext> extends Parser<TValue, TContext> {
   _parse(
     input: string,
     options: Options<TContext>,
-    internals: Internals<TContext>
-  ): SuccessMatch<TValue, TContext> | null {
-    const matches: SuccessMatch<any, TContext>[] = [];
+    tracker: Tracker<TContext>
+  ): Match<TValue, TContext> | null {
+    const matches: Match<any, TContext>[] = [];
     let cursor = options.from;
     for (const parser of this.parsers) {
-      const match = parser._parse(
-        input,
-        { ...options, from: cursor },
-        internals
-      );
+      const match = parser._parse(input, { ...options, from: cursor }, tracker);
       if (!match) return null;
       matches.push(match);
       cursor = match.to;
@@ -140,7 +123,7 @@ export class Sequence<TValue, TContext> extends Parser<TValue, TContext> {
       matches,
       this.action,
       options,
-      internals
+      tracker
     );
   }
 }
@@ -179,10 +162,10 @@ export class Alternative<TValue, TContext> extends Parser<TValue, TContext> {
   _parse(
     input: string,
     options: Options<TContext>,
-    internals: Internals<TContext>
-  ): SuccessMatch<TValue, TContext> | null {
+    tracker: Tracker<TContext>
+  ): Match<TValue, TContext> | null {
     for (const parser of this.parsers) {
-      const match = parser._parse(input, options, internals);
+      const match = parser._parse(input, options, tracker);
       if (match)
         return success(
           input,
@@ -191,7 +174,7 @@ export class Alternative<TValue, TContext> extends Parser<TValue, TContext> {
           [match],
           this.action,
           options,
-          internals
+          tracker
         );
     }
     return null;
@@ -227,11 +210,11 @@ export class NonTerminal<TValue, TContext> extends Parser<TValue, TContext> {
   _parse(
     input: string,
     options: Options<TContext>,
-    internals: Internals<TContext>
-  ): SuccessMatch<TValue, TContext> | null {
+    tracker: Tracker<TContext>
+  ): Match<TValue, TContext> | null {
     if (!this.parser)
       throw new Error("Cannot parse non-terminal with undefined child parser");
-    const match = this.parser._parse(input, options, internals);
+    const match = this.parser._parse(input, options, tracker);
     return (
       match &&
       success(
@@ -241,7 +224,7 @@ export class NonTerminal<TValue, TContext> extends Parser<TValue, TContext> {
         [match],
         this.action,
         options,
-        internals
+        tracker
       )
     );
   }
@@ -278,9 +261,9 @@ export class Repetition<TValue, TContext> extends Parser<TValue, TContext> {
   _parse(
     input: string,
     options: Options<TContext>,
-    internals: Internals<TContext>
-  ): SuccessMatch<TValue, TContext> | null {
-    const matches: SuccessMatch<any, TContext>[] = [];
+    tracker: Tracker<TContext>
+  ): Match<TValue, TContext> | null {
+    const matches: Match<any, TContext>[] = [];
     let counter = 0,
       cursor = options.from;
     const succeed = () => {
@@ -291,7 +274,7 @@ export class Repetition<TValue, TContext> extends Parser<TValue, TContext> {
         matches,
         this.action,
         options,
-        internals
+        tracker
       );
     };
     while (true) {
@@ -299,7 +282,7 @@ export class Repetition<TValue, TContext> extends Parser<TValue, TContext> {
       const match = this.parser._parse(
         input,
         { ...options, from: cursor },
-        internals
+        tracker
       );
       if (match) {
         matches.push(match);
@@ -348,11 +331,10 @@ export class Predicate<TContext> extends Parser<undefined, TContext> {
   _parse(
     input: string,
     options: Options<TContext>,
-    internals: Internals<TContext>
-  ): SuccessMatch<undefined, TContext> | null {
-    const match = this.parser._parse(input, options, internals);
-    if (!match) {
-      if (this.polarity) return null;
+    tracker: Tracker<TContext>
+  ): Match<undefined, TContext> | null {
+    const match = this.parser._parse(input, options, tracker);
+    if (this.polarity === !!match)
       return success(
         input,
         options.from,
@@ -360,29 +342,16 @@ export class Predicate<TContext> extends Parser<undefined, TContext> {
         [],
         this.action,
         options,
-        internals
+        tracker
       );
-    } else {
-      if (this.polarity)
-        return success(
-          input,
-          options.from,
-          options.from,
-          [],
-          this.action,
-          options,
-          internals
-        );
-      options.diagnose &&
-        internals.failures.push(
-          ...(this.first.map(first => ({
-            at: match.from,
-            type: "EXPECTATION_FAILURE",
-            ...first
-          })) as Failure[])
-        );
-      return null;
-    }
+    else if (match && options.diagnose)
+      this.first.forEach(first =>
+        tracker.writeFailure(match.from, {
+          type: "EXPECTATION_FAILURE",
+          ...first
+        })
+      );
+    return null;
   }
 }
 
@@ -411,21 +380,31 @@ export class SkipTrigger<TValue, TContext> extends Parser<TValue, TContext> {
     return this.parser.first;
   }
 
-  _parse(input: string, from: number, options: Options<TContext>): Match {
-    const match = this.parser._parse(input, from, {
-      ...options,
-      skip: this.trigger
-    });
-    if (match instanceof SuccessMatch)
-      return new SuccessMatch<TValue, TContext>(
+  _parse(
+    input: string,
+    options: Options<TContext>,
+    tracker: Tracker<TContext>
+  ): Match<TValue, TContext> | null {
+    const match = this.parser._parse(
+      input,
+      {
+        ...options,
+        skip: this.trigger
+      },
+      tracker
+    );
+    return (
+      match &&
+      success(
         input,
         match.from,
         match.to,
         [match],
         this.action,
-        options
-      );
-    return match;
+        options,
+        tracker
+      )
+    );
   }
 }
 
@@ -460,40 +439,47 @@ export class Token<TValue, TContext> extends Parser<TValue, TContext> {
         }
       ];
     else if (this.parser) return this.parser.first;
-    throw new Error("Cannot get first from undefined child parser");
+    throw new Error(
+      "Cannot get first-set in non-terminal from undefined child parser"
+    );
   }
 
-  _parse(input: string, from: number, options: Options<TContext>): Match {
+  _parse(
+    input: string,
+    options: Options<TContext>,
+    tracker: Tracker<TContext>
+  ): Match<TValue, TContext> | null {
     if (!this.parser)
       throw new Error(
-        `Cannot parse token ${this.identity} with undefined child parser`
+        `Cannot parse token${
+          this.identity ? ` <${this.identity}>` : ""
+        } with undefined child parser`
       );
-    const optionsNoSkip = { ...options, skip: false };
-    if (options.skip && options.skipper) {
-      const match = options.skipper._parse(input, from, optionsNoSkip);
-      if (match instanceof SuccessMatch) from = match.to;
-      else return match;
-    }
-    const match = this.parser._parse(input, from, optionsNoSkip);
-    if (match instanceof SuccessMatch)
-      return new SuccessMatch<TValue, TContext>(
+    let cursor = preskip(input, options, tracker);
+    if (cursor === null) return null;
+    const match = this.parser._parse(
+      input,
+      { ...options, from: cursor, skip: false },
+      tracker
+    );
+    if (match)
+      return success(
         input,
         match.from,
         match.to,
         [match],
         this.action,
-        options
+        options,
+        tracker
       );
-    return new MatchFail(
-      input,
-      options.diagnose
-        ? this.first.map(first => ({
-            at: from,
-            type: "EXPECTATION_FAIL",
-            ...first
-          }))
-        : []
-    );
+    else if (this.identity && options.diagnose)
+      tracker.writeFailure(cursor, {
+        type: "EXPECTATION_FAILURE",
+        polarity: true,
+        what: "TOKEN",
+        identity: this.identity
+      });
+    return null;
   }
 }
 
@@ -525,34 +511,29 @@ export class LiteralTerminal<TValue, TContext> extends Parser<
     ];
   }
 
-  _parse(input: string, from: number, options: Options<TContext>): Match {
-    if (options.skip && options.skipper) {
-      const match = options.skipper._parse(input, from, {
-        ...options,
-        skip: false
-      });
-      if (match instanceof SuccessMatch) from = match.to;
-      else return match;
-    }
-    if (!input.startsWith(this.literal, from))
-      return new MatchFail(
+  _parse(
+    input: string,
+    options: Options<TContext>,
+    tracker: Tracker<TContext>
+  ): Match<TValue, TContext> | null {
+    let cursor = preskip(input, options, tracker);
+    if (cursor === null) return null;
+    if (input.startsWith(this.literal, cursor))
+      return success(
         input,
-        options.diagnose
-          ? this.first.map(first => ({
-              at: from,
-              type: "EXPECTATION_FAIL",
-              ...first
-            }))
-          : []
+        cursor,
+        cursor + this.literal.length,
+        [],
+        this.action,
+        options,
+        tracker
       );
-    return new SuccessMatch<TValue, TContext>(
-      input,
-      from,
-      from + this.literal.length,
-      [],
-      this.action,
-      options
-    );
+    options.diagnose &&
+      tracker.writeFailure(cursor, {
+        type: "EXPECTATION_FAILURE",
+        ...this.first[0]
+      });
+    return null;
   }
 }
 
@@ -584,36 +565,31 @@ export class RegexTerminal<TValue, TContext> extends Parser<TValue, TContext> {
     ];
   }
 
-  _parse(input: string, from: number, options: Options<TContext>): Match {
-    if (options.skip && options.skipper) {
-      const match = options.skipper._parse(input, from, {
-        ...options,
-        skip: false
-      });
-      if (match instanceof SuccessMatch) from = match.to;
-      else return match;
-    }
-    this.pattern.lastIndex = from;
+  _parse(
+    input: string,
+    options: Options<TContext>,
+    tracker: Tracker<TContext>
+  ): Match<TValue, TContext> | null {
+    let cursor = preskip(input, options, tracker);
+    if (cursor === null) return null;
+    this.pattern.lastIndex = cursor;
     const result = this.pattern.exec(input);
-    if (result === null)
-      return new MatchFail(
+    if (result !== null)
+      return success(
         input,
-        options.diagnose
-          ? this.first.map(first => ({
-              at: from,
-              type: "EXPECTATION_FAIL",
-              ...first
-            }))
-          : []
+        cursor,
+        cursor + result[0].length,
+        [],
+        this.action,
+        options,
+        tracker
       );
-    return new SuccessMatch<TValue, TContext>(
-      input,
-      from,
-      from + result[0].length,
-      [],
-      this.action,
-      options
-    );
+    options.diagnose &&
+      tracker.writeFailure(cursor, {
+        type: "EXPECTATION_FAILURE",
+        ...this.first[0]
+      });
+    return null;
   }
 }
 
@@ -638,26 +614,19 @@ export class StartTerminal<TValue, TContext> extends Parser<TValue, TContext> {
     ];
   }
 
-  _parse(input: string, from: number, options: Options<TContext>): Match {
-    if (from === 0)
-      return new SuccessMatch<TValue, TContext>(
-        input,
-        0,
-        0,
-        [],
-        this.action,
-        options
-      );
-    return new MatchFail(
-      input,
-      options.diagnose
-        ? this.first.map(first => ({
-            at: from,
-            type: "EXPECTATION_FAIL",
-            ...first
-          }))
-        : []
-    );
+  _parse(
+    input: string,
+    options: Options<TContext>,
+    tracker: Tracker<TContext>
+  ): Match<TValue, TContext> | null {
+    if (options.from === 0)
+      return success(input, 0, 0, [], this.action, options, tracker);
+    options.diagnose &&
+      tracker.writeFailure(options.from, {
+        type: "EXPECTATION_FAILURE",
+        ...this.first[0]
+      });
+    return null;
   }
 }
 
@@ -682,34 +651,21 @@ export class EndTerminal<TValue, TContext> extends Parser<TValue, TContext> {
     ];
   }
 
-  _parse(input: string, from: number, options: Options<TContext>): Match {
-    if (options.skip && options.skipper) {
-      const match = options.skipper._parse(input, from, {
-        ...options,
-        skip: false
+  _parse(
+    input: string,
+    options: Options<TContext>,
+    tracker: Tracker<TContext>
+  ): Match<TValue, TContext> | null {
+    let cursor = preskip(input, options, tracker);
+    if (cursor === null) return null;
+    if (cursor === input.length)
+      return success(input, cursor, cursor, [], this.action, options, tracker);
+    options.diagnose &&
+      tracker.writeFailure(cursor, {
+        type: "EXPECTATION_FAILURE",
+        ...this.first[0]
       });
-      if (match instanceof SuccessMatch) from = match.to;
-      else return match;
-    }
-    if (from === input.length)
-      return new SuccessMatch<TValue, TContext>(
-        input,
-        from,
-        from,
-        [],
-        this.action,
-        options
-      );
-    return new MatchFail(
-      input,
-      options.diagnose
-        ? this.first.map(first => ({
-            at: from,
-            type: "EXPECTATION_FAIL",
-            ...first
-          }))
-        : []
-    );
+    return null;
   }
 }
 
@@ -729,36 +685,38 @@ const defaultOptions: Options<any> = {
 function preskip<TContext>(
   input: string,
   options: Options<TContext>,
-  internals: Internals<TContext>
+  tracker: Tracker<TContext>
 ) {
-  if (!options.skip || !options.skipper) return true;
-  const match = options.skipper._parse(input, {
-    ...options,
-    skip: false
-  });
-  if (!match) return false;
-  options.from = match.to;
-  return true;
+  if (!options.skip || !options.skipper) return options.from;
+  const match = options.skipper._parse(
+    input,
+    {
+      ...options,
+      skip: false
+    },
+    tracker
+  );
+  return match && match.to;
 }
 
 function success<TValue, TContext>(
   input: string,
   from: number,
   to: number,
-  matches: SuccessMatch<any, TContext>[],
+  matches: Match<any, TContext>[],
   action: SemanticAction<TValue, TContext> | null,
   options: Options<TContext>,
-  internals: Internals<TContext>
+  tracker: Tracker<TContext>
 ) {
   try {
-    return new SuccessMatch(input, from, to, matches, action, options);
+    return new Match(input, from, to, matches, action, options);
   } catch (error) {
     if (error instanceof Error)
-      internals.failures.push({
-        at: from,
-        type: "SEMANTIC_FAILURE",
-        message: error.message
-      });
+      options.diagnose &&
+        tracker.writeFailure(from, {
+          type: "SEMANTIC_FAILURE",
+          message: error.message
+        });
     else throw error;
     return null;
   }
