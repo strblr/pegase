@@ -319,5 +319,5 @@ export function pegase<TContext>(
   };
   const report = metagrammar.pegase.parse(grammar, { context });
   if (report.match) return report.match.value || context.rules;
-  throw report.logs;
+  throw new Error(report.humanLogs);
 }

@@ -39,7 +39,7 @@ export abstract class Parser<TValue, TContext> {
   ): TValue {
     const report = this.parse(input, options);
     if (report.match) return report.match.value;
-    throw report.logs;
+    throw new Error(report.humanLogs);
   }
 
   children(
@@ -48,7 +48,7 @@ export abstract class Parser<TValue, TContext> {
   ): any[] {
     const report = this.parse(input, options);
     if (report.match) return report.match.children;
-    throw report.logs;
+    throw new Error(report.humanLogs);
   }
 
   // Directives

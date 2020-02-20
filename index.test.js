@@ -44,15 +44,18 @@ test("XML should be correctly converted to in-memory JSON", () => {
   try {
     const { xml } = pegase`
       tag: '<' ${ident} attributes '>' xml '<' '/' ${ident} '>' ${emitTag}
-      |    unskipd[(!'<' .)+] ${emitText}
+      |    unskip[(!'<' .)+] ${emitText}
       
       xml: tag* ${groupTags}
       
       attributes: attribute* ${merge}
+      attributes: "test"
         
       attribute: ${ident} '=' ${doubleStr} ${collect}
     `;
-  } catch (e) {}
+  } catch (e) {
+    console.error(e.message);
+  }
 
   /*expect(
     xml.value(`

@@ -40,7 +40,6 @@ export class Tracker<TContext> {
   }
 
   writeFailure(failure: Failure): void {
-    // TODO study which condition happens the most to reorder things
     if (this.failures.length === 0 || this.failures[0].to === failure.to)
       this.failures.push(failure);
     else if (this.failures[0].to < failure.to)
