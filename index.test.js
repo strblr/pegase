@@ -52,9 +52,7 @@ test("XML should be correctly converted to in-memory JSON", () => {
         
       attribute: ${ident} '=' ${doubleStr} ${collect}
     `;
-  } catch (e) {
-    console.log(e);
-  }
+  } catch (e) {}
 
   /*expect(
     xml.value(`

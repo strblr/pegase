@@ -264,18 +264,14 @@ export class Repetition<TValue, TContext> extends Parser<TValue, TContext> {
     tracker: Tracker<TContext>
   ): Match<TValue, TContext> | null {
     const matches: Match<any, TContext>[] = [];
-    let counter = 0,
-      cursor = options.from;
+    let cursor = options.from,
+      counter = 0;
     const succeed = () => {
-      return success(
-        input,
-        matches.length === 0 ? options.from : matches[0].from,
-        matches.length === 0 ? options.from : matches[matches.length - 1].to,
-        matches,
-        this.action,
-        options,
-        tracker
-      );
+      const [from, to] =
+        matches.length === 0
+          ? [options.from, options.from]
+          : [matches[0].from, matches[matches.length - 1].to];
+      return success(input, from, to, matches, this.action, options, tracker);
     };
     while (true) {
       if (counter === this.max) return succeed();
@@ -347,7 +343,8 @@ export class Predicate<TContext> extends Parser<undefined, TContext> {
     else if (match && options.diagnose)
       this.first.forEach(first =>
         tracker.writeFailure({
-          at: match.from,
+          from: match.from,
+          to: match.to,
           type: "EXPECTATION_FAILURE",
           ...first
         })
@@ -427,22 +424,16 @@ export class Token<TValue, TContext> extends Parser<TValue, TContext> {
   ) {
     super(action);
     this.parser = parser || null;
+    // TODO remove totally identity, (merge Token with SkipTrigger OR propagate token info DOWN during parsing ?)
     this.identity = identity || null;
   }
 
   get first(): First[] {
-    if (this.identity)
-      return [
-        {
-          polarity: true,
-          what: "TOKEN",
-          identity: this.identity
-        }
-      ];
-    else if (this.parser) return this.parser.first;
-    throw new Error(
-      "Cannot get first-set in non-terminal from undefined child parser"
-    );
+    if (!this.parser)
+      throw new Error(
+        "Cannot get first-set in non-terminal from undefined child parser"
+      );
+    return this.parser.first;
   }
 
   _parse(
@@ -473,12 +464,6 @@ export class Token<TValue, TContext> extends Parser<TValue, TContext> {
         options,
         tracker
       );
-    else if (this.identity && options.diagnose)
-      tracker.writeFailure({
-        at: cursor,
-        type: "EXPECTATION_FAILURE",
-        ...this.first[0]
-      });
     return null;
   }
 }
@@ -530,7 +515,8 @@ export class LiteralTerminal<TValue, TContext> extends Parser<
       );
     options.diagnose &&
       tracker.writeFailure({
-        at: cursor,
+        from: cursor,
+        to: cursor,
         type: "EXPECTATION_FAILURE",
         ...this.first[0]
       });
@@ -587,7 +573,8 @@ export class RegexTerminal<TValue, TContext> extends Parser<TValue, TContext> {
       );
     options.diagnose &&
       tracker.writeFailure({
-        at: cursor,
+        from: cursor,
+        to: cursor,
         type: "EXPECTATION_FAILURE",
         ...this.first[0]
       });
@@ -625,7 +612,8 @@ export class StartTerminal<TValue, TContext> extends Parser<TValue, TContext> {
       return success(input, 0, 0, [], this.action, options, tracker);
     options.diagnose &&
       tracker.writeFailure({
-        at: options.from,
+        from: options.from,
+        to: options.from,
         type: "EXPECTATION_FAILURE",
         ...this.first[0]
       });
@@ -665,7 +653,8 @@ export class EndTerminal<TValue, TContext> extends Parser<TValue, TContext> {
       return success(input, cursor, cursor, [], this.action, options, tracker);
     options.diagnose &&
       tracker.writeFailure({
-        at: cursor,
+        from: cursor,
+        to: cursor,
         type: "EXPECTATION_FAILURE",
         ...this.first[0]
       });
@@ -717,14 +706,12 @@ function success<TValue, TContext>(
   } catch (error) {
     if (error instanceof Error)
       options.diagnose &&
-        tracker.writeFailure(
-          {
-            at: from,
-            type: "SEMANTIC_FAILURE",
-            message: error.message
-          },
-          true
-        );
+        tracker.writeFailure({
+          from,
+          to,
+          type: "SEMANTIC_FAILURE",
+          message: error.message
+        });
     else throw error;
     return null;
   }

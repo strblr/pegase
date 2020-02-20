@@ -39,11 +39,11 @@ export class Tracker<TContext> {
     this.warnings.push(warning);
   }
 
-  writeFailure(failure: Failure, overwrite?: boolean): void {
+  writeFailure(failure: Failure): void {
     // TODO study which condition happens the most to reorder things
-    if (this.failures.length === 0 || this.failures[0].at === failure.at)
+    if (this.failures.length === 0 || this.failures[0].to === failure.to)
       this.failures.push(failure);
-    else if (this.failures[0].at < failure.at || overwrite)
+    else if (this.failures[0].to < failure.to)
       this.failures.splice(0, this.failures.length, failure);
   }
 }
