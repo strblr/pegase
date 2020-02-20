@@ -346,7 +346,8 @@ export class Predicate<TContext> extends Parser<undefined, TContext> {
       );
     else if (match && options.diagnose)
       this.first.forEach(first =>
-        tracker.writeFailure(match.from, {
+        tracker.writeFailure({
+          at: match.from,
           type: "EXPECTATION_FAILURE",
           ...first
         })
@@ -473,11 +474,10 @@ export class Token<TValue, TContext> extends Parser<TValue, TContext> {
         tracker
       );
     else if (this.identity && options.diagnose)
-      tracker.writeFailure(cursor, {
+      tracker.writeFailure({
+        at: cursor,
         type: "EXPECTATION_FAILURE",
-        polarity: true,
-        what: "TOKEN",
-        identity: this.identity
+        ...this.first[0]
       });
     return null;
   }
@@ -529,7 +529,8 @@ export class LiteralTerminal<TValue, TContext> extends Parser<
         tracker
       );
     options.diagnose &&
-      tracker.writeFailure(cursor, {
+      tracker.writeFailure({
+        at: cursor,
         type: "EXPECTATION_FAILURE",
         ...this.first[0]
       });
@@ -585,7 +586,8 @@ export class RegexTerminal<TValue, TContext> extends Parser<TValue, TContext> {
         tracker
       );
     options.diagnose &&
-      tracker.writeFailure(cursor, {
+      tracker.writeFailure({
+        at: cursor,
         type: "EXPECTATION_FAILURE",
         ...this.first[0]
       });
@@ -622,7 +624,8 @@ export class StartTerminal<TValue, TContext> extends Parser<TValue, TContext> {
     if (options.from === 0)
       return success(input, 0, 0, [], this.action, options, tracker);
     options.diagnose &&
-      tracker.writeFailure(options.from, {
+      tracker.writeFailure({
+        at: options.from,
         type: "EXPECTATION_FAILURE",
         ...this.first[0]
       });
@@ -661,7 +664,8 @@ export class EndTerminal<TValue, TContext> extends Parser<TValue, TContext> {
     if (cursor === input.length)
       return success(input, cursor, cursor, [], this.action, options, tracker);
     options.diagnose &&
-      tracker.writeFailure(cursor, {
+      tracker.writeFailure({
+        at: cursor,
         type: "EXPECTATION_FAILURE",
         ...this.first[0]
       });
@@ -713,10 +717,14 @@ function success<TValue, TContext>(
   } catch (error) {
     if (error instanceof Error)
       options.diagnose &&
-        tracker.writeFailure(from, {
-          type: "SEMANTIC_FAILURE",
-          message: error.message
-        });
+        tracker.writeFailure(
+          {
+            at: from,
+            type: "SEMANTIC_FAILURE",
+            message: error.message
+          },
+          true
+        );
     else throw error;
     return null;
   }

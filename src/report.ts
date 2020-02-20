@@ -1,4 +1,3 @@
-import { flatten, last } from "lodash";
 import { Tracker } from "./tracker";
 import { Match } from "./match";
 import { Failure, Options, Warning } from "./types";
@@ -39,8 +38,8 @@ export class Report<TValue, TContext> {
   get logs() {
     if (!this._logs)
       this._logs = [
-        ...flatten(this.tracker.warnings),
-        ...(this.failed ? last(this.tracker.failures)! : [])
+        ...this.tracker.warnings,
+        ...(this.failed ? this.tracker.failures : [])
       ];
     return this._logs;
   }

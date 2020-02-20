@@ -1,6 +1,6 @@
 const { pegase, number, ident, doubleStr } = require("./lib/index");
 
-test("Modulos in grammars should work", () => {
+/*test("Modulos in grammars should work", () => {
   function count(_, children) {
     return children.length;
   }
@@ -12,7 +12,7 @@ test("Modulos in grammars should work", () => {
   expect(grammar.children("1 ,1,1 |1,1, 1  ,   1,1|1 |   1,1 ")).toEqual(
     finalCount
   );
-});
+});*/
 
 test("XML should be correctly converted to in-memory JSON", () => {
   function groupTags(_, children) {
@@ -53,7 +53,7 @@ test("XML should be correctly converted to in-memory JSON", () => {
       attribute: ${ident} '=' ${doubleStr} ${collect}
     `;
   } catch (e) {
-    console.log(e.failures);
+    console.log(e);
   }
 
   /*expect(
@@ -94,6 +94,7 @@ test("XML should be correctly converted to in-memory JSON", () => {
   ]);*/
 });
 
+/*
 test("Math expressions should be correctly calculated", () => {
   function doop(left, op, right) {
     switch (op) {
@@ -172,3 +173,4 @@ test("Math expressions should be correctly calculated", () => {
     )
   ).toBeCloseTo(71470.126502);
 });
+*/

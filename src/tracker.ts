@@ -10,8 +10,8 @@ import { Failure, Warning } from "./types";
 
 export class Tracker<TContext> {
   readonly cache: Map<Parser<any, TContext>, Match<any, TContext>>[];
-  readonly warnings: Warning[][];
-  readonly failures: Failure[][];
+  readonly warnings: Warning[];
+  readonly failures: Failure[];
 
   constructor() {
     this.cache = [];
@@ -35,13 +35,15 @@ export class Tracker<TContext> {
     this.cache[cursor].set(parser, match);
   }
 
-  writeWarning(cursor: number, warning: Warning): void {
-    if (!this.warnings[cursor]) this.warnings[cursor] = [warning];
-    else this.warnings[cursor].push(warning);
+  writeWarning(warning: Warning): void {
+    this.warnings.push(warning);
   }
 
-  writeFailure(cursor: number, failure: Failure): void {
-    if (!this.failures[cursor]) this.failures[cursor] = [failure];
-    else this.failures[cursor].push(failure);
+  writeFailure(failure: Failure, overwrite?: boolean): void {
+    // TODO study which condition happens the most to reorder things
+    if (this.failures.length === 0 || this.failures[0].at === failure.at)
+      this.failures.push(failure);
+    else if (this.failures[0].at < failure.at || overwrite)
+      this.failures.splice(0, this.failures.length, failure);
   }
 }

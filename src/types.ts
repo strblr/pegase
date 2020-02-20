@@ -53,16 +53,19 @@ export type First = Readonly<
 >;
 
 export type Warning = Readonly<{
+  at: number;
   type: "SEMANTIC_WARNING";
   message: string;
 }>;
 
 export type Failure = Readonly<
-  | ({
-      type: "EXPECTATION_FAILURE";
-    } & First)
-  | {
-      type: "SEMANTIC_FAILURE";
-      message: string;
-    }
+  { at: number } & (
+    | ({
+        type: "EXPECTATION_FAILURE";
+      } & First)
+    | {
+        type: "SEMANTIC_FAILURE";
+        message: string;
+      }
+  )
 >;
