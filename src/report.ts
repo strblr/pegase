@@ -1,6 +1,4 @@
-import { Tracker } from "./tracker";
-import { Match } from "./match";
-import { Failure, Options, Warning } from "./types";
+import { Failure, Internals, Match, Options, Warning } from "./types";
 
 /**
  * class Report
@@ -10,22 +8,22 @@ import { Failure, Options, Warning } from "./types";
 
 export class Report<TValue, TContext> {
   readonly input: string;
-  readonly match: Match<TValue, TContext> | null;
+  readonly match: Match<TValue> | null;
   readonly options: Options<TContext>;
-  readonly tracker: Tracker<TContext>;
+  readonly internals: Internals<TContext>;
   private _logs?: (Failure | Warning)[];
   private _humanizedLogs?: string;
 
   constructor(
     input: string,
-    match: Match<TValue, TContext> | null,
+    match: Match<TValue> | null,
     options: Options<TContext>,
-    tracker: Tracker<TContext>
+    internals: Internals<TContext>
   ) {
     this.input = input;
     this.match = match;
     this.options = options;
-    this.tracker = tracker;
+    this.internals = internals;
   }
 
   get succeeded() {
@@ -39,8 +37,8 @@ export class Report<TValue, TContext> {
   get logs() {
     if (!this._logs)
       this._logs = [
-        ...this.tracker.warnings,
-        ...(this.failed ? this.tracker.failures : [])
+        ...this.internals.tracker.warnings,
+        ...(this.failed ? this.internals.tracker.failures : [])
       ];
     return this._logs;
   }

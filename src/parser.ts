@@ -1,7 +1,15 @@
 import { Tracker } from "./tracker";
-import { Match } from "./match";
 import { Report } from "./report";
-import { First, NonEmptyArray, Options, SemanticAction } from "./types";
+import {
+  First,
+  Internals,
+  Match,
+  NonEmptyArray,
+  NonTerminalMode,
+  Options,
+  SemanticAction,
+  SemanticArgument
+} from "./types";
 
 /**
  * class Parser
@@ -20,18 +28,24 @@ export abstract class Parser<TValue, TContext> {
 
   parse(
     input: string,
-    options: Partial<Options<TContext>> = defaultOptions
+    partialOptions: Partial<Options<TContext>> = defaultOptions
   ): Report<TValue, TContext> {
-    const opts = { ...defaultOptions, ...options };
     const tracker = new Tracker<TContext>();
-    return new Report(input, this._parse(input, opts, tracker), opts, tracker);
+    const options = { ...defaultOptions, ...partialOptions };
+    const internals = { tracker };
+    return new Report(
+      input,
+      this._parse(input, options, internals),
+      options,
+      internals
+    );
   }
 
   abstract _parse(
     input: string,
     options: Options<TContext>,
-    tracker: Tracker<TContext>
-  ): Match<TValue, TContext> | null;
+    internals: Internals<TContext>
+  ): Match<TValue> | null;
 
   value(
     input: string,
@@ -54,28 +68,28 @@ export abstract class Parser<TValue, TContext> {
   // Directives
 
   get omit(): Parser<undefined, TContext> {
-    return new NonTerminal(this, () => undefined);
+    return new NonTerminal(this, "BYPASS", null, () => undefined);
   }
 
   get raw(): Parser<string, TContext> {
-    return new NonTerminal(this, raw => raw);
+    return new NonTerminal(this, "BYPASS", null, ({ raw }) => raw);
   }
 
   get token(): Parser<TValue, TContext> {
-    return new Token(this);
+    return new NonTerminal(this, "TOKEN", null);
   }
 
   get skip(): Parser<TValue, TContext> {
-    return new SkipTrigger(this, true);
+    return new NonTerminal(this, "SKIP", null);
   }
 
   get unskip(): Parser<TValue, TContext> {
-    return new SkipTrigger(this, false);
+    return new NonTerminal(this, "UNSKIP", null);
   }
 
   get matches(): Parser<boolean, TContext> {
     return new Alternative([
-      new NonTerminal(this, () => true),
+      new NonTerminal(this, "BYPASS", null, () => true),
       new LiteralTerminal("", () => false)
     ]);
   }
@@ -106,12 +120,16 @@ export class Sequence<TValue, TContext> extends Parser<TValue, TContext> {
   _parse(
     input: string,
     options: Options<TContext>,
-    tracker: Tracker<TContext>
-  ): Match<TValue, TContext> | null {
-    const matches: Match<any, TContext>[] = [];
+    internals: Internals<TContext>
+  ): Match<TValue> | null {
+    const matches: Match<any>[] = [];
     let cursor = options.from;
     for (const parser of this.parsers) {
-      const match = parser._parse(input, { ...options, from: cursor }, tracker);
+      const match = parser._parse(
+        input,
+        { ...options, from: cursor },
+        internals
+      );
       if (!match) return null;
       matches.push(match);
       cursor = match.to;
@@ -123,7 +141,7 @@ export class Sequence<TValue, TContext> extends Parser<TValue, TContext> {
       matches,
       this.action,
       options,
-      tracker
+      internals
     );
   }
 }
@@ -162,10 +180,10 @@ export class Alternative<TValue, TContext> extends Parser<TValue, TContext> {
   _parse(
     input: string,
     options: Options<TContext>,
-    tracker: Tracker<TContext>
-  ): Match<TValue, TContext> | null {
+    internals: Internals<TContext>
+  ): Match<TValue> | null {
     for (const parser of this.parsers) {
-      const match = parser._parse(input, options, tracker);
+      const match = parser._parse(input, options, internals);
       if (match)
         return success(
           input,
@@ -174,7 +192,7 @@ export class Alternative<TValue, TContext> extends Parser<TValue, TContext> {
           [match],
           this.action,
           options,
-          tracker
+          internals
         );
     }
     return null;
@@ -190,31 +208,60 @@ export class Alternative<TValue, TContext> extends Parser<TValue, TContext> {
 
 export class NonTerminal<TValue, TContext> extends Parser<TValue, TContext> {
   parser: Parser<any, TContext> | null;
+  readonly mode: NonTerminalMode;
+  readonly identity: string | null;
 
   constructor(
-    parser?: Parser<any, TContext>,
+    parser: Parser<any, TContext> | null,
+    mode: NonTerminalMode,
+    identity: string | null,
     action?: SemanticAction<TValue, TContext>
   ) {
     super(action);
-    this.parser = parser || null;
+    this.parser = parser;
+    this.mode = mode;
+    this.identity = identity;
   }
 
   get first(): First[] {
-    if (!this.parser)
+    if (this.mode === "TOKEN" && this.identity)
+      return [
+        {
+          polarity: true,
+          what: "TOKEN",
+          identity: this.identity
+        }
+      ];
+    else if (!this.parser)
       throw new Error(
         "Cannot get first-set in non-terminal from undefined child parser"
       );
-    return this.parser.first;
+    else return this.parser.first;
   }
 
   _parse(
     input: string,
     options: Options<TContext>,
-    tracker: Tracker<TContext>
-  ): Match<TValue, TContext> | null {
+    internals: Internals<TContext>
+  ): Match<TValue> | null {
     if (!this.parser)
       throw new Error("Cannot parse non-terminal with undefined child parser");
-    const match = this.parser._parse(input, options, tracker);
+    let cursor = options.from;
+    if (this.mode === "TOKEN") {
+      let skipped = preskip(input, options, internals);
+      if (skipped === null) return null;
+      else cursor = skipped;
+    }
+    const skipChild = skipChildByMode[this.mode];
+    const match = this.parser._parse(
+      input,
+      {
+        ...options,
+        from: cursor,
+        skip: skipChild === null ? options.skip : skipChild
+      },
+      internals
+    );
     return (
       match &&
       success(
@@ -224,7 +271,7 @@ export class NonTerminal<TValue, TContext> extends Parser<TValue, TContext> {
         [match],
         this.action,
         options,
-        tracker
+        internals
       )
     );
   }
@@ -261,9 +308,9 @@ export class Repetition<TValue, TContext> extends Parser<TValue, TContext> {
   _parse(
     input: string,
     options: Options<TContext>,
-    tracker: Tracker<TContext>
-  ): Match<TValue, TContext> | null {
-    const matches: Match<any, TContext>[] = [];
+    internals: Internals<TContext>
+  ): Match<TValue> | null {
+    const matches: Match<any>[] = [];
     let cursor = options.from,
       counter = 0;
     const succeed = () => {
@@ -271,14 +318,14 @@ export class Repetition<TValue, TContext> extends Parser<TValue, TContext> {
         matches.length === 0
           ? [options.from, options.from]
           : [matches[0].from, matches[matches.length - 1].to];
-      return success(input, from, to, matches, this.action, options, tracker);
+      return success(input, from, to, matches, this.action, options, internals);
     };
     while (true) {
       if (counter === this.max) return succeed();
       const match = this.parser._parse(
         input,
         { ...options, from: cursor },
-        tracker
+        internals
       );
       if (match) {
         matches.push(match);
@@ -327,9 +374,9 @@ export class Predicate<TContext> extends Parser<undefined, TContext> {
   _parse(
     input: string,
     options: Options<TContext>,
-    tracker: Tracker<TContext>
-  ): Match<undefined, TContext> | null {
-    const match = this.parser._parse(input, options, tracker);
+    internals: Internals<TContext>
+  ): Match<undefined> | null {
+    const match = this.parser._parse(input, options, internals);
     if (this.polarity === !!match)
       return success(
         input,
@@ -338,131 +385,16 @@ export class Predicate<TContext> extends Parser<undefined, TContext> {
         [],
         this.action,
         options,
-        tracker
+        internals
       );
     else if (match && options.diagnose)
       this.first.forEach(first =>
-        tracker.writeFailure({
+        internals.tracker.writeFailure({
           from: match.from,
           to: match.to,
           type: "EXPECTATION_FAILURE",
           ...first
         })
-      );
-    return null;
-  }
-}
-
-/**
- * class SkipTrigger
- *
- * Syntax: skip[p] or unskip[p]
- * Description: Tries to match p while reactivating or deactivating skipping.
- */
-
-export class SkipTrigger<TValue, TContext> extends Parser<TValue, TContext> {
-  private readonly parser: Parser<any, TContext>;
-  private readonly trigger: boolean;
-
-  constructor(
-    parser: Parser<any, TContext>,
-    trigger: boolean,
-    action?: SemanticAction<any, TContext>
-  ) {
-    super(action);
-    this.parser = parser;
-    this.trigger = trigger;
-  }
-
-  get first(): First[] {
-    return this.parser.first;
-  }
-
-  _parse(
-    input: string,
-    options: Options<TContext>,
-    tracker: Tracker<TContext>
-  ): Match<TValue, TContext> | null {
-    const match = this.parser._parse(
-      input,
-      {
-        ...options,
-        skip: this.trigger
-      },
-      tracker
-    );
-    return (
-      match &&
-      success(
-        input,
-        match.from,
-        match.to,
-        [match],
-        this.action,
-        options,
-        tracker
-      )
-    );
-  }
-}
-
-/**
- * class Token
- *
- * Syntax: $ruleName: <derivation>
- * Description: Matches its child parser while deactivating skipping, but can do pre-skipping.
- */
-
-export class Token<TValue, TContext> extends Parser<TValue, TContext> {
-  parser: Parser<any, TContext> | null;
-  private readonly identity: string | null;
-
-  constructor(
-    parser?: Parser<any, TContext>,
-    identity?: string,
-    action?: SemanticAction<TValue, TContext>
-  ) {
-    super(action);
-    this.parser = parser || null;
-    // TODO remove totally identity, (merge Token with SkipTrigger OR propagate token info DOWN during parsing ?)
-    this.identity = identity || null;
-  }
-
-  get first(): First[] {
-    if (!this.parser)
-      throw new Error(
-        "Cannot get first-set in non-terminal from undefined child parser"
-      );
-    return this.parser.first;
-  }
-
-  _parse(
-    input: string,
-    options: Options<TContext>,
-    tracker: Tracker<TContext>
-  ): Match<TValue, TContext> | null {
-    if (!this.parser)
-      throw new Error(
-        `Cannot parse token${
-          this.identity ? ` <${this.identity}>` : ""
-        } with undefined child parser`
-      );
-    let cursor = preskip(input, options, tracker);
-    if (cursor === null) return null;
-    const match = this.parser._parse(
-      input,
-      { ...options, from: cursor, skip: false },
-      tracker
-    );
-    if (match)
-      return success(
-        input,
-        match.from,
-        match.to,
-        [match],
-        this.action,
-        options,
-        tracker
       );
     return null;
   }
@@ -499,9 +431,9 @@ export class LiteralTerminal<TValue, TContext> extends Parser<
   _parse(
     input: string,
     options: Options<TContext>,
-    tracker: Tracker<TContext>
-  ): Match<TValue, TContext> | null {
-    let cursor = preskip(input, options, tracker);
+    internals: Internals<TContext>
+  ): Match<TValue> | null {
+    let cursor = preskip(input, options, internals);
     if (cursor === null) return null;
     if (input.startsWith(this.literal, cursor))
       return success(
@@ -511,10 +443,10 @@ export class LiteralTerminal<TValue, TContext> extends Parser<
         [],
         this.action,
         options,
-        tracker
+        internals
       );
     options.diagnose &&
-      tracker.writeFailure({
+      internals.tracker.writeFailure({
         from: cursor,
         to: cursor,
         type: "EXPECTATION_FAILURE",
@@ -555,9 +487,9 @@ export class RegexTerminal<TValue, TContext> extends Parser<TValue, TContext> {
   _parse(
     input: string,
     options: Options<TContext>,
-    tracker: Tracker<TContext>
-  ): Match<TValue, TContext> | null {
-    let cursor = preskip(input, options, tracker);
+    internals: Internals<TContext>
+  ): Match<TValue> | null {
+    let cursor = preskip(input, options, internals);
     if (cursor === null) return null;
     this.pattern.lastIndex = cursor;
     const result = this.pattern.exec(input);
@@ -569,10 +501,10 @@ export class RegexTerminal<TValue, TContext> extends Parser<TValue, TContext> {
         [],
         this.action,
         options,
-        tracker
+        internals
       );
     options.diagnose &&
-      tracker.writeFailure({
+      internals.tracker.writeFailure({
         from: cursor,
         to: cursor,
         type: "EXPECTATION_FAILURE",
@@ -606,12 +538,12 @@ export class StartTerminal<TValue, TContext> extends Parser<TValue, TContext> {
   _parse(
     input: string,
     options: Options<TContext>,
-    tracker: Tracker<TContext>
-  ): Match<TValue, TContext> | null {
+    internals: Internals<TContext>
+  ): Match<TValue> | null {
     if (options.from === 0)
-      return success(input, 0, 0, [], this.action, options, tracker);
+      return success(input, 0, 0, [], this.action, options, internals);
     options.diagnose &&
-      tracker.writeFailure({
+      internals.tracker.writeFailure({
         from: options.from,
         to: options.from,
         type: "EXPECTATION_FAILURE",
@@ -645,14 +577,22 @@ export class EndTerminal<TValue, TContext> extends Parser<TValue, TContext> {
   _parse(
     input: string,
     options: Options<TContext>,
-    tracker: Tracker<TContext>
-  ): Match<TValue, TContext> | null {
-    let cursor = preskip(input, options, tracker);
+    internals: Internals<TContext>
+  ): Match<TValue> | null {
+    let cursor = preskip(input, options, internals);
     if (cursor === null) return null;
     if (cursor === input.length)
-      return success(input, cursor, cursor, [], this.action, options, tracker);
+      return success(
+        input,
+        cursor,
+        cursor,
+        [],
+        this.action,
+        options,
+        internals
+      );
     options.diagnose &&
-      tracker.writeFailure({
+      internals.tracker.writeFailure({
         from: cursor,
         to: cursor,
         type: "EXPECTATION_FAILURE",
@@ -675,10 +615,17 @@ const defaultOptions: Options<any> = {
   context: undefined
 };
 
+const skipChildByMode: Record<NonTerminalMode, boolean | null> = {
+  BYPASS: null,
+  SKIP: true,
+  UNSKIP: false,
+  TOKEN: false
+};
+
 function preskip<TContext>(
   input: string,
   options: Options<TContext>,
-  tracker: Tracker<TContext>
+  internals: Internals<TContext>
 ) {
   if (!options.skip || !options.skipper) return options.from;
   const match = options.skipper._parse(
@@ -687,7 +634,7 @@ function preskip<TContext>(
       ...options,
       skip: false
     },
-    tracker
+    internals
   );
   return match && match.to;
 }
@@ -696,23 +643,53 @@ function success<TValue, TContext>(
   input: string,
   from: number,
   to: number,
-  matches: Match<any, TContext>[],
+  matches: Match<any>[],
   action: SemanticAction<TValue, TContext> | null,
   options: Options<TContext>,
-  tracker: Tracker<TContext>
-) {
-  try {
-    return new Match(input, from, to, matches, action, options);
-  } catch (error) {
-    if (error instanceof Error)
-      options.diagnose &&
-        tracker.writeFailure({
-          from,
-          to,
-          type: "SEMANTIC_FAILURE",
-          message: error.message
-        });
-    else throw error;
-    return null;
-  }
+  internals: Internals<TContext>
+): Match<TValue> | null {
+  const children = matches.reduce(
+    (acc, match) => [
+      ...acc,
+      ...(match.value === undefined ? match.children : [match.value])
+    ],
+    [] as any[]
+  );
+
+  const semanticArgument: SemanticArgument<TContext> = Object.defineProperties(
+    [...children],
+    {
+      from: { value: from },
+      to: { value: to },
+      raw: { get: () => input.substring(from, to) },
+      context: { value: options.context }
+    }
+  );
+
+  const match: Match<TValue> = {
+    from,
+    to,
+    value: undefined as any,
+    children: []
+  };
+
+  if (action) {
+    try {
+      match.value = action(semanticArgument, semanticArgument);
+    } catch (error) {
+      if (error instanceof Error)
+        options.diagnose &&
+          internals.tracker.writeFailure({
+            from,
+            to,
+            type: "SEMANTIC_FAILURE",
+            message: error.message
+          });
+      else throw error;
+      return null;
+    }
+  } else if (children.length === 1) match.value = children[0];
+  else match.children = children;
+
+  return match;
 }

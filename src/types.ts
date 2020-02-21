@@ -1,7 +1,8 @@
 import { Parser } from "./parser";
-import { Match } from "./match";
+import { Tracker } from "./tracker";
 
 export type NonEmptyArray<T> = [T, ...T[]];
+export type NonTerminalMode = "BYPASS" | "SKIP" | "UNSKIP" | "TOKEN";
 
 export type TagArgument<TContext> =
   | string
@@ -9,11 +10,17 @@ export type TagArgument<TContext> =
   | Parser<any, TContext>
   | SemanticAction<any, TContext>;
 
+export type SemanticArgument<TContext> = Array<any> &
+  Readonly<{
+    from: number;
+    to: number;
+    raw: string;
+    context: TContext;
+  }>;
+
 export type SemanticAction<TValue, TContext> = (
-  raw: string,
-  children: any[],
-  context: TContext,
-  match: Match<TValue, TContext>
+  arg: SemanticArgument<TContext>,
+  arg_: SemanticArgument<TContext>
 ) => TValue;
 
 export type MetaContext<TContext> = Readonly<{
@@ -29,6 +36,17 @@ export type Options<TContext> = Readonly<{
   cached: boolean;
   context: TContext;
 }>;
+
+export type Internals<TContext> = Readonly<{
+  tracker: Tracker<TContext>;
+}>;
+
+export type Match<TValue> = {
+  from: number;
+  to: number;
+  value: TValue;
+  children: any[];
+};
 
 export type First = Readonly<
   {

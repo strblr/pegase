@@ -15,7 +15,17 @@ const { pegase, number, ident, doubleStr } = require("./lib/index");
 });*/
 
 test("XML should be correctly converted to in-memory JSON", () => {
-  function groupTags(_, children) {
+  try {
+    const G = pegase`
+     
+      A: "2"
+      B: "3"
+    `;
+  } catch (e) {
+    console.error(e.message);
+  }
+
+  /*function groupTags(_, children) {
     return children;
   }
 
@@ -55,7 +65,7 @@ test("XML should be correctly converted to in-memory JSON", () => {
     `;
   } catch (e) {
     console.error(e.message);
-  }
+  }*/
 
   /*expect(
     xml.value(`

@@ -1,6 +1,5 @@
 import { Parser } from "./parser";
-import { Match } from "./match";
-import { Failure, Warning } from "./types";
+import { Failure, Match, Warning } from "./types";
 
 /**
  * class Tracker
@@ -9,7 +8,7 @@ import { Failure, Warning } from "./types";
  */
 
 export class Tracker<TContext> {
-  readonly cache: Map<Parser<any, TContext>, Match<any, TContext>>[];
+  readonly cache: Map<Parser<any, TContext>, Match<any>>[];
   readonly warnings: Warning[];
   readonly failures: Failure[];
 
@@ -19,17 +18,14 @@ export class Tracker<TContext> {
     this.failures = [];
   }
 
-  readCache(
-    cursor: number,
-    parser: Parser<any, TContext>
-  ): Match<any, TContext> | null {
+  readCache(cursor: number, parser: Parser<any, TContext>): Match<any> | null {
     return (this.cache[cursor] && this.cache[cursor].get(parser)) || null;
   }
 
   writeCache(
     cursor: number,
     parser: Parser<any, TContext>,
-    match: Match<any, TContext>
+    match: Match<any>
   ): void {
     if (!this.cache[cursor]) this.cache[cursor] = new Map();
     this.cache[cursor].set(parser, match);
