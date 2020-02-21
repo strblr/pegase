@@ -19,7 +19,6 @@ test("XML should be correctly converted to in-memory JSON", () => {
     const G = pegase`
       A: "1"
       A: "2"
-      B: "3"
     `;
   } catch (e) {
     console.error(e.message);

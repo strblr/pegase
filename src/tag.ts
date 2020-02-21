@@ -3,32 +3,22 @@
  *
  ***********************
  *
- * pegase:
- *      (definition+ | expression) $
- * definition:
- *      identifier ":" expression
- * expression:
- *      sequence (("|" | "/") sequence)*
- * sequence:
- *      modulo+ ("@" integer)?
- * modulo:
- *      prefix ("%" prefix)*
- * prefix:
- *      ("&" | "!")? suffix
- *
- * suffix:
- *      primary ("?" | "+" | "*" | "{" integer ("," integer)? "}")?
- *
- * primary:
- *      singleQuotedString
- *    | doubleQuotedString
- *    | integer
- *    | identifier !":" ("[" expression "]")?
- *    | "(" expression ")"
- *    | "ε"
- *    | "."
- *    | "^"
- *    | !identifier "$"
+ * pegase:     (definition+ | expression) $
+ * definition: identifier ':' expression
+ * expression: sequence (('|' | '/') sequence)*
+ * sequence:   modulo+ ('@' integer)?
+ * modulo:     prefix ('%' prefix)*
+ * prefix:     ('&' | '!')? suffix
+ * suffix:     primary ('?' | '+' | '*' | '{' integer (',' integer)? '}')?
+ * primary:    singleQuotedString
+ *           | doubleQuotedString
+ *           | integer
+ *           | identifier !':' ('[' expression ']')?
+ *           | '(' expression ')'
+ *           | 'ε'
+ *           | '.'
+ *           | '^'
+ *           | !identifier '$'
  */
 
 import {
@@ -101,13 +91,14 @@ metagrammar.pegase.parser = new Sequence([
 
 metagrammar.definition.parser = new Sequence(
   [pegaseId, new LiteralTerminal(":"), metagrammar.expression],
-  ([id, derivation], { context: { rules } }): void => {
-    if (!(id in rules)) rules[id] = derivation;
+  ({ children, context: { rules } }): void => {
+    const [id, expression] = children as [string, AnyParser];
+    if (!(id in rules)) rules[id] = expression;
     else {
       const parser = rules[id];
       if (!(parser instanceof NonTerminal) || parser.parser)
         throw new Error(`Multiple definitions of non-terminal <${id}>`);
-      parser.parser = derivation;
+      parser.parser = expression;
     }
   }
 );
@@ -169,15 +160,15 @@ metagrammar.modulo.parser = new Sequence(
     )
   ],
   ({ children }): AnyParser => {
-    const [item, ...rest] = children as NonEmptyArray<AnyParser>;
-    if (rest.length === 0) return item;
+    const [prefix, ...rest] = children as NonEmptyArray<AnyParser>;
+    if (rest.length === 0) return prefix;
     return rest.reduce(
       (acc, child) =>
         new Sequence([
           acc,
           new Repetition(new Sequence([child, acc]), 0, Infinity)
         ]),
-      item
+      prefix
     );
   }
 );
@@ -229,18 +220,18 @@ metagrammar.suffix.parser = new Sequence(
     )
   ],
   ({ children }): AnyParser => {
-    const [atom, ...quantifier] = children;
-    if (quantifier.length === 0) return atom;
-    if (quantifier[0] === "?") return new Repetition(atom, 0, 1);
-    if (quantifier[0] === "+") return new Repetition(atom, 1, Infinity);
-    if (quantifier[0] === "*") return new Repetition(atom, 0, Infinity);
+    const [primary, ...quantifier] = children;
+    if (quantifier.length === 0) return primary;
+    if (quantifier[0] === "?") return new Repetition(primary, 0, 1);
+    if (quantifier[0] === "+") return new Repetition(primary, 1, Infinity);
+    if (quantifier[0] === "*") return new Repetition(primary, 0, Infinity);
     const [min, max] = [
       quantifier[0],
       quantifier.length === 2 ? quantifier[1] : quantifier[0]
     ];
     if (min < 0 || max < 1 || max < min)
       throw new Error(`Invalid repetition range [${min}, ${max}]`);
-    return new Repetition(atom, min, max);
+    return new Repetition(primary, min, max);
   }
 );
 
@@ -289,14 +280,14 @@ metagrammar.primary.parser = new Alternative([
         1
       )
     ],
-    ([id, derivation], { context: { rules } }): AnyParser => {
-      if (!derivation) {
+    ([id, expression], { context: { rules } }): AnyParser => {
+      if (!expression) {
         if (!(id in rules))
           rules[id] = id.startsWith("$") ? token(id.substring(1)) : rule();
         return rules[id];
       } else {
         if (["omit", "raw", "token", "skip", "unskip", "matches"].includes(id))
-          return derivation[id];
+          return expression[id];
         throw new Error(`Invalid directive <${id}>`);
       }
     }
