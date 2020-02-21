@@ -662,7 +662,17 @@ function success<TValue, TContext>(
       from: { value: from },
       to: { value: to },
       raw: { get: () => input.substring(from, to) },
-      context: { value: options.context }
+      children: { value: children },
+      context: { value: options.context },
+      warn: {
+        value: (message: string) =>
+          internals.tracker.writeWarning({
+            from,
+            to,
+            type: "SEMANTIC_WARNING",
+            message
+          })
+      }
     }
   );
 

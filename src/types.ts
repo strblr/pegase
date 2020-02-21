@@ -1,6 +1,7 @@
 import { Parser } from "./parser";
 import { Tracker } from "./tracker";
 
+export type AnyParser = Parser<any, any>;
 export type NonEmptyArray<T> = [T, ...T[]];
 export type NonTerminalMode = "BYPASS" | "SKIP" | "UNSKIP" | "TOKEN";
 
@@ -10,12 +11,14 @@ export type TagArgument<TContext> =
   | Parser<any, TContext>
   | SemanticAction<any, TContext>;
 
-export type SemanticArgument<TContext> = Array<any> &
+export type SemanticArgument<TContext> = any[] &
   Readonly<{
     from: number;
     to: number;
     raw: string;
+    children: any[];
     context: TContext;
+    warn: (message: string) => void;
   }>;
 
 export type SemanticAction<TValue, TContext> = (

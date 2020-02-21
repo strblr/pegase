@@ -1,3 +1,36 @@
+/**
+ * Meta-grammar
+ *
+ ***********************
+ *
+ * pegase:
+ *      (definition+ | expression) $
+ * definition:
+ *      identifier ":" expression
+ * expression:
+ *      sequence (("|" | "/") sequence)*
+ * sequence:
+ *      modulo+ ("@" integer)?
+ * modulo:
+ *      prefix ("%" prefix)*
+ * prefix:
+ *      ("&" | "!")? suffix
+ *
+ * suffix:
+ *      primary ("?" | "+" | "*" | "{" integer ("," integer)? "}")?
+ *
+ * primary:
+ *      singleQuotedString
+ *    | doubleQuotedString
+ *    | integer
+ *    | identifier !":" ("[" expression "]")?
+ *    | "(" expression ")"
+ *    | "ε"
+ *    | "."
+ *    | "^"
+ *    | !identifier "$"
+ */
+
 import {
   isString,
   isRegExp,
@@ -12,7 +45,6 @@ import {
   Alternative,
   Repetition,
   Predicate,
-  Token,
   LiteralTerminal,
   NonTerminal,
   RegexTerminal,
@@ -21,82 +53,59 @@ import {
 } from "./parser";
 import { char, doubleStr, eps, natural, pegaseId, singleStr } from "./snippets";
 import {
+  AnyParser,
   MetaContext,
   NonEmptyArray,
   SemanticAction,
   TagArgument
 } from "./types";
 
+/**
+ * Utility
+ */
+
 export function rule<TValue, TContext>() {
-  return new NonTerminal<TValue, TContext>();
+  return new NonTerminal<TValue, TContext>(null, "BYPASS", null);
 }
 
 export function token<TValue, TContext>(identity?: string) {
-  return new Token<TValue, TContext>(undefined, identity);
+  return new NonTerminal<TValue, TContext>(null, "TOKEN", identity || null);
 }
 
 /**
- * The meta-grammar
- *
- ***************************************************
- *
- * pegase:
- *      (rule+ | derivation) $
- * rule:
- *      identifier ":" derivation
- * derivation:
- *      alternative (("|" | "/") alternative)*
- * alternative:
- *      step+ ("@" integer)?
- * step:
- *      item ("%" item)*
- * item:
- *      ("&" | "!") atom
- *    | atom ("?" | "+" | "*" | "{" integer ("," integer)? "}")?
- * atom:
- *      singleQuotedString
- *    | doubleQuotedString
- *    | integer
- *    | identifier !":" ("[" derivation "]")?
- *    | "(" derivation ")"
- *    | "ε"
- *    | "."
- *    | "^"
- *    | !identifier "$"
+ * Meta-grammar definition
  */
 
 const metagrammar = {
-  pegase: rule<Parser<any, any> | undefined, MetaContext<any>>(),
-  rule: rule<undefined, MetaContext<any>>(),
-  derivation: rule<Parser<any, any>, MetaContext<any>>(),
-  alternative: rule<Parser<any, any>, MetaContext<any>>(),
-  step: rule<Parser<any, any>, MetaContext<any>>(),
-  item: rule<Parser<any, any>, MetaContext<any>>(),
-  atom: rule<Parser<any, any>, MetaContext<any>>()
+  pegase: rule<AnyParser | undefined, MetaContext<any>>(),
+  definition: rule<undefined, MetaContext<any>>(),
+  expression: rule<AnyParser, MetaContext<any>>(),
+  sequence: rule<AnyParser, MetaContext<any>>(),
+  modulo: rule<AnyParser, MetaContext<any>>(),
+  prefix: rule<AnyParser, MetaContext<any>>(),
+  suffix: rule<AnyParser, MetaContext<any>>(),
+  primary: rule<AnyParser, MetaContext<any>>()
 };
 
 /***************************************************/
 
 metagrammar.pegase.parser = new Sequence([
   new Alternative([
-    new Repetition(metagrammar.rule, 1, Infinity),
-    metagrammar.derivation
+    new Repetition(metagrammar.definition, 1, Infinity),
+    metagrammar.expression
   ]),
   new EndTerminal()
 ]);
 
 /***************************************************/
 
-metagrammar.rule.parser = new Sequence(
-  [pegaseId, new LiteralTerminal(":"), metagrammar.derivation],
-  (_, [id, derivation], { rules }): void => {
+metagrammar.definition.parser = new Sequence(
+  [pegaseId, new LiteralTerminal(":"), metagrammar.expression],
+  ([id, derivation], { context: { rules } }): void => {
     if (!(id in rules)) rules[id] = derivation;
     else {
       const parser = rules[id];
-      if (
-        (!(parser instanceof NonTerminal) && !(parser instanceof Token)) ||
-        parser.parser
-      )
+      if (!(parser instanceof NonTerminal) || parser.parser)
         throw new Error(`Multiple definitions of non-terminal <${id}>`);
       parser.parser = derivation;
     }
@@ -105,36 +114,36 @@ metagrammar.rule.parser = new Sequence(
 
 /***************************************************/
 
-metagrammar.derivation.parser = new Sequence(
+metagrammar.expression.parser = new Sequence(
   [
-    metagrammar.alternative,
+    metagrammar.sequence,
     new Repetition(
       new Sequence([
         new Alternative([new LiteralTerminal("|"), new LiteralTerminal("/")]),
-        metagrammar.alternative
+        metagrammar.sequence
       ]),
       0,
       Infinity
     )
   ],
-  (_, children): Parser<any, any> => {
+  ({ children }): AnyParser => {
     if (children.length === 1) return children[0];
-    return new Alternative(children as NonEmptyArray<Parser<any, any>>);
+    return new Alternative(children as NonEmptyArray<AnyParser>);
   }
 );
 
 /***************************************************/
 
-metagrammar.alternative.parser = new Sequence(
+metagrammar.sequence.parser = new Sequence(
   [
-    new Repetition(metagrammar.step, 1, Infinity),
+    new Repetition(metagrammar.modulo, 1, Infinity),
     new Repetition(new Sequence([new LiteralTerminal("@"), natural]), 0, 1)
   ],
-  (_, children, { args }): Parser<any, any> => {
+  ({ children, context: { args } }): AnyParser => {
     if (!isInteger(last(children)))
       return children.length === 1
         ? children[0]
-        : new Sequence(children as NonEmptyArray<Parser<any, any>>);
+        : new Sequence(children as NonEmptyArray<AnyParser>);
     const index = last(children);
     if (index >= args.length)
       throw new Error(
@@ -143,24 +152,24 @@ metagrammar.alternative.parser = new Sequence(
     const action = args[index] as SemanticAction<any, any>;
     children = dropRight(children, 1);
     return children.length === 1
-      ? new NonTerminal(children[0], action)
-      : new Sequence(children as NonEmptyArray<Parser<any, any>>, action);
+      ? new NonTerminal(children[0], "BYPASS", null, action)
+      : new Sequence(children as NonEmptyArray<AnyParser>, action);
   }
 );
 
 /***************************************************/
 
-metagrammar.step.parser = new Sequence(
+metagrammar.modulo.parser = new Sequence(
   [
-    metagrammar.item,
+    metagrammar.prefix,
     new Repetition(
-      new Sequence([new LiteralTerminal("%"), metagrammar.item]),
+      new Sequence([new LiteralTerminal("%"), metagrammar.prefix]),
       0,
       Infinity
     )
   ],
-  (_, children): Parser<any, any> => {
-    const [item, ...rest] = children as NonEmptyArray<Parser<any, any>>;
+  ({ children }): AnyParser => {
+    const [item, ...rest] = children as NonEmptyArray<AnyParser>;
     if (rest.length === 0) return item;
     return rest.reduce(
       (acc, child) =>
@@ -175,74 +184,86 @@ metagrammar.step.parser = new Sequence(
 
 /***************************************************/
 
-metagrammar.item.parser = new Alternative([
-  new Sequence(
-    [
+metagrammar.prefix.parser = new Sequence(
+  [
+    new Repetition(
       new Alternative(
         [new LiteralTerminal("&"), new LiteralTerminal("!")],
-        raw => raw
+        ({ raw }) => raw
       ),
-      metagrammar.atom
-    ],
-    (_, children): Parser<any, any> => {
-      const [operator, atom] = children as [string, Parser<any, any>];
-      return new Predicate(atom, operator === "&");
-    }
-  ),
-  new Sequence(
-    [
-      metagrammar.atom,
-      new Repetition(
-        new Alternative([
-          new LiteralTerminal("?", raw => raw),
-          new LiteralTerminal("+", raw => raw),
-          new LiteralTerminal("*", raw => raw),
-          new Sequence([
-            new LiteralTerminal("{"),
-            natural,
-            new Repetition(
-              new Sequence([new LiteralTerminal(","), natural]),
-              0,
-              1
-            ),
-            new LiteralTerminal("}")
-          ])
-        ]),
-        0,
-        1
-      )
-    ],
-    (_, children): Parser<any, any> => {
-      const [atom, ...quantifier] = children;
-      if (quantifier.length === 0) return atom;
-      if (quantifier[0] === "?") return new Repetition(atom, 0, 1);
-      if (quantifier[0] === "+") return new Repetition(atom, 1, Infinity);
-      if (quantifier[0] === "*") return new Repetition(atom, 0, Infinity);
-      const [min, max] = [
-        quantifier[0],
-        quantifier.length === 2 ? quantifier[1] : quantifier[0]
-      ];
-      if (min < 0 || max < 1 || max < min)
-        throw new Error(`Invalid repetition range [${min}, ${max}]`);
-      return new Repetition(atom, min, max);
-    }
-  )
-]);
+      0,
+      1
+    ),
+    metagrammar.suffix
+  ],
+  ({ children }): AnyParser => {
+    if (children.length === 1) return children[0];
+    const [operator, suffix] = children as [string, AnyParser];
+    return new Predicate(suffix, operator === "&");
+  }
+);
 
 /***************************************************/
 
-metagrammar.atom.parser = new Alternative([
+metagrammar.suffix.parser = new Sequence(
+  [
+    metagrammar.primary,
+    new Repetition(
+      new Alternative([
+        new LiteralTerminal("?", ({ raw }) => raw),
+        new LiteralTerminal("+", ({ raw }) => raw),
+        new LiteralTerminal("*", ({ raw }) => raw),
+        new Sequence([
+          new LiteralTerminal("{"),
+          natural,
+          new Repetition(
+            new Sequence([new LiteralTerminal(","), natural]),
+            0,
+            1
+          ),
+          new LiteralTerminal("}")
+        ])
+      ]),
+      0,
+      1
+    )
+  ],
+  ({ children }): AnyParser => {
+    const [atom, ...quantifier] = children;
+    if (quantifier.length === 0) return atom;
+    if (quantifier[0] === "?") return new Repetition(atom, 0, 1);
+    if (quantifier[0] === "+") return new Repetition(atom, 1, Infinity);
+    if (quantifier[0] === "*") return new Repetition(atom, 0, Infinity);
+    const [min, max] = [
+      quantifier[0],
+      quantifier.length === 2 ? quantifier[1] : quantifier[0]
+    ];
+    if (min < 0 || max < 1 || max < min)
+      throw new Error(`Invalid repetition range [${min}, ${max}]`);
+    return new Repetition(atom, min, max);
+  }
+);
+
+/***************************************************/
+
+metagrammar.primary.parser = new Alternative([
   new NonTerminal(
     singleStr,
-    (_, [literal]): Parser<any, any> => new LiteralTerminal(literal)
+    "BYPASS",
+    null,
+    ([literal]): AnyParser => new LiteralTerminal(literal)
   ),
   new NonTerminal(
     doubleStr,
-    (_, [literal]): Parser<any, any> => new LiteralTerminal(literal, raw => raw)
+    "BYPASS",
+    null,
+    ([literal]): AnyParser => new LiteralTerminal(literal, ({ raw }) => raw)
   ),
   new NonTerminal(
     natural,
-    (_, [index], { args }): Parser<any, any> => {
+    "BYPASS",
+    null,
+    ([index], { context: { args } }): AnyParser => {
       if (index >= args.length)
         throw new Error(`Invalid reference (${index}) in parser expression`);
       const item = args[index];
@@ -261,14 +282,14 @@ metagrammar.atom.parser = new Alternative([
       new Repetition(
         new Sequence([
           new LiteralTerminal("["),
-          metagrammar.derivation,
+          metagrammar.expression,
           new LiteralTerminal("]")
         ]),
         0,
         1
       )
     ],
-    (_, [id, derivation], { rules }): Parser<any, any> => {
+    ([id, derivation], { context: { rules } }): AnyParser => {
       if (!derivation) {
         if (!(id in rules))
           rules[id] = id.startsWith("$") ? token(id.substring(1)) : rule();
@@ -282,15 +303,15 @@ metagrammar.atom.parser = new Alternative([
   ),
   new Sequence([
     new LiteralTerminal("("),
-    metagrammar.derivation,
+    metagrammar.expression,
     new LiteralTerminal(")")
   ]),
-  new LiteralTerminal("ε", (): Parser<any, any> => eps),
-  new LiteralTerminal(".", (): Parser<any, any> => char),
-  new LiteralTerminal("^", (): Parser<any, any> => new StartTerminal()),
+  new LiteralTerminal("ε", (): AnyParser => eps),
+  new LiteralTerminal(".", (): AnyParser => char),
+  new LiteralTerminal("^", (): AnyParser => new StartTerminal()),
   new Sequence(
     [new Predicate(pegaseId, false), new LiteralTerminal("$")],
-    (): Parser<any, any> => new EndTerminal()
+    (): AnyParser => new EndTerminal()
   )
 ]);
 
