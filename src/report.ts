@@ -1,4 +1,5 @@
-import { Failure, Internals, Match, Options, Warning } from "./types";
+import { Failure, Internals, Options, Warning } from "./types";
+import { Match } from "./match";
 
 /**
  * class Report
@@ -10,7 +11,7 @@ export class Report<TValue, TContext> {
   readonly input: string;
   readonly match: Match<TValue> | null;
   readonly options: Options<TContext>;
-  readonly internals: Internals<TContext>;
+  private readonly internals: Internals<TContext>;
   private _logs?: (Failure | Warning)[];
   private _humanizedLogs?: string;
 

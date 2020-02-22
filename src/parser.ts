@@ -1,14 +1,14 @@
 import { Tracker } from "./tracker";
+import { Match, SemanticMatchReport } from "./match";
 import { Report } from "./report";
 import {
+  AnyMatch,
   First,
   Internals,
-  Match,
   NonEmptyArray,
   NonTerminalMode,
   Options,
-  SemanticAction,
-  SemanticArgument
+  SemanticAction
 } from "./types";
 
 /**
@@ -122,7 +122,7 @@ export class Sequence<TValue, TContext> extends Parser<TValue, TContext> {
     options: Options<TContext>,
     internals: Internals<TContext>
   ): Match<TValue> | null {
-    const matches: Match<any>[] = [];
+    const matches: AnyMatch[] = [];
     let cursor = options.from;
     for (const parser of this.parsers) {
       const match = parser._parse(
@@ -208,8 +208,8 @@ export class Alternative<TValue, TContext> extends Parser<TValue, TContext> {
 
 export class NonTerminal<TValue, TContext> extends Parser<TValue, TContext> {
   parser: Parser<any, TContext> | null;
-  readonly mode: NonTerminalMode;
-  readonly identity: string | null;
+  private readonly mode: NonTerminalMode;
+  private readonly identity: string | null;
 
   constructor(
     parser: Parser<any, TContext> | null,
@@ -310,7 +310,7 @@ export class Repetition<TValue, TContext> extends Parser<TValue, TContext> {
     options: Options<TContext>,
     internals: Internals<TContext>
   ): Match<TValue> | null {
-    const matches: Match<any>[] = [];
+    const matches: AnyMatch[] = [];
     let cursor = options.from,
       counter = 0;
     const succeed = () => {
@@ -643,7 +643,7 @@ function success<TValue, TContext>(
   input: string,
   from: number,
   to: number,
-  matches: Match<any>[],
+  matches: AnyMatch[],
   action: SemanticAction<TValue, TContext> | null,
   options: Options<TContext>,
   internals: Internals<TContext>
@@ -656,36 +656,21 @@ function success<TValue, TContext>(
     [] as any[]
   );
 
-  const semanticArgument: SemanticArgument<TContext> = Object.defineProperties(
-    [...children],
-    {
-      from: { value: from },
-      to: { value: to },
-      raw: { get: () => input.substring(from, to) },
-      children: { value: children },
-      context: { value: options.context },
-      warn: {
-        value: (message: string) =>
-          internals.tracker.writeWarning({
-            from,
-            to,
-            type: "SEMANTIC_WARNING",
-            message
-          })
-      }
-    }
-  );
-
-  const match: Match<TValue> = {
+  const arg = new SemanticMatchReport<TContext>(
+    input,
     from,
     to,
-    value: undefined as any,
-    children: []
-  };
+    children,
+    options,
+    internals
+  );
+
+  let finalValue = undefined;
+  let finalChildren = [];
 
   if (action) {
     try {
-      match.value = action(semanticArgument, semanticArgument);
+      finalValue = action(arg, arg);
     } catch (error) {
       if (error instanceof Error)
         options.diagnose &&
@@ -698,8 +683,8 @@ function success<TValue, TContext>(
       else throw error;
       return null;
     }
-  } else if (children.length === 1) match.value = children[0];
-  else match.children = children;
+  } else if (children.length === 1) finalValue = children[0];
+  else finalChildren = children;
 
-  return match;
+  return new Match<TValue>(input, from, to, finalChildren, finalValue);
 }
