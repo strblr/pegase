@@ -1,5 +1,5 @@
-import { Failure, Internals, Options, Warning } from "./types";
 import { Match } from "./match";
+import { Failure, Internals, Options, Warning } from "./types";
 
 /**
  * class Report
@@ -9,7 +9,7 @@ import { Match } from "./match";
 
 export class Report<TValue, TContext> {
   readonly input: string;
-  readonly match: Match<TValue> | null;
+  readonly match: Match<TValue, TContext> | null;
   readonly options: Options<TContext>;
   private readonly internals: Internals<TContext>;
   private _logs?: (Failure | Warning)[];
@@ -17,7 +17,7 @@ export class Report<TValue, TContext> {
 
   constructor(
     input: string,
-    match: Match<TValue> | null,
+    match: Match<TValue, TContext> | null,
     options: Options<TContext>,
     internals: Internals<TContext>
   ) {

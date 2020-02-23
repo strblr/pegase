@@ -9,11 +9,13 @@
  * sequence:   modulo+ ('@' integer)?
  * modulo:     prefix ('%' prefix)*
  * prefix:     ('&' | '!')? suffix
- * suffix:     primary ('?' | '+' | '*' | '{' integer (',' integer)? '}')?
+ * suffix:     directive ('?' | '+' | '*' | '{' integer (',' integer)? '}')?
+ * directive:  primary ('#' identifier)*
  * primary:    singleQuotedString
  *           | doubleQuotedString
+ *           | characterClass
  *           | integer
- *           | identifier !':' ('[' expression ']')?
+ *           | identifier !':'
  *           | '(' expression ')'
  *           | 'ε'
  *           | '.'
@@ -41,7 +43,15 @@ import {
   StartTerminal,
   EndTerminal
 } from "./parser";
-import { char, doubleStr, eps, natural, pegaseId, singleStr } from "./snippets";
+import {
+  char,
+  charClass,
+  doubleStr,
+  eps,
+  natural,
+  pegaseId,
+  singleStr
+} from "./snippets";
 import {
   AnyParser,
   MetaContext,
@@ -54,8 +64,8 @@ import {
  * Utility
  */
 
-export function rule<TValue, TContext>() {
-  return new NonTerminal<TValue, TContext>(null, "BYPASS", null);
+export function rule<TValue, TContext>(identity?: string) {
+  return new NonTerminal<TValue, TContext>(null, "BYPASS", identity || null);
 }
 
 export function token<TValue, TContext>(identity?: string) {
@@ -67,14 +77,15 @@ export function token<TValue, TContext>(identity?: string) {
  */
 
 const metagrammar = {
-  pegase: rule<AnyParser | undefined, MetaContext<any>>(),
-  definition: rule<undefined, MetaContext<any>>(),
-  expression: rule<AnyParser, MetaContext<any>>(),
-  sequence: rule<AnyParser, MetaContext<any>>(),
-  modulo: rule<AnyParser, MetaContext<any>>(),
-  prefix: rule<AnyParser, MetaContext<any>>(),
-  suffix: rule<AnyParser, MetaContext<any>>(),
-  primary: rule<AnyParser, MetaContext<any>>()
+  pegase: rule<AnyParser | undefined, MetaContext<any>>("pegase"),
+  definition: rule<undefined, MetaContext<any>>("definition"),
+  expression: rule<AnyParser, MetaContext<any>>("expression"),
+  sequence: rule<AnyParser, MetaContext<any>>("sequence"),
+  modulo: rule<AnyParser, MetaContext<any>>("modulo"),
+  prefix: rule<AnyParser, MetaContext<any>>("prefix"),
+  suffix: rule<AnyParser, MetaContext<any>>("suffix"),
+  directive: rule<AnyParser, MetaContext<any>>("directive"),
+  primary: rule<AnyParser, MetaContext<any>>("primary")
 };
 
 /***************************************************/
@@ -198,7 +209,7 @@ metagrammar.prefix.parser = new Sequence(
 
 metagrammar.suffix.parser = new Sequence(
   [
-    metagrammar.primary,
+    metagrammar.directive,
     new Repetition(
       new Alternative([
         new LiteralTerminal("?", ({ raw }) => raw),
@@ -220,18 +231,44 @@ metagrammar.suffix.parser = new Sequence(
     )
   ],
   ({ children }): AnyParser => {
-    const [primary, ...quantifier] = children;
-    if (quantifier.length === 0) return primary;
-    if (quantifier[0] === "?") return new Repetition(primary, 0, 1);
-    if (quantifier[0] === "+") return new Repetition(primary, 1, Infinity);
-    if (quantifier[0] === "*") return new Repetition(primary, 0, Infinity);
+    const [directive, ...quantifier] = children as [AnyParser, ...any[]];
+    if (quantifier.length === 0) return directive;
+    if (quantifier[0] === "?") return new Repetition(directive, 0, 1);
+    if (quantifier[0] === "+") return new Repetition(directive, 1, Infinity);
+    if (quantifier[0] === "*") return new Repetition(directive, 0, Infinity);
     const [min, max] = [
       quantifier[0],
       quantifier.length === 2 ? quantifier[1] : quantifier[0]
     ];
     if (min < 0 || max < 1 || max < min)
       throw new Error(`Invalid repetition range [${min}, ${max}]`);
-    return new Repetition(primary, min, max);
+    return new Repetition(directive, min, max);
+  }
+);
+
+/***************************************************/
+
+metagrammar.directive.parser = new Sequence(
+  [
+    metagrammar.primary,
+    new Repetition(
+      new Sequence([new LiteralTerminal("#"), pegaseId]),
+      0,
+      Infinity
+    )
+  ],
+  ({ children }): AnyParser => {
+    const [primary, ...directives] = children as [AnyParser, ...string[]];
+    if (directives.length === 0) return primary;
+    return directives.reduce((acc, directive) => {
+      if (
+        ["omit", "raw", "token", "skip", "unskip", "matches"].includes(
+          directive
+        )
+      )
+        return (acc as any)[directive];
+      throw new Error(`Invalid directive <${directive}>`);
+    }, primary);
   }
 );
 
@@ -251,6 +288,12 @@ metagrammar.primary.parser = new Alternative([
     ([literal]): AnyParser => new LiteralTerminal(literal, ({ raw }) => raw)
   ),
   new NonTerminal(
+    charClass,
+    "BYPASS",
+    null,
+    ([classRegex]) => new RegexTerminal(classRegex)
+  ),
+  new NonTerminal(
     natural,
     "BYPASS",
     null,
@@ -267,29 +310,11 @@ metagrammar.primary.parser = new Alternative([
     }
   ),
   new Sequence(
-    [
-      pegaseId,
-      new Predicate(new LiteralTerminal(":"), false),
-      new Repetition(
-        new Sequence([
-          new LiteralTerminal("["),
-          metagrammar.expression,
-          new LiteralTerminal("]")
-        ]),
-        0,
-        1
-      )
-    ],
-    ([id, expression], { context: { rules } }): AnyParser => {
-      if (!expression) {
-        if (!(id in rules))
-          rules[id] = id.startsWith("$") ? token(id.substring(1)) : rule();
-        return rules[id];
-      } else {
-        if (["omit", "raw", "token", "skip", "unskip", "matches"].includes(id))
-          return expression[id];
-        throw new Error(`Invalid directive <${id}>`);
-      }
+    [pegaseId, new Predicate(new LiteralTerminal(":"), false)],
+    ([id], { context: { rules } }): AnyParser => {
+      if (!(id in rules))
+        rules[id] = id.startsWith("$") ? token(id.substring(1)) : rule(id);
+      return rules[id];
     }
   ),
   new Sequence([

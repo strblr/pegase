@@ -1,8 +1,7 @@
 import { Tracker } from "./tracker";
-import { Match, SemanticMatchReport } from "./match";
+import { Match } from "./match";
 import { Report } from "./report";
 import {
-  AnyMatch,
   First,
   Internals,
   NonEmptyArray,
@@ -45,7 +44,7 @@ export abstract class Parser<TValue, TContext> {
     input: string,
     options: Options<TContext>,
     internals: Internals<TContext>
-  ): Match<TValue> | null;
+  ): Match<TValue, TContext> | null;
 
   value(
     input: string,
@@ -121,8 +120,8 @@ export class Sequence<TValue, TContext> extends Parser<TValue, TContext> {
     input: string,
     options: Options<TContext>,
     internals: Internals<TContext>
-  ): Match<TValue> | null {
-    const matches: AnyMatch[] = [];
+  ): Match<TValue, TContext> | null {
+    const matches: Match<any, TContext>[] = [];
     let cursor = options.from;
     for (const parser of this.parsers) {
       const match = parser._parse(
@@ -181,7 +180,7 @@ export class Alternative<TValue, TContext> extends Parser<TValue, TContext> {
     input: string,
     options: Options<TContext>,
     internals: Internals<TContext>
-  ): Match<TValue> | null {
+  ): Match<TValue, TContext> | null {
     for (const parser of this.parsers) {
       const match = parser._parse(input, options, internals);
       if (match)
@@ -243,7 +242,7 @@ export class NonTerminal<TValue, TContext> extends Parser<TValue, TContext> {
     input: string,
     options: Options<TContext>,
     internals: Internals<TContext>
-  ): Match<TValue> | null {
+  ): Match<TValue, TContext> | null {
     if (!this.parser)
       throw new Error("Cannot parse non-terminal with undefined child parser");
     let cursor = options.from;
@@ -309,8 +308,8 @@ export class Repetition<TValue, TContext> extends Parser<TValue, TContext> {
     input: string,
     options: Options<TContext>,
     internals: Internals<TContext>
-  ): Match<TValue> | null {
-    const matches: AnyMatch[] = [];
+  ): Match<TValue, TContext> | null {
+    const matches: Match<any, TContext>[] = [];
     let cursor = options.from,
       counter = 0;
     const succeed = () => {
@@ -375,7 +374,7 @@ export class Predicate<TContext> extends Parser<undefined, TContext> {
     input: string,
     options: Options<TContext>,
     internals: Internals<TContext>
-  ): Match<undefined> | null {
+  ): Match<undefined, TContext> | null {
     const match = this.parser._parse(input, options, internals);
     if (this.polarity === !!match)
       return success(
@@ -432,7 +431,7 @@ export class LiteralTerminal<TValue, TContext> extends Parser<
     input: string,
     options: Options<TContext>,
     internals: Internals<TContext>
-  ): Match<TValue> | null {
+  ): Match<TValue, TContext> | null {
     let cursor = preskip(input, options, internals);
     if (cursor === null) return null;
     if (input.startsWith(this.literal, cursor))
@@ -488,7 +487,7 @@ export class RegexTerminal<TValue, TContext> extends Parser<TValue, TContext> {
     input: string,
     options: Options<TContext>,
     internals: Internals<TContext>
-  ): Match<TValue> | null {
+  ): Match<TValue, TContext> | null {
     let cursor = preskip(input, options, internals);
     if (cursor === null) return null;
     this.pattern.lastIndex = cursor;
@@ -539,7 +538,7 @@ export class StartTerminal<TValue, TContext> extends Parser<TValue, TContext> {
     input: string,
     options: Options<TContext>,
     internals: Internals<TContext>
-  ): Match<TValue> | null {
+  ): Match<TValue, TContext> | null {
     if (options.from === 0)
       return success(input, 0, 0, [], this.action, options, internals);
     options.diagnose &&
@@ -578,7 +577,7 @@ export class EndTerminal<TValue, TContext> extends Parser<TValue, TContext> {
     input: string,
     options: Options<TContext>,
     internals: Internals<TContext>
-  ): Match<TValue> | null {
+  ): Match<TValue, TContext> | null {
     let cursor = preskip(input, options, internals);
     if (cursor === null) return null;
     if (cursor === input.length)
@@ -643,48 +642,22 @@ function success<TValue, TContext>(
   input: string,
   from: number,
   to: number,
-  matches: AnyMatch[],
+  matches: Match<any, TContext>[],
   action: SemanticAction<TValue, TContext> | null,
   options: Options<TContext>,
   internals: Internals<TContext>
-): Match<TValue> | null {
-  const children = matches.reduce(
-    (acc, match) => [
-      ...acc,
-      ...(match.value === undefined ? match.children : [match.value])
-    ],
-    [] as any[]
-  );
-
-  const arg = new SemanticMatchReport<TContext>(
-    input,
-    from,
-    to,
-    children,
-    options,
-    internals
-  );
-
-  let finalValue = undefined;
-  let finalChildren = [];
-
-  if (action) {
-    try {
-      finalValue = action(arg, arg);
-    } catch (error) {
-      if (error instanceof Error)
-        options.diagnose &&
-          internals.tracker.writeFailure({
-            from,
-            to,
-            type: "SEMANTIC_FAILURE",
-            message: error.message
-          });
-      else throw error;
-      return null;
-    }
-  } else if (children.length === 1) finalValue = children[0];
-  else finalChildren = children;
-
-  return new Match<TValue>(input, from, to, finalChildren, finalValue);
+) {
+  try {
+    return new Match(input, from, to, matches, action, options, internals);
+  } catch (failure) {
+    if (!(failure instanceof Error)) throw failure;
+    options.diagnose &&
+      internals.tracker.writeFailure({
+        from,
+        to,
+        type: "SEMANTIC_FAILURE",
+        message: failure.message
+      });
+    return null;
+  }
 }

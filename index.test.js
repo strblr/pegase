@@ -16,9 +16,10 @@ const { pegase, number, ident, doubleStr } = require("./lib/index");
 
 test("XML should be correctly converted to in-memory JSON", () => {
   try {
-    const G = pegase`
-      A: "1"
-      A: "2"
+    const { A } = pegase`
+      A: B % "+" #unskip ${() => {
+        console.log("matched !");
+      }}
     `;
   } catch (e) {
     console.error(e.message);
@@ -53,7 +54,7 @@ test("XML should be correctly converted to in-memory JSON", () => {
   try {
     const { xml } = pegase`
       tag: '<' ${ident} attributes '>' xml '<' '/' ${ident} '>' ${emitTag}
-      |    unskip[(!'<' .)+] ${emitText}
+         | unskip[(!'<' .)+] ${emitText}
       
       xml: tag* ${groupTags}
       

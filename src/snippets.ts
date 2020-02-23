@@ -92,3 +92,9 @@ export const doubleStr = makeToken<string>(
   /"([^\\"]|\\.)*"/,
   ({ raw }) => JSON.parse(raw)
 );
+
+export const charClass = makeToken<RegExp>(
+  "characterClass",
+  /\[([^\\\]]|\\.)*]/,
+  ({ raw }) => new RegExp(raw)
+);

@@ -1,9 +1,8 @@
 import { Tracker } from "./tracker";
 import { Parser } from "./parser";
-import { Match, SemanticMatchReport } from "./match";
+import { SemanticMatchReport } from "./match";
 
 export type AnyParser = Parser<any, any>;
-export type AnyMatch = Match<any>;
 export type NonEmptyArray<T> = [T, ...T[]];
 export type NonTerminalMode = "BYPASS" | "SKIP" | "UNSKIP" | "TOKEN";
 
