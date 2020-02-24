@@ -1,6 +1,5 @@
 import { Tracker } from "./tracker";
 import { Parser } from "./parser";
-import { SemanticMatchReport } from "./match";
 
 export type AnyParser = Parser<any, any>;
 export type NonEmptyArray<T> = [T, ...T[]];
@@ -11,6 +10,17 @@ export type TagArgument<TContext> =
   | RegExp
   | Parser<any, TContext>
   | SemanticAction<any, TContext>;
+
+export type SemanticMatchReport<TContext> = any[] &
+  Readonly<{
+    input: string;
+    from: number;
+    to: number;
+    raw: string;
+    children: any[];
+    context: TContext;
+    warn: (message: string) => void;
+  }>;
 
 export type SemanticAction<TValue, TContext> = (
   arg: SemanticMatchReport<TContext>,

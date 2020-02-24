@@ -19,10 +19,7 @@ export class Tracker<TContext> {
     this.failures = [];
   }
 
-  readCache(
-    cursor: number,
-    parser: Parser<any, TContext>
-  ): Match<any, TContext> | null {
+  readCache(cursor: number, parser: Parser<any, TContext>) {
     return (this.cache[cursor] && this.cache[cursor].get(parser)) || null;
   }
 
@@ -30,16 +27,16 @@ export class Tracker<TContext> {
     cursor: number,
     parser: Parser<any, TContext>,
     match: Match<any, TContext>
-  ): void {
+  ) {
     if (!this.cache[cursor]) this.cache[cursor] = new Map();
     this.cache[cursor].set(parser, match);
   }
 
-  writeWarning(warning: Warning): void {
+  writeWarning(warning: Warning) {
     this.warnings.push(warning);
   }
 
-  writeFailure(failure: Failure): void {
+  writeFailure(failure: Failure) {
     if (this.failures.length === 0 || this.failures[0].to === failure.to)
       this.failures.push(failure);
     else if (this.failures[0].to < failure.to)

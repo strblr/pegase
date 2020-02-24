@@ -1,3 +1,4 @@
+import { lowerCase, upperFirst } from "lodash";
 import { Match } from "./match";
 import { Failure, Internals, Options, Warning } from "./types";
 
@@ -72,7 +73,26 @@ export class Report<TValue, TContext> {
     };
 
     this._humanizedLogs = this.logs
-      .map(log => highlight(log.type, log.from, log.to))
+      .map(log => {
+        const info = `${upperFirst(lowerCase(log.type))}: ${
+          log.type === "SEMANTIC_FAILURE" || log.type === "SEMANTIC_WARNING"
+            ? log.message
+            : log.type === "EXPECTATION_FAILURE"
+            ? `${upperFirst(lowerCase(log.what))}: ${
+                log.polarity ? "" : "Not"
+              } ${
+                log.what === "LITERAL"
+                  ? `"${log.literal}"`
+                  : log.what === "TOKEN"
+                  ? `<${log.identity}>`
+                  : log.what === "REGEX"
+                  ? log.pattern
+                  : ""
+              }`
+            : ""
+        }`;
+        return highlight(info, log.from, log.to);
+      })
       .join("\n");
 
     return this._humanizedLogs;

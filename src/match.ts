@@ -1,4 +1,9 @@
-import { Internals, Options, SemanticAction } from "./types";
+import {
+  Internals,
+  Options,
+  SemanticAction,
+  SemanticMatchReport
+} from "./types";
 
 /**
  * class Match
@@ -36,7 +41,7 @@ export class Match<TValue, TContext> {
       [] as any[]
     );
 
-    const arg = new SemanticMatchReport<TContext>(
+    const arg = buildSemanticMatchReport(
       input,
       from,
       to,
@@ -56,44 +61,48 @@ export class Match<TValue, TContext> {
 }
 
 /**
- * class SemanticMatchReport
+ * function buildSemanticMatchReport
  *
- * Stores information that needs to be passed down to semantic actions.
+ * Builds an object storing information that needs to be passed down to semantic actions.
+ * This uses Object.defineProperties since Array-inheritance is forbidden in ES5.
  */
 
-export class SemanticMatchReport<TContext> extends Array<any> {
-  readonly input: string;
-  readonly from: number;
-  readonly to: number;
-  readonly children: any[];
-  readonly context: TContext;
-  readonly warn: (message: string) => void;
-
-  constructor(
-    input: string,
-    from: number,
-    to: number,
-    children: any[],
-    options: Options<TContext>,
-    internals: Internals<TContext>
-  ) {
-    super(...children);
-    this.input = input;
-    this.from = from;
-    this.to = to;
-    this.children = children;
-    this.context = options.context;
-    this.warn = (message: string) =>
-      options.diagnose &&
-      internals.tracker.writeWarning({
-        from,
-        to,
-        type: "SEMANTIC_WARNING",
-        message
-      });
-  }
-
-  get raw() {
-    return this.input.substring(this.from, this.to);
-  }
+function buildSemanticMatchReport<TContext>(
+  input: string,
+  from: number,
+  to: number,
+  children: any[],
+  options: Options<TContext>,
+  internals: Internals<TContext>
+): SemanticMatchReport<TContext> {
+  return Object.defineProperties([...children], {
+    input: {
+      value: input
+    },
+    from: {
+      value: from
+    },
+    to: {
+      value: to
+    },
+    raw: {
+      get: () => input.substring(from, to)
+    },
+    children: {
+      value: children
+    },
+    context: {
+      value: options.context
+    },
+    warn: {
+      value: (message: string) =>
+        options.diagnose &&
+        internals.tracker.writeWarning({
+          from,
+          to,
+          type: "SEMANTIC_WARNING",
+          message
+        })
+    }
+  });
 }

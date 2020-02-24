@@ -376,6 +376,11 @@ export class Predicate<TContext> extends Parser<undefined, TContext> {
     internals: Internals<TContext>
   ): Match<undefined, TContext> | null {
     const match = this.parser._parse(input, options, internals);
+    /*const match = this.parser._parse(
+      input,
+      { ...options, diagnose: false },
+      internals
+    );*/
     if (this.polarity === !!match)
       return success(
         input,

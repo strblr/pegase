@@ -104,13 +104,11 @@ metagrammar.definition.parser = new Sequence(
   [pegaseId, new LiteralTerminal(":"), metagrammar.expression],
   ({ children, context: { rules } }): void => {
     const [id, expression] = children as [string, AnyParser];
-    if (!(id in rules)) rules[id] = expression;
-    else {
-      const parser = rules[id];
-      if (!(parser instanceof NonTerminal) || parser.parser)
-        throw new Error(`Multiple definitions of non-terminal <${id}>`);
-      parser.parser = expression;
-    }
+    if (!(id in rules)) rules[id] = rule(id);
+    const parser = rules[id];
+    if (!(parser instanceof NonTerminal) || parser.parser)
+      throw new Error(`Multiple definitions of non-terminal <${id}>`);
+    parser.parser = expression;
   }
 );
 
