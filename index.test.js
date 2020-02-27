@@ -17,13 +17,10 @@ const { pegase, number, ident, doubleStr } = require("./lib/index");
 test("XML should be correctly converted to in-memory JSON", () => {
   try {
     const { A } = pegase`
-      A: B#omit ${([one]) => {
-        console.log("matched !");
-        return one;
-      }}
-      B: "1"
+      A: &B "1" $
+      B: "1" "2" ("3" | "4")
     `;
-    console.log(A.value(" 1"));
+    console.log(A.value("  1 2 4 "));
   } catch (e) {
     console.error(e.message);
   }

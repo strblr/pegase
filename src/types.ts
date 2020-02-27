@@ -1,4 +1,4 @@
-import { Tracker } from "./tracker";
+import { Cache, FailureTracker, WarningTracker } from "./tracker";
 import { Parser } from "./parser";
 
 export type AnyParser = Parser<any, any>;
@@ -42,29 +42,27 @@ export type Options<TContext> = Readonly<{
 }>;
 
 export type Internals<TContext> = Readonly<{
-  tracker: Tracker<TContext>;
+  failures: FailureTracker;
+  warnings: WarningTracker;
+  cache: Cache<TContext>;
 }>;
 
-export type First = Readonly<
-  {
-    polarity: boolean;
-  } & (
-    | {
-        what: "TOKEN";
-        identity: string;
-      }
-    | {
-        what: "LITERAL";
-        literal: string;
-      }
-    | {
-        what: "REGEX";
-        pattern: RegExp;
-      }
-    | {
-        what: "START" | "END";
-      }
-  )
+export type Terminal = Readonly<
+  | {
+      what: "TOKEN";
+      identity: string;
+    }
+  | {
+      what: "LITERAL";
+      literal: string;
+    }
+  | {
+      what: "REGEX";
+      pattern: RegExp;
+    }
+  | {
+      what: "START" | "END";
+    }
 >;
 
 export type Warning = Readonly<{
@@ -81,7 +79,10 @@ export type Failure = Readonly<
   } & (
     | ({
         type: "EXPECTATION_FAILURE";
-      } & First)
+      } & Terminal)
+    | {
+        type: "PREDICATE_FAILURE";
+      }
     | {
         type: "SEMANTIC_FAILURE";
         message: string;

@@ -1,8 +1,7 @@
-import { Tracker } from "./tracker";
+import { Cache, FailureTracker, WarningTracker } from "./tracker";
 import { Match } from "./match";
 import { Report } from "./report";
 import {
-  First,
   Internals,
   NonEmptyArray,
   NonTerminalMode,
@@ -23,15 +22,16 @@ export abstract class Parser<TValue, TContext> {
     this.action = action || null;
   }
 
-  abstract get first(): First[];
-
   parse(
     input: string,
     partialOptions: Partial<Options<TContext>> = defaultOptions
   ): Report<TValue, TContext> {
-    const tracker = new Tracker<TContext>();
     const options = { ...defaultOptions, ...partialOptions };
-    const internals = { tracker };
+    const internals = {
+      failures: new FailureTracker(),
+      warnings: new WarningTracker(),
+      cache: new Cache<TContext>()
+    };
     return new Report(
       input,
       this._parse(input, options, internals),
@@ -39,12 +39,6 @@ export abstract class Parser<TValue, TContext> {
       internals
     );
   }
-
-  abstract _parse(
-    input: string,
-    options: Options<TContext>,
-    internals: Internals<TContext>
-  ): Match<TValue, TContext> | null;
 
   value(
     input: string,
@@ -63,6 +57,12 @@ export abstract class Parser<TValue, TContext> {
     if (report.match) return report.match.children;
     throw new Error(report.humanLogs);
   }
+
+  abstract _parse(
+    input: string,
+    options: Options<TContext>,
+    internals: Internals<TContext>
+  ): Match<TValue, TContext> | null;
 
   // Directives
 
@@ -110,10 +110,6 @@ export class Sequence<TValue, TContext> extends Parser<TValue, TContext> {
   ) {
     super(action);
     this.parsers = parsers;
-  }
-
-  get first(): First[] {
-    return this.parsers[0].first;
   }
 
   _parse(
@@ -169,13 +165,6 @@ export class Alternative<TValue, TContext> extends Parser<TValue, TContext> {
     this.parsers = parsers;
   }
 
-  get first(): First[] {
-    return this.parsers.reduce(
-      (acc, parser) => [...acc, ...parser.first],
-      [] as First[]
-    );
-  }
-
   _parse(
     input: string,
     options: Options<TContext>,
@@ -222,20 +211,39 @@ export class NonTerminal<TValue, TContext> extends Parser<TValue, TContext> {
     this.identity = identity;
   }
 
-  get first(): First[] {
-    if (this.mode === "TOKEN" && this.identity)
-      return [
-        {
-          polarity: true,
-          what: "TOKEN",
-          identity: this.identity
-        }
-      ];
-    else if (!this.parser)
-      throw new Error(
-        "Cannot get first-set in non-terminal from undefined child parser"
+  _parseToken(
+    input: string,
+    options: Options<TContext>,
+    internals: Internals<TContext>
+  ): Match<TValue, TContext> | null {
+    if (!this.parser)
+      throw new Error("Cannot parse token with undefined child parser");
+    let cursor = preskip(input, options, internals);
+    if (cursor === null) return null;
+    const match = this.parser._parse(
+      input,
+      { ...options, from: cursor, skip: false, diagnose: false },
+      internals
+    );
+    if (match)
+      return success(
+        input,
+        match.from,
+        match.to,
+        [match],
+        this.action,
+        options,
+        internals
       );
-    else return this.parser.first;
+    else if (options.diagnose)
+      internals.failures.write({
+        from: cursor,
+        to: cursor,
+        type: "EXPECTATION_FAILURE",
+        what: "TOKEN",
+        identity: this.identity!
+      });
+    return null;
   }
 
   _parse(
@@ -243,21 +251,15 @@ export class NonTerminal<TValue, TContext> extends Parser<TValue, TContext> {
     options: Options<TContext>,
     internals: Internals<TContext>
   ): Match<TValue, TContext> | null {
+    if (this.mode === "TOKEN")
+      return this._parseToken(input, options, internals);
     if (!this.parser)
       throw new Error("Cannot parse non-terminal with undefined child parser");
-    let cursor = options.from;
-    if (this.mode === "TOKEN") {
-      let skipped = preskip(input, options, internals);
-      if (skipped === null) return null;
-      else cursor = skipped;
-    }
-    const skipChild = skipChildByMode[this.mode];
     const match = this.parser._parse(
       input,
       {
         ...options,
-        from: cursor,
-        skip: skipChild === null ? options.skip : skipChild
+        skip: this.mode === "BYPASS" ? options.skip : this.mode === "SKIP"
       },
       internals
     );
@@ -298,10 +300,6 @@ export class Repetition<TValue, TContext> extends Parser<TValue, TContext> {
     this.parser = parser;
     this.min = min;
     this.max = max;
-  }
-
-  get first(): First[] {
-    return this.parser.first;
   }
 
   _parse(
@@ -363,24 +361,16 @@ export class Predicate<TContext> extends Parser<undefined, TContext> {
     this.polarity = polarity;
   }
 
-  get first(): First[] {
-    return this.parser.first.map(first => ({
-      ...first,
-      polarity: this.polarity === first.polarity
-    }));
-  }
-
   _parse(
     input: string,
     options: Options<TContext>,
     internals: Internals<TContext>
   ): Match<undefined, TContext> | null {
-    const match = this.parser._parse(input, options, internals);
-    /*const match = this.parser._parse(
-      input,
-      { ...options, diagnose: false },
-      internals
-    );*/
+    const failures = new FailureTracker();
+    const match = this.parser._parse(input, options, {
+      ...internals,
+      failures
+    });
     if (this.polarity === !!match)
       return success(
         input,
@@ -391,15 +381,16 @@ export class Predicate<TContext> extends Parser<undefined, TContext> {
         options,
         internals
       );
-    else if (match && options.diagnose)
-      this.first.forEach(first =>
-        internals.tracker.writeFailure({
+    else if (options.diagnose) {
+      if (match)
+        internals.failures.write({
           from: match.from,
           to: match.to,
-          type: "EXPECTATION_FAILURE",
-          ...first
-        })
-      );
+          type: "PREDICATE_FAILURE"
+        });
+      else
+        failures.failures.forEach(failure => internals.failures.write(failure));
+    }
     return null;
   }
 }
@@ -422,16 +413,6 @@ export class LiteralTerminal<TValue, TContext> extends Parser<
     this.literal = literal;
   }
 
-  get first(): First[] {
-    return [
-      {
-        polarity: true,
-        what: "LITERAL",
-        literal: this.literal
-      }
-    ];
-  }
-
   _parse(
     input: string,
     options: Options<TContext>,
@@ -450,11 +431,12 @@ export class LiteralTerminal<TValue, TContext> extends Parser<
         internals
       );
     options.diagnose &&
-      internals.tracker.writeFailure({
+      internals.failures.write({
         from: cursor,
         to: cursor,
         type: "EXPECTATION_FAILURE",
-        ...this.first[0]
+        what: "LITERAL",
+        literal: this.literal
       });
     return null;
   }
@@ -478,16 +460,6 @@ export class RegexTerminal<TValue, TContext> extends Parser<TValue, TContext> {
     );
   }
 
-  get first(): First[] {
-    return [
-      {
-        polarity: true,
-        what: "REGEX",
-        pattern: this.pattern
-      }
-    ];
-  }
-
   _parse(
     input: string,
     options: Options<TContext>,
@@ -508,11 +480,12 @@ export class RegexTerminal<TValue, TContext> extends Parser<TValue, TContext> {
         internals
       );
     options.diagnose &&
-      internals.tracker.writeFailure({
+      internals.failures.write({
         from: cursor,
         to: cursor,
         type: "EXPECTATION_FAILURE",
-        ...this.first[0]
+        what: "REGEX",
+        pattern: this.pattern
       });
     return null;
   }
@@ -530,15 +503,6 @@ export class StartTerminal<TValue, TContext> extends Parser<TValue, TContext> {
     super(action);
   }
 
-  get first(): First[] {
-    return [
-      {
-        polarity: true,
-        what: "START"
-      }
-    ];
-  }
-
   _parse(
     input: string,
     options: Options<TContext>,
@@ -547,11 +511,11 @@ export class StartTerminal<TValue, TContext> extends Parser<TValue, TContext> {
     if (options.from === 0)
       return success(input, 0, 0, [], this.action, options, internals);
     options.diagnose &&
-      internals.tracker.writeFailure({
+      internals.failures.write({
         from: options.from,
         to: options.from,
         type: "EXPECTATION_FAILURE",
-        ...this.first[0]
+        what: "START"
       });
     return null;
   }
@@ -567,15 +531,6 @@ export class StartTerminal<TValue, TContext> extends Parser<TValue, TContext> {
 export class EndTerminal<TValue, TContext> extends Parser<TValue, TContext> {
   constructor(action?: SemanticAction<TValue, TContext>) {
     super(action);
-  }
-
-  get first(): First[] {
-    return [
-      {
-        polarity: true,
-        what: "END"
-      }
-    ];
   }
 
   _parse(
@@ -596,11 +551,11 @@ export class EndTerminal<TValue, TContext> extends Parser<TValue, TContext> {
         internals
       );
     options.diagnose &&
-      internals.tracker.writeFailure({
+      internals.failures.write({
         from: cursor,
         to: cursor,
         type: "EXPECTATION_FAILURE",
-        ...this.first[0]
+        what: "END"
       });
     return null;
   }
@@ -617,13 +572,6 @@ const defaultOptions: Options<any> = {
   diagnose: true,
   cached: false,
   context: undefined
-};
-
-const skipChildByMode: Record<NonTerminalMode, boolean | null> = {
-  BYPASS: null,
-  SKIP: true,
-  UNSKIP: false,
-  TOKEN: false
 };
 
 function preskip<TContext>(
@@ -657,7 +605,7 @@ function success<TValue, TContext>(
   } catch (failure) {
     if (!(failure instanceof Error)) throw failure;
     options.diagnose &&
-      internals.tracker.writeFailure({
+      internals.failures.write({
         from,
         to,
         type: "SEMANTIC_FAILURE",

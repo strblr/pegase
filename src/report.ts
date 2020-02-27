@@ -39,8 +39,8 @@ export class Report<TValue, TContext> {
   get logs() {
     if (!this._logs)
       this._logs = [
-        ...this.internals.tracker.warnings,
-        ...(this.failed ? this.internals.tracker.failures : [])
+        ...this.internals.warnings.warnings,
+        ...(this.failed ? this.internals.failures.failures : [])
       ];
     return this._logs;
   }
@@ -79,8 +79,6 @@ export class Report<TValue, TContext> {
             ? log.message
             : log.type === "EXPECTATION_FAILURE"
             ? `${upperFirst(lowerCase(log.what))}: ${
-                log.polarity ? "" : "Not"
-              } ${
                 log.what === "LITERAL"
                   ? `"${log.literal}"`
                   : log.what === "TOKEN"

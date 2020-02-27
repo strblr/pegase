@@ -97,7 +97,7 @@ function buildSemanticMatchReport<TContext>(
     warn: {
       value: (message: string) =>
         options.diagnose &&
-        internals.tracker.writeWarning({
+        internals.warnings.write({
           from,
           to,
           type: "SEMANTIC_WARNING",
