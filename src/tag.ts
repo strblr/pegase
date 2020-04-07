@@ -260,7 +260,7 @@ metagrammar.directive.parser = new Sequence(
     if (directives.length === 0) return primary;
     return directives.reduce((acc, directive) => {
       if (
-        ["omit", "raw", "token", "skip", "unskip", "matches"].includes(
+        ["omit", "raw", "token", "skip", "unskip", "memo", "matches"].includes(
           directive
         )
       )

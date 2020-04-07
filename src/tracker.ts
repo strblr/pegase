@@ -40,16 +40,23 @@ export class WarningTracker {
  */
 
 export class Cache<TContext> {
-  readonly cache: Map<Parser<any, TContext>, Match<any, TContext>>[] = [];
+  readonly cache: Map<
+    Parser<any, TContext>,
+    Match<any, TContext> | null
+  >[] = [];
+
+  has(cursor: number, parser: Parser<any, TContext>) {
+    return !!this.cache[cursor] && this.cache[cursor].has(parser);
+  }
 
   read(cursor: number, parser: Parser<any, TContext>) {
-    return (this.cache[cursor] && this.cache[cursor].get(parser)) || null;
+    return this.cache[cursor].get(parser) as Match<any, TContext> | null;
   }
 
   write(
     cursor: number,
     parser: Parser<any, TContext>,
-    match: Match<any, TContext>
+    match: Match<any, TContext> | null
   ) {
     if (!this.cache[cursor]) this.cache[cursor] = new Map();
     this.cache[cursor].set(parser, match);

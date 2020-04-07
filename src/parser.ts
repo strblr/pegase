@@ -86,6 +86,10 @@ export abstract class Parser<TValue, TContext> {
     return new NonTerminal(this, "UNSKIP", null);
   }
 
+  get memo(): Parser<TValue, TContext> {
+    return new CachedNonTerminal(this);
+  }
+
   get matches(): Parser<boolean, TContext> {
     return new Alternative([
       new NonTerminal(this, "BYPASS", null, () => true),
@@ -263,6 +267,50 @@ export class NonTerminal<TValue, TContext> extends Parser<TValue, TContext> {
       },
       internals
     );
+    return (
+      match &&
+      success(
+        input,
+        match.from,
+        match.to,
+        [match],
+        this.action,
+        options,
+        internals
+      )
+    );
+  }
+}
+
+/**
+ * class CachedNonTerminal
+ *
+ * Syntax: p#memo
+ * Description: Checks the cache before trying to parse its child parser. Succeeds or fails accordingly.
+ */
+
+export class CachedNonTerminal<TValue, TContext> extends Parser<
+  TValue,
+  TContext
+> {
+  private readonly parser: Parser<any, TContext>;
+
+  constructor(
+    parser: Parser<any, TContext>,
+    action?: SemanticAction<TValue, TContext>
+  ) {
+    super(action);
+    this.parser = parser;
+  }
+
+  _parse(
+    input: string,
+    options: Options<TContext>,
+    internals: Internals<TContext>
+  ): Match<TValue, TContext> | null {
+    if (internals.cache.has(options.from, this))
+      return internals.cache.read(options.from, this);
+    const match = this.parser._parse(input, options, internals);
     return (
       match &&
       success(
