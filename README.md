@@ -1,7 +1,7 @@
-# Syntax
+# Proof of concept
 
 ```javascript
-const g = grammar`
+const g = peg`
    expr: term (("+" | "-") term)*
    term: 
 `;
