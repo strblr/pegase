@@ -1,4 +1,4 @@
-# Proof of concept
+# Proof of concept 2
 
 ```javascript
 const { calc } = peg`
