@@ -1,10 +1,10 @@
 import { Cache, Failures, Internals, Warnings } from "../internals";
 import {
   Alternative,
+  defaultOptions,
   LiteralTerminal,
   NonTerminal,
-  Options,
-  RegexTerminal
+  Options
 } from ".";
 import { Match, SemanticAction } from "../match";
 import { Report } from "../report";
@@ -95,11 +95,3 @@ export abstract class Parser<TContext> {
     ]);
   }
 }
-
-const defaultOptions: Options<any> = {
-  from: 0,
-  skipper: new RegexTerminal(/\s*/),
-  skip: true,
-  diagnose: true,
-  context: undefined
-};

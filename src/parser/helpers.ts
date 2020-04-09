@@ -1,5 +1,5 @@
 import { Internals } from "../internals";
-import { NonTerminal, Options } from ".";
+import { NonTerminal, Options, RegexTerminal } from ".";
 
 /**
  * function rule
@@ -20,6 +20,18 @@ export function rule<TContext>(identity?: string) {
 export function token<TContext>(identity?: string) {
   return new NonTerminal<TContext>(null, "TOKEN", identity || null);
 }
+
+/**
+ * defaultOptions
+ */
+
+export const defaultOptions: Options<any> = {
+  from: 0,
+  skipper: new RegexTerminal(/\s*/),
+  skip: true,
+  diagnose: true,
+  context: undefined
+};
 
 /**
  * function preskip
