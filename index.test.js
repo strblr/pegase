@@ -1,4 +1,4 @@
-const { peg, natural } = require("./lib/index");
+const { peg, natural, Report } = require("./lib/index");
 
 /*test("Modulos in grammars should work", () => {
   function count(_, children) {
@@ -20,9 +20,10 @@ test("XML should be correctly converted to in-memory JSON", () => {
       A: &B "1" $
       B: "1" "2" ("3" | "4")
     `;
-    // console.log(A.value("  1 2 4 "));
+    console.log(A.value("  1 2 4 "));
   } catch (e) {
-    console.error(e);
+    /*if (e instanceof Report) console.log(e.humanLogs);
+    else console.log(e);*/
   }
 
   /*function groupTags(_, children) {
@@ -105,7 +106,6 @@ test("XML should be correctly converted to in-memory JSON", () => {
   ]);*/
 });
 
-/*
 test("Math expressions should be correctly calculated", () => {
   function doop(left, op, right) {
     switch (op) {
@@ -126,11 +126,12 @@ test("Math expressions should be correctly calculated", () => {
     }, first);
   }
 
-  const { calc } = pegase`
+  const { calc } = peg`
     calc: expr $
     expr: term % ("+" | "-") ${fold}
     term: fact % ("*" | "/") ${fold}
-    fact: ${number} | '(' expr ')'
+    fact: $num | '(' expr ')'
+    $num: [0-9]+ ('.' [0-9]*)? ${parseFloat}
   `;
 
   expect(calc.value("2 + 3")).toBe(5);
@@ -184,4 +185,3 @@ test("Math expressions should be correctly calculated", () => {
     )
   ).toBeCloseTo(71470.126502);
 });
-*/
