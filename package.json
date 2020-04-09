@@ -28,9 +28,11 @@
   },
   "homepage": "https://ostrebler.github.io/pegase/",
   "dependencies": {
+    "line-column": "^1.0.2",
     "lodash": "^4.17.15"
   },
   "devDependencies": {
+    "@types/line-column": "^1.0.0",
     "@types/lodash": "^4.14.149",
     "jest": "^25.2.7",
     "typescript": "^3.8.3"

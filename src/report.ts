@@ -8,9 +8,9 @@ import { Failure, Internals, Options, Warning } from "./types";
  * Stores a recap of a parsing.
  */
 
-export class Report<TValue, TContext> {
+export class Report<TContext> {
   readonly input: string;
-  readonly match: Match<TValue, TContext> | null;
+  readonly match: Match<TContext> | null;
   readonly options: Options<TContext>;
   private readonly internals: Internals<TContext>;
   private _logs?: (Failure | Warning)[];
@@ -18,7 +18,7 @@ export class Report<TValue, TContext> {
 
   constructor(
     input: string,
-    match: Match<TValue, TContext> | null,
+    match: Match<TContext> | null,
     options: Options<TContext>,
     internals: Internals<TContext>
   ) {

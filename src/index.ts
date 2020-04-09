@@ -1,7 +1,6 @@
-export * from "./types";
-export * from "./tracker";
+export * from "./internals";
 export * from "./parser";
 export * from "./match";
 export * from "./report";
-export * from "./snippets";
 export * from "./tag";
+export { peg as default } from "./tag";
