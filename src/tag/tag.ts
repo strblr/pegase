@@ -57,8 +57,6 @@ import {
  *           | !identifier '$'
  */
 
-// import {char, charClass, doubleStr, eps, natural, pegaseId, singleStr} from "../snippets";
-
 /**
  * Meta-grammar definition
  */
