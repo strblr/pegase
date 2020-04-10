@@ -133,10 +133,11 @@ export class NonTerminal<TContext> extends Parser<TContext> {
       throw new Error(
         "Cannot parse cached non-terminal with undefined child parser"
       );
-    if (internals.cache.has(options.from, this))
-      return internals.cache.read(options.from, this);
-    const match = this.parser._parse(input, options, internals);
-    internals.cache.write(options.from, this, match);
+    let match = internals.cache.read(options.from, this.parser);
+    if (match === undefined) {
+      match = this.parser._parse(input, options, internals);
+      internals.cache.write(options.from, this.parser, match);
+    }
     return (
       match &&
       buildSafeMatch(

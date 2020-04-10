@@ -38,17 +38,17 @@ export class Match<TContext> {
       []
     );
 
-    const arg = buildSemanticMatchReport(
-      input,
-      from,
-      to,
-      children,
-      options,
-      internals
-    );
-
-    if (action) this.value = action(arg, arg);
-    else if (children.length === 1) this.value = children[0];
+    if (action) {
+      const arg = buildSemanticMatchReport(
+        input,
+        from,
+        to,
+        children,
+        options,
+        internals
+      );
+      this.value = action(arg, arg);
+    } else if (children.length === 1) this.value = children[0];
     else this.children = children;
   }
 

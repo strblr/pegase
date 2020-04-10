@@ -4,12 +4,8 @@ import { Match } from "../match";
 export class Cache<TContext> {
   readonly cache: Map<Parser<TContext>, Match<TContext> | null>[] = [];
 
-  has(cursor: number, parser: Parser<TContext>) {
-    return !!this.cache[cursor] && this.cache[cursor].has(parser);
-  }
-
   read(cursor: number, parser: Parser<TContext>) {
-    return this.cache[cursor].get(parser) || null;
+    return this.cache[cursor].get(parser);
   }
 
   write(

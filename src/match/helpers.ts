@@ -60,18 +60,21 @@ export function buildSemanticMatchReport<TContext>(
     children: { value: children },
     context: { value: options.context },
     warn: {
-      value: (message: string) =>
+      value: (message: string) => {
         options.diagnose &&
-        internals.warnings.write({
-          from,
-          to,
-          stack: internals.stack,
-          type: "SEMANTIC_WARNING",
-          message
-        })
+          internals.warnings.write({
+            from,
+            to,
+            stack: internals.stack,
+            type: "SEMANTIC_WARNING",
+            message
+          });
+      }
     },
     saveErrors: {
-      value: () => options.diagnose && internals.failures.save()
+      value: () => {
+        options.diagnose && internals.failures.save();
+      }
     }
   });
 }
