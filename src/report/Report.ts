@@ -90,7 +90,9 @@ export class Report<TContext> {
             info = `Predicate failed (should ${
               log.polarity ? "" : "not "
             }have matched)`;
+            break;
         }
+        info += ` [${log.stack.join(" > ")}]`;
         return highlight(info, log.from, log.to);
       })
       .join("\n");

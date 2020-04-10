@@ -120,19 +120,30 @@ test("Math expressions should be correctly calculated", () => {
     }
   }
 
-  function fold(_, [first, ...rest]) {
+  function fold([first, ...rest]) {
     return rest.reduce((acc, op, index) => {
       return index % 2 ? acc : doop(acc, op, rest[index + 1]);
     }, first);
   }
 
-  const { calc } = peg`
+  function parseNum({ raw }) {
+    return parseFloat(raw);
+  }
+
+  const g = peg`
     calc: expr $
     expr: term % ("+" | "-") ${fold}
     term: fact % ("*" | "/") ${fold}
     fact: $num | '(' expr ')'
-    $num: [0-9]+ ('.' [0-9]*)? ${parseFloat}
+    $num: '-'? [0-9]+ ('.' [0-9]*)? ${parseNum}
   `;
+
+  const { calc } = g;
+
+  const m = calc.parse("2 * 3 542");
+  console.error(m.humanLogs);
+
+  // console.log(g.$num);
 
   expect(calc.value("2 + 3")).toBe(5);
   expect(calc.value("2 * 3")).toBe(6);
