@@ -8,7 +8,7 @@ export type Internals<TContext> = Readonly<{
   cache: Cache<TContext>;
 }>;
 
-type InputRange = Readonly<{
+export type InputRange = Readonly<{
   from: number;
   to: number;
 }>;

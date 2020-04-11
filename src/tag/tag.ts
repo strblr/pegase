@@ -332,7 +332,7 @@ metagrammar.primary.parser = new Alternative([
  * The template tag function
  */
 
-export function peg<TContext>(
+export function peg<TContext = any>(
   chunks: TemplateStringsArray,
   ...args: TagArgument<TContext>[]
 ) {

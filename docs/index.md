@@ -6,7 +6,7 @@ const { calc } = peg`
   expr: term % ("+" | "-") ${fold}
   term: fact % ("*" | "/") ${fold}
   fact: $num | '(' expr ')'
-  $num: '-'? [0-9]+ ('.' [0-9]*)? ${raw(parseFloat)}
+  $num: '-'? [0-9]+ ('.' [0-9]*)? $${parseFloat}
 `;
 
 console.log(calc.value("2 + 3"));

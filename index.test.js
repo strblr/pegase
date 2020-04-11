@@ -131,7 +131,7 @@ test("Math expressions should be correctly calculated", () => {
     expr: term % ("+" | "-") ${fold}
     term: fact % ("*" | "/") ${fold}
     fact: $num | '(' expr ')'
-    $num: '-'? [0-9]+ ('.' [0-9]*)? ${raw(parseFloat)}
+    $num: '-'? [0-9]+ ('.' [0-9]*)? $${parseFloat}
   `;
 
   const m = calc.parse("2 * 3 542");

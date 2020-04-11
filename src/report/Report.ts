@@ -12,9 +12,7 @@ import { Match } from "../match";
 export class Report<TContext> {
   readonly input: string;
   readonly match: Match<TContext> | null;
-  private readonly options: Options<TContext>;
-  private readonly internals: Internals<TContext>;
-  private _logs?: (Failure | Warning)[];
+  readonly logs: (Warning | Failure)[];
   private _humanizedLogs?: string;
 
   constructor(
@@ -25,25 +23,14 @@ export class Report<TContext> {
   ) {
     this.input = input;
     this.match = match;
-    this.options = options;
-    this.internals = internals;
+    this.logs = [
+      ...internals.warnings.read(),
+      ...(match === null ? internals.failures.read() : [])
+    ];
   }
 
-  get succeeded() {
+  get matched() {
     return this.match !== null;
-  }
-
-  get failed() {
-    return this.match === null;
-  }
-
-  get logs() {
-    if (!this._logs)
-      this._logs = [
-        ...this.internals.warnings.read(),
-        ...(this.failed ? this.internals.failures.read() : [])
-      ];
-    return this._logs;
   }
 
   get humanLogs() {
