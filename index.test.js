@@ -1,4 +1,4 @@
-const { peg, natural, Report } = require("./lib/index");
+const { peg, natural, Report, raw } = require("./lib/index");
 
 /*test("Modulos in grammars should work", () => {
   function count(_, children) {
@@ -126,19 +126,13 @@ test("Math expressions should be correctly calculated", () => {
     }, first);
   }
 
-  function parseNum({ raw }) {
-    return parseFloat(raw);
-  }
-
-  const g = peg`
+  const { calc } = peg`
     calc: expr $
     expr: term % ("+" | "-") ${fold}
     term: fact % ("*" | "/") ${fold}
     fact: $num | '(' expr ')'
-    $num: '-'? [0-9]+ ('.' [0-9]*)? ${parseNum}
+    $num: '-'? [0-9]+ ('.' [0-9]*)? ${raw(parseFloat)}
   `;
-
-  const { calc } = g;
 
   const m = calc.parse("2 * 3 542");
   console.error(m.humanLogs);

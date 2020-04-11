@@ -38,6 +38,10 @@ export abstract class Parser<TContext> {
     );
   }
 
+  match(input: string, options: Partial<Options<TContext>>) {
+    return this.parse(input, options).match !== null;
+  }
+
   value<TValue = any>(
     input: string,
     options: Partial<Options<TContext>> = defaultOptions
@@ -47,12 +51,12 @@ export abstract class Parser<TContext> {
     throw report;
   }
 
-  children<TChildren = any>(
+  children<TChildren = any[]>(
     input: string,
     options: Partial<Options<TContext>> = defaultOptions
-  ): TChildren[] {
+  ): TChildren {
     const report = this.parse(input, options);
-    if (report.match) return report.match.children;
+    if (report.match) return (report.match.children as unknown) as TChildren;
     throw report;
   }
 

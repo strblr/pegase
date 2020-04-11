@@ -2,6 +2,18 @@ import { Internals } from "../internals";
 import { NonTerminal, Options, RegexTerminal } from ".";
 
 /**
+ * defaultOptions
+ */
+
+export const defaultOptions: Options<any> = {
+  from: 0,
+  skipper: new RegexTerminal(/\s*/),
+  skip: true,
+  diagnose: true,
+  context: undefined
+};
+
+/**
  * function rule
  *
  * Creates a new non-terminal with an undefined child parser
@@ -20,18 +32,6 @@ export function rule<TContext>(identity?: string) {
 export function token<TContext>(identity?: string) {
   return new NonTerminal<TContext>(null, "TOKEN", identity || null);
 }
-
-/**
- * defaultOptions
- */
-
-export const defaultOptions: Options<any> = {
-  from: 0,
-  skipper: new RegexTerminal(/\s*/),
-  skip: true,
-  diagnose: true,
-  context: undefined
-};
 
 /**
  * function preskip
