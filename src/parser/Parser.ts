@@ -38,7 +38,7 @@ export abstract class Parser<TContext> {
     );
   }
 
-  match(input: string, options: Partial<Options<TContext>>) {
+  match(input: string, options: Partial<Options<TContext>> = defaultOptions) {
     return this.parse(input, options).match !== null;
   }
 

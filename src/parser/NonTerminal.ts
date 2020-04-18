@@ -112,8 +112,13 @@ export class NonTerminal<TContext> extends Parser<TContext> {
         from: cursor,
         to: failures.farthest() ?? cursor,
         stack: internals.stack,
-        type: "TOKEN_FAILURE",
-        identity: this.identity,
+        type: "TERMINAL_FAILURE",
+        terminal: "TOKEN",
+        identity:
+          this.identity ||
+          (this.parser instanceof NonTerminal && this.parser.identity
+            ? `$${this.parser.identity}`
+            : null),
         failures: failures.read()
       });
     return null;

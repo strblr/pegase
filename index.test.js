@@ -1,18 +1,14 @@
-const { peg, natural, Report, raw } = require("./lib/index");
+const { peg } = require("./lib/index");
 
-/*test("Modulos in grammars should work", () => {
-  function count(_, children) {
-    return children.length;
-  }
+test("Modulos in grammars should work", () => {
+  const grammar = peg`("1" % ',' ${s => s.length}) % '|' $`;
 
-  const grammar = pegase`("1" % ',' ${count}) % '|' $`;
   const finalCount = [3, 5, 1, 2];
-
-  expect(grammar.parse("  1 ,1,1 |1,1,  1,1|1 |1,1   ").complete).toBe(true);
+  expect(grammar.parse("  1 ,1,1 |1,1,  1,1|1 |1,1   ").match).not.toBe(null);
   expect(grammar.children("1 ,1,1 |1,1, 1  ,   1,1|1 |   1,1 ")).toEqual(
     finalCount
   );
-});*/
+});
 
 test("XML should be correctly converted to in-memory JSON", () => {
   try {
@@ -131,11 +127,12 @@ test("Math expressions should be correctly calculated", () => {
     expr: term % ("+" | "-") ${fold}
     term: fact % ("*" | "/") ${fold}
     fact: $num | '(' expr ')'
-    $num: '-'? [0-9]+ ('.' [0-9]*)? $${parseFloat}
+    $num: '-'? ([0-9]+ ${s => s.warn("Just a warning")}) ('.' [0-9]*)? ${s =>
+    parseFloat(s.raw)}
   `;
 
-  const m = calc.parse("2 * 3 542");
-  console.error(m.humanLogs);
+  const m = calc.parse("232 * *3 542");
+  console.error(m.log());
 
   // console.log(g.$num);
 

@@ -8,7 +8,7 @@ export type Internals<TContext> = Readonly<{
   cache: Cache<TContext>;
 }>;
 
-export type InputRange = Readonly<{
+type InputRange = Readonly<{
   from: number;
   to: number;
 }>;
@@ -17,63 +17,63 @@ type StackTrace = Readonly<{
   stack: string[];
 }>;
 
-type SemanticWarningDescriptor = Readonly<{
-  type: "SEMANTIC_WARNING";
-  message: string;
-}>;
-
-type TerminalFailureDescriptor = Readonly<
-  {
-    type: "TERMINAL_FAILURE";
-  } & (
-    | {
-        terminal: "LITERAL";
-        literal: string;
-      }
-    | {
-        terminal: "REGEX";
-        pattern: RegExp;
-      }
-    | {
-        terminal: "BOUND";
-        bound: "START" | "END";
-      }
-  )
->;
-
-type TokenFailureDescriptor = Readonly<{
-  type: "TOKEN_FAILURE";
-  identity: string | null;
-  failures: Failure[];
-}>;
-
-type PredicateFailureDescriptor = Readonly<
-  {
-    type: "PREDICATE_FAILURE";
-  } & (
-    | {
-        polarity: true;
-        failures: Failure[];
-      }
-    | {
-        polarity: false;
-        match: Match<any>;
-      }
-  )
->;
-
-type SemanticFailureDescriptor = Readonly<{
-  type: "SEMANTIC_FAILURE";
-  message: string;
-}>;
-
-export type Warning = InputRange & StackTrace & SemanticWarningDescriptor;
-
-export type Failure = InputRange &
+export type SemanticWarning = InputRange &
   StackTrace &
-  (
-    | TerminalFailureDescriptor
-    | TokenFailureDescriptor
-    | PredicateFailureDescriptor
-    | SemanticFailureDescriptor
-  );
+  Readonly<{
+    type: "SEMANTIC_WARNING";
+    message: string;
+  }>;
+
+export type TerminalFailure = InputRange &
+  StackTrace &
+  Readonly<
+    {
+      type: "TERMINAL_FAILURE";
+    } & (
+      | {
+          terminal: "LITERAL";
+          literal: string;
+        }
+      | {
+          terminal: "REGEX";
+          pattern: RegExp;
+        }
+      | {
+          terminal: "BOUND";
+          bound: "START" | "END";
+        }
+      | {
+          terminal: "TOKEN";
+          identity: string | null;
+          failures: Failure[];
+        }
+    )
+  >;
+
+export type PredicateFailure = InputRange &
+  StackTrace &
+  Readonly<
+    {
+      type: "PREDICATE_FAILURE";
+    } & (
+      | {
+          polarity: true;
+          failures: Failure[];
+        }
+      | {
+          polarity: false;
+          match: Match<any>;
+        }
+    )
+  >;
+
+export type SemanticFailure = InputRange &
+  StackTrace &
+  Readonly<{
+    type: "SEMANTIC_FAILURE";
+    message: string;
+  }>;
+
+export type Warning = SemanticWarning;
+
+export type Failure = TerminalFailure | PredicateFailure | SemanticFailure;

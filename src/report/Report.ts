@@ -1,5 +1,14 @@
+import { codeFrameColumns } from "@babel/code-frame";
 import lineColumn from "line-column";
-import { Failure, Internals, Warning } from "../internals";
+import joinn from "joinn";
+import { groupBy, values, sortBy } from "lodash";
+import {
+  Failure,
+  Internals,
+  SemanticWarning,
+  TerminalFailure,
+  Warning
+} from "../internals";
 import { Options } from "../parser";
 import { Match } from "../match";
 
@@ -12,8 +21,8 @@ import { Match } from "../match";
 export class Report<TContext> {
   readonly input: string;
   readonly match: Match<TContext> | null;
-  readonly logs: (Warning | Failure)[];
-  private _humanizedLogs?: string;
+  readonly warnings: Warning[];
+  readonly failures: Failure[];
 
   constructor(
     input: string,
@@ -23,22 +32,77 @@ export class Report<TContext> {
   ) {
     this.input = input;
     this.match = match;
-    this.logs = [
-      ...internals.warnings.read(),
-      ...(match === null ? internals.failures.read() : [])
-    ];
+    this.warnings = internals.warnings.read();
+    this.failures = match === null ? internals.failures.read() : [];
   }
 
-  get matched() {
-    return this.match !== null;
-  }
+  log() {
+    const lineReader = lineColumn(this.input);
 
-  get humanLogs() {
-    if (this._humanizedLogs !== undefined) return this._humanizedLogs;
+    const factored = sortBy(
+      values(
+        groupBy(
+          [...this.warnings, ...this.failures],
+          ({ from, to }) => `${from}-${to}`
+        )
+      ),
+      chunk => chunk[0].to
+    );
 
-    const reader = lineColumn(this.input);
+    return factored
+      .map(chunk => {
+        const from = lineReader.fromIndex(chunk[0].from);
+        const to = lineReader.fromIndex(chunk[0].to);
+        if (!from || !to) return "";
+        const message = [];
+        const packed = groupBy(chunk, "type");
 
-    const breakInput = (from: number, to: number) =>
+        if (packed["SEMANTIC_WARNING"])
+          message.push(
+            (packed["SEMANTIC_WARNING"] as SemanticWarning[])
+              .map(({ message }) => `Warning: ${message}`)
+              .join("\n")
+          );
+
+        if (packed["TERMINAL_FAILURE"])
+          message.push(
+            "Failure: Expected " +
+              joinn(
+                (packed["TERMINAL_FAILURE"] as TerminalFailure[]).map(
+                  failure => {
+                    switch (failure.terminal) {
+                      case "LITERAL":
+                        return `"${failure.literal}"`;
+                      case "REGEX":
+                        return failure.pattern.toString();
+                      case "BOUND":
+                        return failure.bound === "END"
+                          ? "end of input"
+                          : "start of input";
+                      case "TOKEN":
+                        return failure.identity
+                          ? `token ${failure.identity}`
+                          : "unnamed token";
+                    }
+                  }
+                ),
+                ", ",
+                " or "
+              )
+          );
+
+        return codeFrameColumns(
+          this.input,
+          {
+            start: { line: from.line, column: from.col },
+            end: { line: to.line, column: to.col }
+          },
+          { message: message.join("\n") }
+        );
+      })
+      .join("\n\n");
+
+    /*const breakInput = (from: number, to: number) =>
       this.input.substring(from, to).replace("\n", "\\n");
 
     const highlight = (info: string, from: number, to: number) => {
@@ -52,7 +116,7 @@ export class Report<TContext> {
       return `Line ${line}:${col}: ${info}\n${before}${inner}${after}\n${pointer}`;
     };
 
-    this._humanizedLogs = this.logs
+    return [...this.warnings, ...this.failures]
       .map(log => {
         let info = "";
         switch (log.type) {
@@ -82,8 +146,6 @@ export class Report<TContext> {
         info += ` [${log.stack.join(" > ")}]`;
         return highlight(info, log.from, log.to);
       })
-      .join("\n");
-
-    return this._humanizedLogs;
+      .join("\n");*/
   }
 }
