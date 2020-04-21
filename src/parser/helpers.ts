@@ -19,7 +19,7 @@ export const defaultOptions: Options<any> = {
  * Creates a new non-terminal with an undefined child parser
  */
 
-export function rule<TContext>(identity?: string) {
+export function rule<TContext = any>(identity?: string) {
   return new NonTerminal<TContext>(null, "BYPASS", identity || null);
 }
 
@@ -29,7 +29,7 @@ export function rule<TContext>(identity?: string) {
  * Creates a new token with an undefined child parser
  */
 
-export function token<TContext>(identity?: string) {
+export function token<TContext = any>(identity?: string) {
   return new NonTerminal<TContext>(null, "TOKEN", identity || null);
 }
 
