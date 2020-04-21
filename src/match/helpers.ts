@@ -71,7 +71,7 @@ export function buildSemanticMatchReport<TContext>(
           });
       }
     },
-    saveErrors: {
+    saveFailures: {
       value: () => {
         options.diagnose && internals.failures.save();
       }
