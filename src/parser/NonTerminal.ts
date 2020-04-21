@@ -19,6 +19,14 @@ export class NonTerminal<TContext> extends Parser<TContext> {
     this.identity = identity;
   }
 
+  private inferTokenIdentity() {
+    if (!(this.parser instanceof NonTerminal)) return null;
+    let cursor = this.parser;
+    while (!cursor.identity && cursor.parser instanceof NonTerminal)
+      cursor = cursor.parser;
+    return cursor.identity || null;
+  }
+
   /**
    * BYPASS mode
    * Simply tries to parse the child parser
@@ -114,11 +122,7 @@ export class NonTerminal<TContext> extends Parser<TContext> {
         stack: internals.stack,
         type: "TERMINAL_FAILURE",
         terminal: "TOKEN",
-        identity:
-          this.identity ||
-          (this.parser instanceof NonTerminal && this.parser.identity
-            ? `$${this.parser.identity}`
-            : null),
+        identity: this.identity || this.inferTokenIdentity(),
         failures: failures.read()
       });
     return null;
