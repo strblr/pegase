@@ -5,7 +5,7 @@ export class Cache<TContext> {
   readonly cache: Map<Parser<TContext>, Match<TContext> | null>[] = [];
 
   read(cursor: number, parser: Parser<TContext>) {
-    return this.cache[cursor].get(parser);
+    return this.cache[cursor]?.get(parser);
   }
 
   write(
