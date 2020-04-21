@@ -1,6 +1,6 @@
 const { peg } = require("./lib/index");
 
-test("Modulos in grammars should work", () => {
+/*test("Modulos in grammars should work", () => {
   const grammar = peg`("1" % ',' ${s => s.length}) % '|' $`;
 
   const finalCount = [3, 5, 1, 2];
@@ -18,11 +18,10 @@ test("XML should be correctly converted to in-memory JSON", () => {
     `;
     console.log(A.value("  1 2 4 "));
   } catch (e) {
-    /*if (e instanceof Report) console.log(e.humanLogs);
-    else console.log(e);*/
+    else console.log(e);
   }
 
-  /*function groupTags(_, children) {
+  function groupTags(_, children) {
     return children;
   }
 
@@ -64,7 +63,7 @@ test("XML should be correctly converted to in-memory JSON", () => {
     console.error(e.message);
   }*/
 
-  /*expect(
+/*expect(
     xml.value(`
       <ul class="mylist">
         <li>item 1</li>
@@ -99,10 +98,30 @@ test("XML should be correctly converted to in-memory JSON", () => {
         }
       ]
     }
-  ]);*/
+  ]);
+});*/
+
+test("Prefix math expressions should be correctly converted to postfix", () => {
+  const reverse = ([op, a, b]) => [a, b, op].join(" ");
+
+  try {
+    const { expr } = peg`
+      expr:
+        operator expr expr ${reverse}
+      | $number
+      
+      operator: "+" | "-" | "*" | "/"
+      $number: [0-9]+ # raw
+    `;
+
+    // console.log(expr.value("+ - 1 2 * / 3 4 5"));
+  } catch (report) {
+    // console.error(report);
+    console.error(report.log());
+  }
 });
 
-test("Math expressions should be correctly calculated", () => {
+/*test("Math expressions should be correctly calculated", () => {
   function doop(left, op, right) {
     switch (op) {
       case "+":
@@ -116,11 +135,11 @@ test("Math expressions should be correctly calculated", () => {
     }
   }
 
-  function fold([first, ...rest]) {
-    return rest.reduce((acc, op, index) => {
-      return index % 2 ? acc : doop(acc, op, rest[index + 1]);
-    }, first);
-  }
+  const fold = ([first, ...rest]) =>
+    rest.reduce(
+      (acc, op, index) => (index % 2 ? acc : doop(acc, op, rest[index + 1])),
+      first
+    );
 
   const { calc } = peg`
     calc: expr $
@@ -131,8 +150,8 @@ test("Math expressions should be correctly calculated", () => {
     parseFloat(s.raw)}
   `;
 
-  const m = calc.parse("232 * *3 542");
-  console.error(m.log());
+  /!*const m = calc.parse("232 * *3 542");
+  console.error(m.log());*!/
 
   // console.log(g.$num);
 
@@ -186,4 +205,4 @@ test("Math expressions should be correctly calculated", () => {
       " ( (( ( (485.56) -  318.95) *( 486.17/465.96 -  324.49/-122.8 )+ -422.8) * 167.73+-446.4 *-88.31) -271.61/ ( (( 496.31 / ((  -169.3*  453.70) ) )/-52.22 )* (( (-134.9* (-444.1-(( 278.79 * (  -384.5)) ) / (-270.6/  396.89-(  -391.5/150.39-  -422.9 )* -489.2 ) )+-38.02 )) )) )"
     )
   ).toBeCloseTo(71470.126502);
-});
+});*/
