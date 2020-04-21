@@ -19,17 +19,18 @@ import {
   Sequence,
   token
 } from "../parser";
-import { SemanticAction } from "../match";
 import {
   anyChar,
-  charClass,
-  doubleString,
+  characterClass,
+  doubleQuotedString,
   epsilon,
   identifier,
+  integer,
   MetaContext,
-  natural,
-  singleString,
-  TagArgument
+  singleQuotedString,
+  tagAction,
+  TagArgument,
+  tagEntity
 } from ".";
 
 /**
@@ -40,7 +41,7 @@ import {
  * pegase:     (definition+ | expression) $
  * definition: identifier ':' expression
  * expression: sequence % ('|' | '/')
- * sequence:   modulo+ ('@' integer)?
+ * sequence:   modulo+ tagAction?
  * modulo:     prefix % '%'
  * prefix:     ('&' | '!')? suffix
  * suffix:     directive ('?' | '+' | '*' | '{' integer (',' integer)? '}')?
@@ -48,7 +49,7 @@ import {
  * primary:    singleQuotedString
  *           | doubleQuotedString
  *           | characterClass
- *           | integer
+ *           | tagEntity
  *           | identifier !':'
  *           | '(' expression ')'
  *           | 'ε'
@@ -128,7 +129,7 @@ metagrammar.expression.parser = new Sequence(
 metagrammar.sequence.parser = new Sequence(
   [
     new Repetition(metagrammar.modulo, 1, Infinity),
-    new Repetition(new Sequence([new LiteralTerminal("@"), natural]), 0, 1)
+    new Repetition(tagAction, 0, 1)
   ],
   ({ children, context: { args } }) => {
     if (!isInteger(last(children)))
@@ -136,9 +137,11 @@ metagrammar.sequence.parser = new Sequence(
     const index: number = last(children);
     if (index >= args.length)
       throw new Error(
-        `Invalid semantic action reference (@${index}) in parser expression`
+        `Invalid tag action reference (@${index}) in parser expression`
       );
-    const action = args[index] as SemanticAction<any>;
+    const action = args[index];
+    if (!isFunction(action))
+      throw new Error(`Tag action ${index} is invalid (should be a function)`);
     children = dropRight(children);
     return children.length === 1
       ? new NonTerminal<any>(children[0], "BYPASS", null, action)
@@ -214,9 +217,9 @@ metagrammar.suffix.parser = new Sequence(
         new LiteralTerminal("*", ({ raw }) => raw),
         new Sequence([
           new LiteralTerminal("{"),
-          natural,
+          integer,
           new Repetition(
-            new Sequence([new LiteralTerminal(","), natural]),
+            new Sequence([new LiteralTerminal(","), integer]),
             0,
             1
           ),
@@ -279,34 +282,41 @@ metagrammar.directive.parser = new Sequence(
 
 metagrammar.primary.parser = new Alternative([
   new NonTerminal(
-    singleString,
+    singleQuotedString,
     "BYPASS",
     null,
     ([literal]) => new LiteralTerminal<any>(literal)
   ),
   new NonTerminal(
-    doubleString,
+    doubleQuotedString,
     "BYPASS",
     null,
     ([literal]) => new LiteralTerminal<any>(literal, ({ raw }) => raw)
   ),
   new NonTerminal(
-    charClass,
+    characterClass,
     "BYPASS",
     null,
     ([classRegex]) => new RegexTerminal<any>(classRegex)
   ),
-  new NonTerminal(natural, "BYPASS", null, ([index], { context: { args } }) => {
-    if (index >= args.length)
-      throw new Error(`Invalid reference (${index}) in parser expression`);
-    const item = args[index];
-    if (isString(item)) return new LiteralTerminal<any>(item);
-    if (isRegExp(item)) return new RegexTerminal<any>(item);
-    if (item instanceof Parser) return item;
-    throw new Error(
-      `Template argument ${index} is invalid (should be a string, a regexp, or a Parser)`
-    );
-  }),
+  new NonTerminal(
+    tagEntity,
+    "BYPASS",
+    null,
+    ([index], { context: { args } }) => {
+      if (index >= args.length)
+        throw new Error(
+          `Invalid tag entity reference (${index}) in parser expression`
+        );
+      const item = args[index];
+      if (isString(item)) return new LiteralTerminal<any>(item);
+      if (isRegExp(item)) return new RegexTerminal<any>(item);
+      if (item instanceof Parser) return item;
+      throw new Error(
+        `Tag entity ${index} is invalid (should be a string, a regexp, or a Parser)`
+      );
+    }
+  ),
   new Sequence(
     [identifier, new Predicate(new LiteralTerminal(":"), false)],
     ([id], { context: { rules } }) => {
