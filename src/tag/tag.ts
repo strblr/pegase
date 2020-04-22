@@ -259,7 +259,7 @@ metagrammar.directive.parser = new Sequence(
           "raw",
           "token",
           "skip",
-          "unskip",
+          "noskip",
           "case",
           "nocase",
           "memo",

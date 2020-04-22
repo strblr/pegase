@@ -98,7 +98,7 @@ export class NonTerminal<TContext> extends Parser<TContext> {
   }
 
   /**
-   * SKIP or UNSKIP mode
+   * SKIP or NOSKIP mode
    * Tries to parse the child parser with skipper activated / deactivated
    */
 
@@ -207,7 +207,7 @@ export class NonTerminal<TContext> extends Parser<TContext> {
       case "TOKEN":
         return this._parseToken(input, options, internals);
       case "SKIP":
-      case "UNSKIP":
+      case "NOSKIP":
         return this._parseSkip(input, options, internals);
       case "CASE":
       case "NOCASE":

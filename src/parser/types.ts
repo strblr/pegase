@@ -13,7 +13,7 @@ export type NonTerminalMode =
   | "BYPASS"
   | "TOKEN"
   | "SKIP"
-  | "UNSKIP"
+  | "NOSKIP"
   | "CASE"
   | "NOCASE"
   | "CACHE";

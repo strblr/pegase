@@ -78,8 +78,8 @@ export abstract class Parser<TContext> {
     return new NonTerminal(this, "SKIP", null);
   }
 
-  get unskip() {
-    return new NonTerminal(this, "UNSKIP", null);
+  get noskip() {
+    return new NonTerminal(this, "NOSKIP", null);
   }
 
   get case() {
