@@ -1,6 +1,6 @@
 const { peg } = require("./lib/index");
 
-/*test("Modulos in grammars should work", () => {
+test("Modulos in grammars should work", () => {
   const grammar = peg`("1" % ',' ${s => s.length}) % '|' $`;
 
   const finalCount = [3, 5, 1, 2];
@@ -10,7 +10,7 @@ const { peg } = require("./lib/index");
   );
 });
 
-test("XML should be correctly converted to in-memory JSON", () => {
+/*test("XML should be correctly converted to in-memory JSON", () => {
   try {
     const { A } = peg`
       A: &B "1" $
@@ -102,6 +102,26 @@ test("XML should be correctly converted to in-memory JSON", () => {
   ]);
 });*/
 
+test("Case directives should be respected", () => {
+  const g1 = peg` 'test' $ `;
+  const g2 = peg` 'test' # nocase $ `;
+
+  expect(g1.match("test")).toBe(true);
+  expect(g1.match("TEST")).toBe(false);
+  expect(g1.match("tEsT")).toBe(false);
+  expect(g1.match("tEsTT")).toBe(false);
+
+  expect(g1.nocase.match("test")).toBe(true);
+  expect(g1.nocase.match("TEST")).toBe(true);
+  expect(g1.nocase.match("tEsT")).toBe(true);
+  expect(g1.nocase.match("tEsTT")).toBe(false);
+
+  expect(g2.match("test")).toBe(true);
+  expect(g2.match("TEST")).toBe(true);
+  expect(g2.match("tEsT")).toBe(true);
+  expect(g2.match("tEsTT")).toBe(false);
+});
+
 test("Prefix math expressions should be correctly converted to postfix", () => {
   const reverse = ([op, a, b]) => [a, b, op].join(" ");
 
@@ -112,7 +132,7 @@ test("Prefix math expressions should be correctly converted to postfix", () => {
       | $number
       
       operator: "+" | "-" | "*" | "/"
-      $number: [0-9]+ # raw
+      $number: ([0-9]+) # raw
     `;
 
     // console.log(expr.value("+ - 1 2 * / 3 4 5"));
@@ -122,7 +142,7 @@ test("Prefix math expressions should be correctly converted to postfix", () => {
   }
 });
 
-/*test("Math expressions should be correctly calculated", () => {
+test("Math expressions should be correctly calculated", () => {
   function doop(left, op, right) {
     switch (op) {
       case "+":
@@ -151,8 +171,8 @@ test("Prefix math expressions should be correctly converted to postfix", () => {
     parseFloat(s.raw)}
   `;
 
-  /!*const m = calc.parse("232 * *3 542");
-  console.error(m.log());*!/
+  /*const m = calc.parse("232 * *3 542");
+  console.error(m.log());*/
 
   // console.log(g.$num);
 
@@ -206,4 +226,4 @@ test("Prefix math expressions should be correctly converted to postfix", () => {
       " ( (( ( (485.56) -  318.95) *( 486.17/465.96 -  324.49/-122.8 )+ -422.8) * 167.73+-446.4 *-88.31) -271.61/ ( (( 496.31 / ((  -169.3*  453.70) ) )/-52.22 )* (( (-134.9* (-444.1-(( 278.79 * (  -384.5)) ) / (-270.6/  396.89-(  -391.5/150.39-  -422.9 )* -489.2 ) )+-38.02 )) )) )"
     )
   ).toBeCloseTo(71470.126502);
-});*/
+});
