@@ -2,7 +2,7 @@ import { Internals } from "../internals";
 import { Options, Parser, preskip } from ".";
 import { buildSafeMatch, SemanticAction } from "../match";
 
-export class BoundTerminal<TContext> extends Parser<TContext> {
+export class Bound<TContext> extends Parser<TContext> {
   private readonly bound: "START" | "END";
 
   constructor(bound: "START" | "END", action?: SemanticAction<TContext>) {
