@@ -4,8 +4,16 @@ export type Options<TContext> = Readonly<{
   from: number;
   skipper: Parser<TContext> | null;
   skip: boolean;
+  ignoreCase: boolean;
   diagnose: boolean;
   context: TContext;
 }>;
 
-export type NonTerminalMode = "BYPASS" | "SKIP" | "UNSKIP" | "TOKEN" | "CACHE";
+export type NonTerminalMode =
+  | "BYPASS"
+  | "TOKEN"
+  | "SKIP"
+  | "UNSKIP"
+  | "CASE"
+  | "NOCASE"
+  | "CACHE";

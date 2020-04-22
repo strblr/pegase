@@ -1,11 +1,5 @@
 import { Cache, Failures, Internals, Warnings } from "../internals";
-import {
-  Alternative,
-  defaultOptions,
-  LiteralTerminal,
-  NonTerminal,
-  Options
-} from ".";
+import { Alternative, defaultOptions, NonTerminal, Options, Text } from ".";
 import { Match, SemanticAction } from "../match";
 import { Report } from "../report";
 
@@ -88,6 +82,14 @@ export abstract class Parser<TContext> {
     return new NonTerminal(this, "UNSKIP", null);
   }
 
+  get case() {
+    return new NonTerminal(this, "CASE", null);
+  }
+
+  get nocase() {
+    return new NonTerminal(this, "NOCASE", null);
+  }
+
   get memo() {
     return new NonTerminal(this, "CACHE", null);
   }
@@ -95,7 +97,7 @@ export abstract class Parser<TContext> {
   get matches(): Parser<TContext> {
     return new Alternative([
       new NonTerminal(this, "BYPASS", null, () => true),
-      new LiteralTerminal("", () => false)
+      new Text("", () => false)
     ]);
   }
 }

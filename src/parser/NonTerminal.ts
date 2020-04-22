@@ -55,37 +55,6 @@ export class NonTerminal<TContext> extends Parser<TContext> {
   }
 
   /**
-   * SKIP or UNSKIP mode
-   * Tries to parse the child parser with skipper activated / deactivated
-   */
-
-  _parseSkip(
-    input: string,
-    options: Options<TContext>,
-    internals: Internals<TContext>
-  ) {
-    if (!this.parser)
-      throw new Error("Cannot parse skipper with undefined child parser");
-    const match = this.parser._parse(
-      input,
-      { ...options, skip: this.mode === "SKIP" },
-      internals
-    );
-    return (
-      match &&
-      buildSafeMatch(
-        input,
-        match.from,
-        match.to,
-        [match],
-        this.action,
-        options,
-        internals
-      )
-    );
-  }
-
-  /**
    * TOKEN mode
    * Does pre-skipping before trying to parse the child parser with skipping deactivated
    */
@@ -126,6 +95,68 @@ export class NonTerminal<TContext> extends Parser<TContext> {
         failures: failures.read()
       });
     return null;
+  }
+
+  /**
+   * SKIP or UNSKIP mode
+   * Tries to parse the child parser with skipper activated / deactivated
+   */
+
+  _parseSkip(
+    input: string,
+    options: Options<TContext>,
+    internals: Internals<TContext>
+  ) {
+    if (!this.parser)
+      throw new Error("Cannot parse skip setter with undefined child parser");
+    const match = this.parser._parse(
+      input,
+      { ...options, skip: this.mode === "SKIP" },
+      internals
+    );
+    return (
+      match &&
+      buildSafeMatch(
+        input,
+        match.from,
+        match.to,
+        [match],
+        this.action,
+        options,
+        internals
+      )
+    );
+  }
+
+  /**
+   * CASE or NOCASE mode
+   * Tries to parse the child parser with case considered / ignored
+   */
+
+  _parseCase(
+    input: string,
+    options: Options<TContext>,
+    internals: Internals<TContext>
+  ) {
+    if (!this.parser)
+      throw new Error("Cannot parse case setter with undefined child parser");
+    const match = this.parser._parse(
+      input,
+      { ...options, ignoreCase: this.mode === "NOCASE" },
+      internals
+    );
+    return (
+      match &&
+      buildSafeMatch(
+        input,
+        match.from,
+        match.to,
+        [match],
+        this.action,
+        options,
+        internals
+      )
+    );
   }
 
   /**
@@ -173,11 +204,14 @@ export class NonTerminal<TContext> extends Parser<TContext> {
     switch (this.mode) {
       case "BYPASS":
         return this._parseByPass(input, options, internals);
+      case "TOKEN":
+        return this._parseToken(input, options, internals);
       case "SKIP":
       case "UNSKIP":
         return this._parseSkip(input, options, internals);
-      case "TOKEN":
-        return this._parseToken(input, options, internals);
+      case "CASE":
+      case "NOCASE":
+        return this._parseCase(input, options, internals);
       case "CACHE":
         return this._parseCache(input, options, internals);
     }
