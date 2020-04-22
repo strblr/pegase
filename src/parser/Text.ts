@@ -32,7 +32,7 @@ export class Text<TContext> extends Parser<TContext> {
         input,
         cursor,
         cursor + result[0].length,
-        [],
+        result.slice(1),
         this.action,
         options,
         internals

@@ -19,7 +19,7 @@ export class Match<TContext> {
     input: string,
     from: number,
     to: number,
-    matches: Match<TContext>[],
+    children: any[],
     action: SemanticAction<TContext> | null,
     options: Options<TContext>,
     internals: Internals<TContext>
@@ -29,14 +29,6 @@ export class Match<TContext> {
     this.to = to;
     this.value = undefined;
     this.children = [];
-
-    const children = matches.reduce<any[]>(
-      (acc, match) => [
-        ...acc,
-        ...(match.value !== undefined ? [match.value] : match.children)
-      ],
-      []
-    );
 
     if (action) {
       const arg = buildSemanticMatchReport(

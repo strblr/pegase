@@ -1,6 +1,6 @@
 import { Failures, Internals } from "../internals";
 import { NonTerminalMode, Options, Parser, preskip } from ".";
-import { buildSafeMatch, Match, SemanticAction } from "../match";
+import { buildSafeMatch, inferChildren, Match, SemanticAction } from "../match";
 
 export class NonTerminal<TContext> extends Parser<TContext> {
   parser: Parser<TContext> | null;
@@ -46,7 +46,7 @@ export class NonTerminal<TContext> extends Parser<TContext> {
         input,
         match.from,
         match.to,
-        [match],
+        inferChildren([match]),
         this.action,
         options,
         internals
@@ -79,7 +79,7 @@ export class NonTerminal<TContext> extends Parser<TContext> {
         input,
         match.from,
         match.to,
-        [match],
+        inferChildren([match]),
         this.action,
         options,
         internals
@@ -120,7 +120,7 @@ export class NonTerminal<TContext> extends Parser<TContext> {
         input,
         match.from,
         match.to,
-        [match],
+        inferChildren([match]),
         this.action,
         options,
         internals
@@ -151,7 +151,7 @@ export class NonTerminal<TContext> extends Parser<TContext> {
         input,
         match.from,
         match.to,
-        [match],
+        inferChildren([match]),
         this.action,
         options,
         internals
@@ -184,7 +184,7 @@ export class NonTerminal<TContext> extends Parser<TContext> {
         input,
         match.from,
         match.to,
-        [match],
+        inferChildren([match]),
         this.action,
         options,
         internals

@@ -1,6 +1,6 @@
 import { Internals } from "../internals";
 import { Options, Parser } from ".";
-import { buildSafeMatch, Match, SemanticAction } from "../match";
+import { buildSafeMatch, inferChildren, Match, SemanticAction } from "../match";
 
 export class Repetition<TContext> extends Parser<TContext> {
   private readonly parser: Parser<TContext>;
@@ -36,7 +36,7 @@ export class Repetition<TContext> extends Parser<TContext> {
         input,
         from,
         to,
-        matches,
+        inferChildren(matches),
         this.action,
         options,
         internals

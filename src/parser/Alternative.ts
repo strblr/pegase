@@ -1,6 +1,6 @@
 import { Internals } from "../internals";
 import { Options, Parser } from ".";
-import { buildSafeMatch, SemanticAction } from "../match";
+import { buildSafeMatch, inferChildren, SemanticAction } from "../match";
 
 export class Alternative<TContext> extends Parser<TContext> {
   private readonly parsers: Parser<TContext>[];
@@ -22,7 +22,7 @@ export class Alternative<TContext> extends Parser<TContext> {
           input,
           match.from,
           match.to,
-          [match],
+          inferChildren([match]),
           this.action,
           options,
           internals

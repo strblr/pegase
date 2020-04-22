@@ -3,6 +3,22 @@ import { Options } from "../parser";
 import { Match, SemanticAction, SemanticMatchReport } from ".";
 
 /**
+ * function inferChildren
+ *
+ * Infers the children array of a Match, given the array of its sub-matches
+ */
+
+export function inferChildren<TContext>(matches: Match<TContext>[]) {
+  return matches.reduce<any[]>(
+    (acc, match) => [
+      ...acc,
+      ...(match.value !== undefined ? [match.value] : match.children)
+    ],
+    []
+  );
+}
+
+/**
  * function buildSafeMatch
  *
  * Tries to build a Match object as the result of a successful parsing. If an error is thrown
@@ -13,13 +29,13 @@ export function buildSafeMatch<TContext>(
   input: string,
   from: number,
   to: number,
-  matches: Match<TContext>[],
+  children: any[],
   action: SemanticAction<TContext> | null,
   options: Options<TContext>,
   internals: Internals<TContext>
 ) {
   try {
-    return new Match(input, from, to, matches, action, options, internals);
+    return new Match(input, from, to, children, action, options, internals);
   } catch (failure) {
     if (!(failure instanceof Error)) throw failure;
     options.diagnose &&
