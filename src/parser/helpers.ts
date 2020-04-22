@@ -1,3 +1,4 @@
+import { uniq } from "lodash";
 import { Internals } from "../internals";
 import { NonTerminal, Options, Text } from ".";
 
@@ -5,14 +6,16 @@ import { NonTerminal, Options, Text } from ".";
  * defaultOptions
  */
 
-export const defaultOptions: Options<any> = {
-  from: 0,
-  skipper: new Text(/\s*/),
-  skip: true,
-  ignoreCase: false,
-  diagnose: true,
-  context: undefined
-};
+export function defaultOptions(): Options<any> {
+  return {
+    from: 0,
+    skipper: new Text(/\s*/),
+    skip: true,
+    ignoreCase: false,
+    diagnose: true,
+    context: undefined
+  };
+}
 
 /**
  * function rule
@@ -55,4 +58,14 @@ export function preskip<TContext>(
     internals
   );
   return match && match.to;
+}
+
+/**
+ * function extendFlags
+ *
+ * Creates a copy of "pattern" but with additional flags
+ */
+
+export function extendFlags(pattern: RegExp, ...flags: string[]) {
+  return new RegExp(pattern, uniq([...pattern.flags, ...flags]).join(""));
 }

@@ -1,6 +1,6 @@
-import { escapeRegExp, isString, uniq } from "lodash";
+import { escapeRegExp, isString } from "lodash";
 import { Internals } from "../internals";
-import { Options, Parser, preskip } from ".";
+import { extendFlags, Options, Parser, preskip } from ".";
 import { buildSafeMatch, SemanticAction } from "../match";
 
 export class Text<TContext> extends Parser<TContext> {
@@ -12,9 +12,8 @@ export class Text<TContext> extends Parser<TContext> {
     super(action);
     this.text = text;
     if (isString(text)) text = new RegExp(escapeRegExp(text));
-    const flags = [...Array.from(text.flags), "s", "y"];
-    this.withCase = new RegExp(text, uniq(flags).join(""));
-    this.withoutCase = new RegExp(text, uniq([...flags, "i"]).join(""));
+    this.withCase = extendFlags(text, "y");
+    this.withoutCase = extendFlags(text, "i", "y");
   }
 
   _parse(

@@ -12,10 +12,10 @@ export abstract class Parser<TContext> {
 
   parse(
     input: string,
-    partialOptions: Partial<Options<TContext>> = defaultOptions
+    partialOptions: Partial<Options<TContext>> = defaultOptions()
   ): Report<TContext> {
     const options = {
-      ...defaultOptions,
+      ...defaultOptions(),
       ...partialOptions
     };
     const internals = {
@@ -32,13 +32,13 @@ export abstract class Parser<TContext> {
     );
   }
 
-  match(input: string, options: Partial<Options<TContext>> = defaultOptions) {
+  match(input: string, options: Partial<Options<TContext>> = defaultOptions()) {
     return this.parse(input, options).match !== null;
   }
 
   value<TValue = any>(
     input: string,
-    options: Partial<Options<TContext>> = defaultOptions
+    options: Partial<Options<TContext>> = defaultOptions()
   ): TValue {
     const report = this.parse(input, options);
     if (report.match) return report.match.value;
@@ -47,7 +47,7 @@ export abstract class Parser<TContext> {
 
   children<TChildren = any[]>(
     input: string,
-    options: Partial<Options<TContext>> = defaultOptions
+    options: Partial<Options<TContext>> = defaultOptions()
   ): TChildren {
     const report = this.parse(input, options);
     if (report.match) return (report.match.children as unknown) as TChildren;
