@@ -1,5 +1,5 @@
 import { Internals } from "../internals";
-import { NonTerminal, Options, RegexTerminal } from ".";
+import { NonTerminal, Options, Text } from ".";
 
 /**
  * defaultOptions
@@ -7,8 +7,9 @@ import { NonTerminal, Options, RegexTerminal } from ".";
 
 export const defaultOptions: Options<any> = {
   from: 0,
-  skipper: new RegexTerminal(/\s*/),
+  skipper: new Text(/\s*/),
   skip: true,
+  ignoreCase: false,
   diagnose: true,
   context: undefined
 };

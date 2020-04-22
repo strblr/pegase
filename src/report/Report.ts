@@ -1,7 +1,7 @@
 import { codeFrameColumns } from "@babel/code-frame";
 import lineColumn from "line-column";
 import joinn from "joinn";
-import { groupBy, lowerCase, values, sortBy } from "lodash";
+import { groupBy, isString, lowerCase, values, sortBy } from "lodash";
 import {
   Failure,
   Internals,
@@ -72,10 +72,10 @@ export class Report<TContext> {
                 (packed["TERMINAL_FAILURE"] as TerminalFailure[]).map(
                   failure => {
                     switch (failure.terminal) {
-                      case "LITERAL":
-                        return `"${failure.literal}"`;
-                      case "REGEX":
-                        return failure.pattern.toString();
+                      case "TEXT":
+                        return isString(failure.text)
+                          ? `"${failure.text}"`
+                          : failure.text.toString();
                       case "BOUND":
                         return failure.bound === "END"
                           ? "end of input"

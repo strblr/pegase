@@ -8,15 +8,14 @@ import {
 } from "lodash";
 import {
   Alternative,
-  BoundTerminal,
-  LiteralTerminal,
+  Bound,
   NonTerminal,
   Parser,
   Predicate,
-  RegexTerminal,
   Repetition,
   rule,
   Sequence,
+  Text,
   token
 } from "../parser";
 import {
@@ -83,7 +82,7 @@ metagrammar.pegase.parser = new Sequence([
     new Repetition(metagrammar.definition, 1, Infinity),
     metagrammar.expression
   ]),
-  new BoundTerminal("END")
+  new Bound("END")
 ]);
 
 /**
@@ -91,7 +90,7 @@ metagrammar.pegase.parser = new Sequence([
  */
 
 metagrammar.definition.parser = new Sequence(
-  [identifier, new LiteralTerminal(":"), metagrammar.expression],
+  [identifier, new Text(":"), metagrammar.expression],
   ({ children, context: { rules } }) => {
     const [id, expression] = children as [string, Parser<any>];
     if (!(id in rules)) rules[id] = (id.startsWith("$") ? token : rule)(id);
@@ -110,7 +109,7 @@ metagrammar.expression.parser = new Sequence(
     metagrammar.sequence,
     new Repetition(
       new Sequence([
-        new Alternative([new LiteralTerminal("|"), new LiteralTerminal("/")]),
+        new Alternative([new Text("|"), new Text("/")]),
         metagrammar.sequence
       ]),
       0,
@@ -157,7 +156,7 @@ metagrammar.modulo.parser = new Sequence(
   [
     metagrammar.prefix,
     new Repetition(
-      new Sequence([new LiteralTerminal("%"), metagrammar.prefix]),
+      new Sequence([new Text("%"), metagrammar.prefix]),
       0,
       Infinity
     )
@@ -187,10 +186,7 @@ metagrammar.modulo.parser = new Sequence(
 metagrammar.prefix.parser = new Sequence(
   [
     new Repetition(
-      new Alternative(
-        [new LiteralTerminal("&"), new LiteralTerminal("!")],
-        ({ raw }) => raw
-      ),
+      new Alternative([new Text("&"), new Text("!")], ({ raw }) => raw),
       0,
       1
     ),
@@ -212,18 +208,14 @@ metagrammar.suffix.parser = new Sequence(
     metagrammar.directive,
     new Repetition(
       new Alternative([
-        new LiteralTerminal("?", ({ raw }) => raw),
-        new LiteralTerminal("+", ({ raw }) => raw),
-        new LiteralTerminal("*", ({ raw }) => raw),
+        new Text("?", ({ raw }) => raw),
+        new Text("+", ({ raw }) => raw),
+        new Text("*", ({ raw }) => raw),
         new Sequence([
-          new LiteralTerminal("{"),
+          new Text("{"),
           integer,
-          new Repetition(
-            new Sequence([new LiteralTerminal(","), integer]),
-            0,
-            1
-          ),
-          new LiteralTerminal("}")
+          new Repetition(new Sequence([new Text(","), integer]), 0, 1),
+          new Text("}")
         ])
       ]),
       0,
@@ -255,20 +247,24 @@ metagrammar.suffix.parser = new Sequence(
 metagrammar.directive.parser = new Sequence(
   [
     metagrammar.primary,
-    new Repetition(
-      new Sequence([new LiteralTerminal("#"), identifier]),
-      0,
-      Infinity
-    )
+    new Repetition(new Sequence([new Text("#"), identifier]), 0, Infinity)
   ],
   ({ children }) => {
     const [primary, ...directives] = children as [Parser<any>, ...string[]];
     if (directives.length === 0) return primary;
     return directives.reduce((acc, directive) => {
       if (
-        ["omit", "raw", "token", "skip", "unskip", "memo", "matches"].includes(
-          directive
-        )
+        [
+          "omit",
+          "raw",
+          "token",
+          "skip",
+          "unskip",
+          "case",
+          "nocase",
+          "memo",
+          "matches"
+        ].includes(directive)
       )
         return (acc as any)[directive];
       throw new Error(`Invalid directive <${directive}>`);
@@ -285,19 +281,19 @@ metagrammar.primary.parser = new Alternative([
     singleQuotedString,
     "BYPASS",
     null,
-    ([literal]) => new LiteralTerminal<any>(literal)
+    ([literal]) => new Text<any>(literal)
   ),
   new NonTerminal(
     doubleQuotedString,
     "BYPASS",
     null,
-    ([literal]) => new LiteralTerminal<any>(literal, ({ raw }) => raw)
+    ([literal]) => new Text<any>(literal, ({ raw }) => raw)
   ),
   new NonTerminal(
     characterClass,
     "BYPASS",
     null,
-    ([classRegex]) => new RegexTerminal<any>(classRegex)
+    ([classRegex]) => new Text<any>(classRegex)
   ),
   new NonTerminal(
     tagEntity,
@@ -309,8 +305,8 @@ metagrammar.primary.parser = new Alternative([
           `Invalid tag entity reference (${index}) in parser expression`
         );
       const item = args[index];
-      if (isString(item)) return new LiteralTerminal<any>(item);
-      if (isRegExp(item)) return new RegexTerminal<any>(item);
+      if (isString(item)) return new Text<any>(item);
+      if (isRegExp(item)) return new Text<any>(item);
       if (item instanceof Parser) return item;
       throw new Error(
         `Tag entity ${index} is invalid (should be a string, a regexp, or a Parser)`
@@ -318,23 +314,19 @@ metagrammar.primary.parser = new Alternative([
     }
   ),
   new Sequence(
-    [identifier, new Predicate(new LiteralTerminal(":"), false)],
+    [identifier, new Predicate(new Text(":"), false)],
     ([id], { context: { rules } }) => {
       if (!(id in rules)) rules[id] = (id.startsWith("$") ? token : rule)(id);
       return rules[id];
     }
   ),
-  new Sequence([
-    new LiteralTerminal("("),
-    metagrammar.expression,
-    new LiteralTerminal(")")
-  ]),
-  new LiteralTerminal("ε", () => epsilon),
-  new LiteralTerminal(".", () => anyChar),
-  new LiteralTerminal("^", () => new BoundTerminal<any>("START")),
+  new Sequence([new Text("("), metagrammar.expression, new Text(")")]),
+  new Text("ε", () => epsilon),
+  new Text(".", () => anyChar),
+  new Text("^", () => new Bound<any>("START")),
   new Sequence(
-    [new Predicate(identifier, false), new LiteralTerminal("$")],
-    () => new BoundTerminal<any>("END")
+    [new Predicate(identifier, false), new Text("$")],
+    () => new Bound<any>("END")
   )
 ]);
 

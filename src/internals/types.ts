@@ -8,12 +8,12 @@ export type Internals<TContext> = Readonly<{
   cache: Cache<TContext>;
 }>;
 
-type InputRange = Readonly<{
+export type InputRange = Readonly<{
   from: number;
   to: number;
 }>;
 
-type StackTrace = Readonly<{
+export type StackTrace = Readonly<{
   stack: string[];
 }>;
 
@@ -31,12 +31,8 @@ export type TerminalFailure = InputRange &
       type: "TERMINAL_FAILURE";
     } & (
       | {
-          terminal: "LITERAL";
-          literal: string;
-        }
-      | {
-          terminal: "REGEX";
-          pattern: RegExp;
+          terminal: "TEXT";
+          text: RegExp | string;
         }
       | {
           terminal: "BOUND";
