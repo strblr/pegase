@@ -4,12 +4,11 @@ export class Failures {
   private readonly chunks: Failure[][] = [[]];
 
   read() {
-    return this.chunks.reduce((acc, chunk) => [...acc, ...chunk], []);
+    return this.chunks.reduce((acc, chunk) => [...acc, ...chunk]);
   }
 
   farthest() {
-    const chunk = this.chunks[0];
-    return chunk.length === 0 ? null : chunk[0].to;
+    return this.chunks[0][0]?.to ?? null;
   }
 
   save() {
