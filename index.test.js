@@ -104,7 +104,7 @@ test("Modulos in grammars should work", () => {
 
 test("Case directives should be respected", () => {
   const g1 = peg` 'test' $ `;
-  const g2 = peg` 'test' # nocase $ `;
+  const g2 = peg` 'test' @nocase $ `;
 
   expect(g1.match("test")).toBe(true);
   expect(g1.match("TEST")).toBe(false);
@@ -129,10 +129,10 @@ test("Prefix math expressions should be correctly converted to postfix", () => {
     const { expr } = peg`
       expr:
         operator expr expr ${reverse}
-      | $number
+      | number
       
       operator: "+" | "-" | "*" | "/"
-      $number: ([0-9]+) # raw
+      number: [0-9]+ ${[parseInt]}
     `;
 
     // console.log(expr.value("+ - 1 2 * / 3 4 5"));
@@ -156,18 +156,17 @@ test("Math expressions should be correctly calculated", () => {
     }
   }
 
-  const fold = ([first, ...rest]) =>
-    rest.reduce(
-      (acc, op, index) => (index % 2 ? acc : doop(acc, op, rest[index + 1])),
-      first
+  const fold = children =>
+    children.reduce((acc, op, index) =>
+      index % 2 ? acc : doop(acc, op, children[index + 1])
     );
 
   const { calc } = peg`
     calc: expr $
     expr: term % ("+" | "-") ${fold}
     term: fact % ("*" | "/") ${fold}
-    fact: $num | '(' expr ')'
-    $num: '-'? ([0-9]+ ${s => s.warn("Just a warning")}) ('.' [0-9]*)? ${s =>
+    fact: num | '(' expr ')'
+    num: '-'? ([0-9]+ ${s => s.warn("Just a warning")}) ('.' [0-9]*)? ${s =>
     parseFloat(s.raw)}
   `;
 

@@ -1,11 +1,4 @@
-import {
-  dropRight,
-  isFunction,
-  isInteger,
-  isRegExp,
-  isString,
-  last
-} from "lodash";
+import { dropRight, isFunction, isInteger, last } from "lodash";
 import {
   Alternative,
   Bound,
@@ -15,9 +8,9 @@ import {
   Repetition,
   rule,
   Sequence,
-  Text,
-  token
+  Text
 } from "../parser";
+import { SemanticAction } from "../match";
 import {
   anyChar,
   characterClass,
@@ -25,6 +18,8 @@ import {
   epsilon,
   identifier,
   integer,
+  isTagAction,
+  isTagEntity,
   MetaContext,
   singleQuotedString,
   tagAction,
@@ -44,7 +39,7 @@ import {
  * modulo:     prefix % '%'
  * prefix:     ('&' | '!')? suffix
  * suffix:     directive ('?' | '+' | '*' | '{' integer (',' integer)? '}')?
- * directive:  primary ('#' identifier)*
+ * directive:  primary ('@' identifier)*
  * primary:    singleQuotedString
  *           | doubleQuotedString
  *           | characterClass
@@ -54,7 +49,7 @@ import {
  *           | 'ε'
  *           | '.'
  *           | '^'
- *           | !identifier '$'
+ *           | '$'
  */
 
 /**
@@ -93,7 +88,7 @@ metagrammar.definition.parser = new Sequence(
   [identifier, new Text(":"), metagrammar.expression],
   ({ children, context: { rules } }) => {
     const [id, expression] = children as [string, Parser<any>];
-    if (!(id in rules)) rules[id] = (id.startsWith("$") ? token : rule)(id);
+    if (!(id in rules)) rules[id] = rule(id);
     if (rules[id].parser)
       throw new Error(`Multiple definitions of non-terminal <${id}>`);
     rules[id].parser = expression;
@@ -136,15 +131,20 @@ metagrammar.sequence.parser = new Sequence(
     const index: number = last(children);
     if (index >= args.length)
       throw new Error(
-        `Invalid tag action reference (@${index}) in parser expression`
+        `Invalid tag action reference (${index}) in parser expression`
       );
     const action = args[index];
-    if (!isFunction(action))
-      throw new Error(`Tag action ${index} is invalid (should be a function)`);
+    if (!isTagAction(action))
+      throw new Error(
+        `Tag action ${index} is invalid (should be a function or an array of functions)`
+      );
+    const finalAction: SemanticAction<any> = isFunction(action)
+      ? action
+      : ({ raw }) => action.reduce((arg, fn) => fn(arg), raw);
     children = dropRight(children);
     return children.length === 1
-      ? new NonTerminal<any>(children[0], "BYPASS", null, action)
-      : new Sequence<any>(children, action);
+      ? new NonTerminal<any>(children[0], "BYPASS", null, finalAction)
+      : new Sequence<any>(children, finalAction);
   }
 );
 
@@ -247,7 +247,7 @@ metagrammar.suffix.parser = new Sequence(
 metagrammar.directive.parser = new Sequence(
   [
     metagrammar.primary,
-    new Repetition(new Sequence([new Text("#"), identifier]), 0, Infinity)
+    new Repetition(new Sequence([new Text("@"), identifier]), 0, Infinity)
   ],
   ({ children }) => {
     const [primary, ...directives] = children as [Parser<any>, ...string[]];
@@ -305,18 +305,18 @@ metagrammar.primary.parser = new Alternative([
           `Invalid tag entity reference (${index}) in parser expression`
         );
       const item = args[index];
-      if (isString(item)) return new Text<any>(item);
-      if (isRegExp(item)) return new Text<any>(item);
+      if (!isTagEntity(item))
+        throw new Error(
+          `Tag entity ${index} is invalid (should be a string, a RegExp, or a Parser)`
+        );
       if (item instanceof Parser) return item;
-      throw new Error(
-        `Tag entity ${index} is invalid (should be a string, a regexp, or a Parser)`
-      );
+      return new Text<any>(item);
     }
   ),
   new Sequence(
     [identifier, new Predicate(new Text(":"), false)],
     ([id], { context: { rules } }) => {
-      if (!(id in rules)) rules[id] = (id.startsWith("$") ? token : rule)(id);
+      if (!(id in rules)) rules[id] = rule(id);
       return rules[id];
     }
   ),
@@ -324,10 +324,7 @@ metagrammar.primary.parser = new Alternative([
   new Text("ε", () => epsilon),
   new Text(".", () => anyChar),
   new Text("^", () => new Bound<any>("START")),
-  new Sequence(
-    [new Predicate(identifier, false), new Text("$")],
-    () => new Bound<any>("END")
-  )
+  new Text("$", () => new Bound<any>("END"))
 ]);
 
 /**
@@ -345,7 +342,7 @@ export function peg<TContext = any>(
       (index === chunks.length - 1
         ? ""
         : isFunction(args[index])
-        ? `@${index}`
+        ? `~${index}`
         : index),
     ""
   );
