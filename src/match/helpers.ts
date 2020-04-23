@@ -12,7 +12,11 @@ export function inferChildren<TContext>(matches: Match<TContext>[]) {
   return matches.reduce<any[]>(
     (acc, match) => [
       ...acc,
-      ...(match.value !== undefined ? [match.value] : match.children)
+      ...(match.synthesized
+        ? match.value !== undefined
+          ? [match.value]
+          : []
+        : match.children)
     ],
     []
   );

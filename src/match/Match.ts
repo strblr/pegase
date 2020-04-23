@@ -12,8 +12,9 @@ export class Match<TContext> {
   readonly input: string;
   readonly from: number;
   readonly to: number;
-  readonly value: any;
   readonly children: any[];
+  readonly synthesized: boolean;
+  readonly value: any;
 
   constructor(
     input: string,
@@ -27,10 +28,10 @@ export class Match<TContext> {
     this.input = input;
     this.from = from;
     this.to = to;
-    this.value = undefined;
-    this.children = [];
+    this.children = children;
 
     if (action) {
+      this.synthesized = true;
       const arg = buildSemanticMatchReport(
         input,
         from,
@@ -40,8 +41,13 @@ export class Match<TContext> {
         internals
       );
       this.value = action(arg, arg);
-    } else if (children.length === 1) this.value = children[0];
-    else this.children = children;
+    } else if (children.length === 1) {
+      this.synthesized = true;
+      this.value = children[0];
+    } else {
+      this.synthesized = false;
+      this.value = undefined;
+    }
   }
 
   get raw() {
