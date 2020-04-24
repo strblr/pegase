@@ -74,6 +74,13 @@ export abstract class Parser<TContext> {
     return new NonTerminal(this, "BYPASS", null, children => children.length);
   }
 
+  get matches(): Parser<TContext> {
+    return new Alternative([
+      new NonTerminal(this, "BYPASS", null, () => true),
+      new Text("", () => false)
+    ]);
+  }
+
   get token() {
     return new NonTerminal(this, "TOKEN", null);
   }
@@ -96,12 +103,5 @@ export abstract class Parser<TContext> {
 
   get memo() {
     return new NonTerminal(this, "CACHE", null);
-  }
-
-  get matches(): Parser<TContext> {
-    return new Alternative([
-      new NonTerminal(this, "BYPASS", null, () => true),
-      new Text("", () => false)
-    ]);
   }
 }
