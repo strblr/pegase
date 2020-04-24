@@ -1,23 +1,26 @@
 import { Failure } from ".";
 
 export class Failures {
-  private readonly chunks: Failure[][] = [[]];
+  private readonly archived: Failure[] = [];
+  private readonly failures: Failure[] = [];
 
   read() {
-    return this.chunks.reduce((acc, chunk) => [...acc, ...chunk]);
-  }
-
-  farthest() {
-    return this.chunks[0][0]?.to ?? null;
-  }
-
-  save() {
-    this.chunks.unshift([]);
+    return [...this.archived, ...this.failures];
   }
 
   write(failure: Failure) {
-    const chunk = this.chunks[0];
-    if (chunk.length === 0 || chunk[0].to === failure.to) chunk.push(failure);
-    else if (chunk[0].to < failure.to) chunk.splice(0, chunk.length, failure);
+    if (this.failures.length === 0 || this.failures[0].to === failure.to)
+      this.failures.push(failure);
+    else if (this.failures[0].to < failure.to)
+      this.failures.splice(0, this.failures.length, failure);
+  }
+
+  farthest() {
+    return this.failures[0]?.to ?? null;
+  }
+
+  archive() {
+    this.archived.push(...this.failures);
+    this.failures.length = 0;
   }
 }

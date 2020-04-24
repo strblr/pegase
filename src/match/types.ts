@@ -8,7 +8,7 @@ export type SemanticMatchReport<TContext> = any[] &
     children: any[];
     context: TContext;
     warn(message: string): void;
-    saveFailures(): void;
+    archiveFailures(): void;
   }>;
 
 export type SemanticAction<TContext> = (

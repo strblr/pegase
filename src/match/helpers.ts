@@ -91,9 +91,9 @@ export function buildSemanticMatchReport<TContext>(
           });
       }
     },
-    saveFailures: {
+    archiveFailures: {
       value: () => {
-        options.diagnose && internals.failures.save();
+        options.diagnose && internals.failures.archive();
       }
     }
   });
