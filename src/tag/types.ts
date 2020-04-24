@@ -9,7 +9,9 @@ export type TagAction<TContext> =
 
 export type TagArgument<TContext> = TagEntity<TContext> | TagAction<TContext>;
 
+export type Grammar<TContext> = Record<string, NonTerminal<TContext>>;
+
 export type MetaContext<TContext> = Readonly<{
   args: TagArgument<TContext>[];
-  rules: Record<string, NonTerminal<TContext>>;
+  grammar: Grammar<TContext>;
 }>;
