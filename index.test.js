@@ -78,8 +78,7 @@ test("Math expressions should be correctly calculated", () => {
     num @token: '-'? [0-9]+ ('.' [0-9]*)? ${[parseFloat]}
   `;
 
-  const m = calc.parse("232 * *3 542");
-  console.error(m.log());
+  console.log(peg`radix @token: 'A'`.radix);
 
   expect(calc.value("2 + 3")).toBe(5);
   expect(calc.value("2 * 3")).toBe(6);

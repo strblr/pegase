@@ -31,7 +31,7 @@ export function isTagAction(action: any): action is TagAction<any> {
  */
 
 export function pipeDirectives(directives: string[], base: Parser<any>) {
-  return directives.reduce((parser: Parser<any>, directive: string) => {
+  return directives.reduce((parser, directive) => {
     switch (directive) {
       case "omit":
       case "raw":
