@@ -75,10 +75,12 @@ test("Math expressions should be correctly calculated", () => {
     expr: term % ("+" | "-") ${fold}
     term: fact % ("*" | "/") ${fold}
     fact: num | '(' expr ')'
-    num @token: '-'? [0-9]+ ('.' [0-9]*)? ${[parseFloat]}
+    num @token:
+      '-'? [0-9]+ ('.' [0-9]*)? ${[parseFloat]}
   `;
 
   console.log(peg`radix @token: 'A'`.radix);
+  console.error(calc.parse("12 +").log());
 
   expect(calc.value("2 + 3")).toBe(5);
   expect(calc.value("2 * 3")).toBe(6);

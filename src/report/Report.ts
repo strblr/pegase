@@ -40,6 +40,9 @@ export class Report<TContext> {
 
   log() {
     const lineReader = lineColumn(this.input);
+    const bound = (index: number) =>
+      index >= this.input.length ? index - 1 : index;
+
     const factored = sortBy(
       values(
         groupBy(
@@ -52,8 +55,10 @@ export class Report<TContext> {
 
     return factored
       .map(chunk => {
-        const from = lineReader.fromIndex(chunk[0].from);
-        const to = lineReader.fromIndex(chunk[0].to);
+        const from = lineReader.fromIndex(bound(chunk[0].from));
+        const to = lineReader.fromIndex(bound(chunk[0].to));
+        const overflow = chunk[0].to >= this.input.length;
+
         if (!from || !to) return "";
         const message = [];
         const packed = groupBy(chunk, "type");
@@ -109,8 +114,8 @@ export class Report<TContext> {
         return [
           message.join("\n"),
           codeFrameColumns(this.input, {
-            start: { line: from.line, column: from.col },
-            end: { line: to.line, column: to.col }
+            start: { line: from.line, column: from.col + (overflow ? 1 : 0) },
+            end: { line: to.line, column: to.col + (overflow ? 1 : 0) }
           })
         ].join("\n");
       })
