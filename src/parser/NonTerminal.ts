@@ -1,11 +1,11 @@
 import { Failures, Internals } from "../internals";
-import { NonTerminalMode, Options, Parser, preskip } from ".";
+import { inferIdentity, NonTerminalMode, Options, Parser, preskip } from ".";
 import { buildSafeMatch, inferChildren, Match, SemanticAction } from "../match";
 
 export class NonTerminal<TContext> extends Parser<TContext> {
   parser: Parser<TContext> | null;
-  private readonly mode: NonTerminalMode;
-  private readonly identity: string | null;
+  readonly mode: NonTerminalMode;
+  readonly identity: string | null;
 
   constructor(
     parser: Parser<TContext> | null,
@@ -17,14 +17,6 @@ export class NonTerminal<TContext> extends Parser<TContext> {
     this.parser = parser;
     this.mode = mode;
     this.identity = identity;
-  }
-
-  private inferTokenIdentity() {
-    if (!(this.parser instanceof NonTerminal)) return null;
-    let cursor = this.parser;
-    while (!cursor.identity && cursor.parser instanceof NonTerminal)
-      cursor = cursor.parser;
-    return cursor.identity || null;
   }
 
   /**
@@ -91,7 +83,7 @@ export class NonTerminal<TContext> extends Parser<TContext> {
         stack: internals.stack,
         type: "TERMINAL_FAILURE",
         terminal: "TOKEN",
-        identity: this.identity || this.inferTokenIdentity(),
+        identity: this.identity || inferIdentity(this.parser),
         failures: failures.read()
       });
     return null;

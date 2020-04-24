@@ -1,6 +1,6 @@
 import { uniq } from "lodash";
 import { Internals } from "../internals";
-import { NonTerminal, Options, Text } from ".";
+import { NonTerminal, Options, Parser, Text } from ".";
 
 /**
  * defaultOptions
@@ -68,4 +68,18 @@ export function preskip<TContext>(
 
 export function extendFlags(pattern: RegExp, ...flags: string[]) {
   return new RegExp(pattern, uniq([...pattern.flags, ...flags]).join(""));
+}
+
+/**
+ * function inferIdentity
+ *
+ * Finds the nearest possible identity by going down the NonTerminal chain
+ */
+
+export function inferIdentity<TContext>(parser: Parser<TContext>) {
+  if (!(parser instanceof NonTerminal)) return null;
+  let cursor = parser;
+  while (!cursor.identity && cursor.parser instanceof NonTerminal)
+    cursor = cursor.parser;
+  return cursor.identity || null;
 }
