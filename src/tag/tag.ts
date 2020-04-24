@@ -33,10 +33,10 @@ import {
  * * * * * * * * * * * * * * * * * * * * * * *
  *
  * pegase:     (definition+ | expression) $
- * definition: identifier ':' expression
+ * definition: identifier directives ':' expression
  * expression: semantic % ('|' | '/')
  * semantic:   directive tagAction?
- * directive:  sequence ('@' identifier)*
+ * directive:  sequence directives
  * sequence:   modulo+
  * modulo:     prefix % '%'
  * prefix:     ('&' | '!')? suffix
@@ -45,12 +45,14 @@ import {
  *           | doubleQuotedString
  *           | characterClass
  *           | tagEntity
- *           | identifier !':'
+ *           | identifier !(directives ':')
  *           | '(' expression ')'
  *           | 'ε'
  *           | '.'
  *           | '^'
  *           | '$'
+ *
+ * directives: ('@' identifier)*
  */
 
 /**
@@ -67,7 +69,8 @@ const metagrammar = {
   modulo: rule<MetaContext<any>>("modulo"),
   prefix: rule<MetaContext<any>>("prefix"),
   suffix: rule<MetaContext<any>>("suffix"),
-  primary: rule<MetaContext<any>>("primary")
+  primary: rule<MetaContext<any>>("primary"),
+  directives: rule<MetaContext<any>>("directives")
 };
 
 /**
@@ -87,12 +90,31 @@ metagrammar.pegase.parser = new Sequence([
  */
 
 metagrammar.definition.parser = new Sequence(
-  [identifier, new Text(":"), metagrammar.expression],
-  ([id, expression], { context: { grammar } }) => {
-    if (!(id in grammar)) grammar[id] = rule(id);
+  [identifier, metagrammar.directives, new Text(":"), metagrammar.expression],
+  ([id, directives, expression], { context: { grammar } }) => {
+    if (!(id in grammar)) grammar[id] = rule();
     if (grammar[id].parser)
       throw new Error(`Multiple definitions of non-terminal <${id}>`);
-    grammar[id].parser = expression;
+    grammar[id].parser = directives.reduce(
+      (parser: Parser<any>, directive: string) => {
+        switch (directive) {
+          case "omit":
+          case "raw":
+          case "count":
+          case "token":
+          case "skip":
+          case "noskip":
+          case "case":
+          case "nocase":
+          case "memo":
+          case "matches":
+            return parser[directive];
+          default:
+            throw new Error(`Invalid directive <${directive}>`);
+        }
+      },
+      new NonTerminal<any>(expression, "BYPASS", id)
+    );
   }
 );
 
@@ -145,27 +167,24 @@ metagrammar.semantic.parser = new Sequence(
  */
 
 metagrammar.directive.parser = new Sequence(
-  [
-    metagrammar.sequence,
-    new Repetition(new Sequence([new Text("@"), identifier]), 0, Infinity)
-  ],
-  ([sequence, ...directives]) =>
-    directives.reduce((parser, directive) => {
-      if (
-        ![
-          "omit",
-          "raw",
-          "token",
-          "skip",
-          "noskip",
-          "case",
-          "nocase",
-          "memo",
-          "matches"
-        ].includes(directive)
-      )
-        throw new Error(`Invalid directive <${directive}>`);
-      return parser[directive];
+  [metagrammar.sequence, metagrammar.directives],
+  ([sequence, directives]) =>
+    directives.reduce((parser: Parser<any>, directive: string) => {
+      switch (directive) {
+        case "omit":
+        case "raw":
+        case "count":
+        case "token":
+        case "skip":
+        case "noskip":
+        case "case":
+        case "nocase":
+        case "memo":
+        case "matches":
+          return parser[directive];
+        default:
+          throw new Error(`Invalid directive <${directive}>`);
+      }
     }, sequence)
 );
 
@@ -303,9 +322,15 @@ metagrammar.primary.parser = new Alternative([
     }
   ),
   new Sequence(
-    [identifier, new Predicate(new Text(":"), false)],
+    [
+      identifier,
+      new Predicate(
+        new Sequence([metagrammar.directives, new Text(":")]),
+        false
+      )
+    ],
     ([id], { context: { grammar } }) => {
-      if (!(id in grammar)) grammar[id] = rule(id);
+      if (!(id in grammar)) grammar[id] = rule();
       return grammar[id];
     }
   ),
@@ -315,6 +340,17 @@ metagrammar.primary.parser = new Alternative([
   new Text("^", () => new Bound<any>("START")),
   new Text("$", () => new Bound<any>("END"))
 ]);
+
+/**
+ * "directives" rule definition
+ */
+
+metagrammar.directives.parser = new Repetition(
+  new Sequence([new Text("@"), identifier]),
+  0,
+  Infinity,
+  ({ children }) => children
+);
 
 /**
  * The template tag function
