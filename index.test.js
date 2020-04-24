@@ -1,7 +1,7 @@
 const { peg } = require("./lib/index");
 
 test("Modulos in grammars should work", () => {
-  const grammar = peg`("1" % ',' ${s => s.length}) % '|' $`;
+  const grammar = peg`("1" % ',' @count) % '|' $`;
 
   const finalCount = [3, 5, 1, 2];
   expect(grammar.parse("  1 ,1,1 |1,1,  1,1|1 |1,1   ").match).not.toBe(null);
@@ -10,101 +10,17 @@ test("Modulos in grammars should work", () => {
   );
 });
 
-/*test("XML should be correctly converted to in-memory JSON", () => {
-  try {
-    const { A } = peg`
-      A: &B "1" $
-      B: "1" "2" ("3" | "4")
-    `;
-    console.log(A.value("  1 2 4 "));
-  } catch (e) {
-    else console.log(e);
-  }
-
-  function groupTags(_, children) {
-    return children;
-  }
-
-  function emitTag(_, [openId, attributes, children, closeId]) {
-    if (openId !== closeId)
-      throw new Error("Openning and closing tags must match");
-    return {
-      tag: openId,
-      attributes,
-      children
-    };
-  }
-
-  function emitText(raw) {
-    return raw;
-  }
-
-  function merge(_, children) {
-    return Object.assign({}, ...children);
-  }
-
-  function collect(_, [id, literal]) {
-    return { [id]: literal };
-  }
-
-  try {
-    const { xml } = pegase`
-      tag: '<' ${ident} attributes '>' xml '<' '/' ${ident} '>' ${emitTag}
-         | unskip[(!'<' .)+] ${emitText}
-      
-      xml: tag* ${groupTags}
-      
-      attributes: attribute* ${merge}
-      attributes: "test"
-        
-      attribute: ${ident} '=' ${doubleStr} ${collect}
-    `;
-  } catch (e) {
-    console.error(e.message);
-  }*/
-
-/*expect(
-    xml.value(`
-      <ul class="mylist">
-        <li>item 1</li>
-        <li> item 2, click <a href="/item1">here</a></li>
-      </ul>
-    `)
-  ).toEqual([
-    {
-      tag: "ul",
-      attributes: {
-        class: "mylist"
-      },
-      children: [
-        {
-          tag: "li",
-          attributes: {},
-          children: ["item 1"]
-        },
-        {
-          tag: "li",
-          attributes: {},
-          children: [
-            " item 2, click ",
-            {
-              tag: "a",
-              attributes: {
-                href: "/item1"
-              },
-              children: ["here"]
-            }
-          ]
-        }
-      ]
-    }
-
-  ]);
-});*/
+test("Predicates should work correctly", () => {
+  const { A } = peg`
+    A: &B "1" $
+    B: "1" "2" ("3" | "4")
+  `;
+  expect(() => A.value("  1 2 4 ")).toThrow();
+});
 
 test("Case directives should be respected", () => {
   const g1 = peg` 'test' $ `;
-  const g2 = peg` 'test' @nocase $ `;
+  const g2 = peg` ('test' @nocase) $ `;
 
   expect(g1.match("test")).toBe(true);
   expect(g1.match("TEST")).toBe(false);
@@ -124,22 +40,15 @@ test("Case directives should be respected", () => {
 
 test("Prefix math expressions should be correctly converted to postfix", () => {
   const reverse = ([op, a, b]) => [a, b, op].join(" ");
-
-  try {
-    const { expr } = peg`
-      expr:
-        operator expr expr ${reverse}
-      | number
-      
-      operator: "+" | "-" | "*" | "/"
-      number: [0-9]+ ${[parseInt]}
-    `;
-
-    // console.log(expr.value("+ - 1 2 * / 3 4 5"));
-  } catch (report) {
-    // console.error(report);
-    console.error(report.log());
-  }
+  const { expr } = peg`
+    expr:
+      operator expr expr ${reverse}
+    | number
+    
+    operator: "+" | "-" | "*" | "/"
+    number: [0-9]+ @token @raw
+  `;
+  expect(expr.value("+ - 1 2 * / 3 4 5")).toBe("1 2 - 3 4 / 5 * +");
 });
 
 test("Math expressions should be correctly calculated", () => {
@@ -158,7 +67,7 @@ test("Math expressions should be correctly calculated", () => {
 
   const fold = children =>
     children.reduce((acc, op, index) =>
-      index % 2 ? acc : doop(acc, op, children[index + 1])
+      index % 2 ? doop(acc, op, children[index + 1]) : acc
     );
 
   const { calc } = peg`
@@ -166,14 +75,11 @@ test("Math expressions should be correctly calculated", () => {
     expr: term % ("+" | "-") ${fold}
     term: fact % ("*" | "/") ${fold}
     fact: num | '(' expr ')'
-    num: '-'? ([0-9]+ ${s => s.warn("Just a warning")}) ('.' [0-9]*)? ${s =>
-    parseFloat(s.raw)}
+    num: '-'? [0-9]+ ('.' [0-9]*)? @token ${[parseFloat]}
   `;
 
-  /*const m = calc.parse("232 * *3 542");
-  console.error(m.log());*/
-
-  // console.log(g.$num);
+  const m = calc.parse("232 * *3 542");
+  console.error(m.log());
 
   expect(calc.value("2 + 3")).toBe(5);
   expect(calc.value("2 * 3")).toBe(6);
