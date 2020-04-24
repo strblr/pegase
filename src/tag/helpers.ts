@@ -23,3 +23,29 @@ export function isTagAction(action: any): action is TagAction<any> {
     isFunction(action) || (isArray(action) && action.every(f => isFunction(f)))
   );
 }
+
+/**
+ * function pipeDirectives
+ *
+ * Builds a higher-order parser based on a list of directives
+ */
+
+export function pipeDirectives(directives: string[], base: Parser<any>) {
+  return directives.reduce((parser: Parser<any>, directive: string) => {
+    switch (directive) {
+      case "omit":
+      case "raw":
+      case "count":
+      case "matches":
+      case "token":
+      case "skip":
+      case "noskip":
+      case "case":
+      case "nocase":
+      case "memo":
+        return parser[directive];
+      default:
+        throw new Error(`Invalid directive <${directive}>`);
+    }
+  }, base);
+}

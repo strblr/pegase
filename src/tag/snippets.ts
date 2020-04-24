@@ -1,4 +1,4 @@
-import { NonTerminal, Text } from "../parser";
+import { NonTerminal, Repetition, Sequence, Text } from "../parser";
 
 export const epsilon = new Text<any>("");
 
@@ -44,4 +44,11 @@ export const tagAction = new NonTerminal(
   new Text<any>(/~(\d+)/, ([index]) => parseInt(index, 10)),
   "TOKEN",
   "tagAction"
+);
+
+export const directives = new Repetition(
+  new Sequence([new Text<any>("@"), identifier]),
+  0,
+  Infinity,
+  ({ children }) => children
 );
