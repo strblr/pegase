@@ -7,7 +7,7 @@ export abstract class Parser<TContext> {
   protected readonly action: SemanticAction<TContext> | null;
 
   protected constructor(action?: SemanticAction<TContext>) {
-    this.action = action || null;
+    this.action = action ?? null;
   }
 
   parse(
