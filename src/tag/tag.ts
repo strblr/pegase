@@ -86,12 +86,12 @@ metagrammar.pegase.parser = new Sequence([
 
 metagrammar.definition.parser = new Sequence(
   [identifier, new Text(":"), metagrammar.expression],
-  ({ children, context: { rules } }) => {
+  ({ children, context: { grammar } }) => {
     const [id, expression] = children as [string, Parser<any>];
-    if (!(id in rules)) rules[id] = rule(id);
-    if (rules[id].parser)
+    if (!(id in grammar)) grammar[id] = rule(id);
+    if (grammar[id].parser)
       throw new Error(`Multiple definitions of non-terminal <${id}>`);
-    rules[id].parser = expression;
+    grammar[id].parser = expression;
   }
 );
 
@@ -315,9 +315,9 @@ metagrammar.primary.parser = new Alternative([
   ),
   new Sequence(
     [identifier, new Predicate(new Text(":"), false)],
-    ([id], { context: { rules } }) => {
-      if (!(id in rules)) rules[id] = rule(id);
-      return rules[id];
+    ([id], { context: { grammar } }) => {
+      if (!(id in grammar)) grammar[id] = rule(id);
+      return grammar[id];
     }
   ),
   new Sequence([new Text("("), metagrammar.expression, new Text(")")]),
@@ -335,19 +335,12 @@ export function peg<TContext = any>(
   chunks: TemplateStringsArray,
   ...args: TagArgument<TContext>[]
 ) {
-  const grammar = chunks.reduce(
+  const raw = chunks.reduce(
     (acc, chunk, index) =>
-      acc +
-      chunk +
-      (index === chunks.length - 1
-        ? ""
-        : isFunction(args[index])
-        ? `~${index}`
-        : index),
-    ""
+      acc + (isTagAction(args[index - 1]) ? `~${index - 1}` : index - 1) + chunk
   );
-  const context = { args, rules: Object.create(null) };
-  const report = metagrammar.pegase.parse(grammar, { context });
-  if (report.match) return report.match.value || context.rules;
+  const context = { args, grammar: Object.create(null) };
+  const report = metagrammar.pegase.parse(raw, { context });
+  if (report.match) return report.match.value ?? context.grammar;
   throw report;
 }
