@@ -70,6 +70,10 @@ export abstract class Parser<TContext> {
     return new NonTerminal(this, "BYPASS", null, ({ raw }) => raw);
   }
 
+  get count() {
+    return new NonTerminal(this, "BYPASS", null, children => children.length);
+  }
+
   get token() {
     return new NonTerminal(this, "TOKEN", null);
   }
