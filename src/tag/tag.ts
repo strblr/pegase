@@ -1,4 +1,4 @@
-import { dropRight, isFunction, isInteger, last } from "lodash";
+import { isFunction } from "lodash";
 import {
   Alternative,
   Bound,
@@ -34,12 +34,13 @@ import {
  *
  * pegase:     (definition+ | expression) $
  * definition: identifier ':' expression
- * expression: sequence % ('|' | '/')
- * sequence:   modulo+ tagAction?
+ * expression: semantic % ('|' | '/')
+ * semantic:   directive tagAction?
+ * directive:  sequence ('@' identifier)*
+ * sequence:   modulo+
  * modulo:     prefix % '%'
  * prefix:     ('&' | '!')? suffix
- * suffix:     directive ('?' | '+' | '*' | '{' integer (',' integer)? '}')?
- * directive:  primary ('@' identifier)*
+ * suffix:     primary ('?' | '+' | '*' | '{' integer (',' integer)? '}')?
  * primary:    singleQuotedString
  *           | doubleQuotedString
  *           | characterClass
@@ -60,11 +61,12 @@ const metagrammar = {
   pegase: rule<MetaContext<any>>("pegase"),
   definition: rule<MetaContext<any>>("definition"),
   expression: rule<MetaContext<any>>("expression"),
+  semantic: rule<MetaContext<any>>("semantic"),
+  directive: rule<MetaContext<any>>("directive"),
   sequence: rule<MetaContext<any>>("sequence"),
   modulo: rule<MetaContext<any>>("modulo"),
   prefix: rule<MetaContext<any>>("prefix"),
   suffix: rule<MetaContext<any>>("suffix"),
-  directive: rule<MetaContext<any>>("directive"),
   primary: rule<MetaContext<any>>("primary")
 };
 
@@ -86,8 +88,7 @@ metagrammar.pegase.parser = new Sequence([
 
 metagrammar.definition.parser = new Sequence(
   [identifier, new Text(":"), metagrammar.expression],
-  ({ children, context: { grammar } }) => {
-    const [id, expression] = children as [string, Parser<any>];
+  ([id, expression], { context: { grammar } }) => {
     if (!(id in grammar)) grammar[id] = rule(id);
     if (grammar[id].parser)
       throw new Error(`Multiple definitions of non-terminal <${id}>`);
@@ -101,34 +102,28 @@ metagrammar.definition.parser = new Sequence(
 
 metagrammar.expression.parser = new Sequence(
   [
-    metagrammar.sequence,
+    metagrammar.semantic,
     new Repetition(
       new Sequence([
         new Alternative([new Text("|"), new Text("/")]),
-        metagrammar.sequence
+        metagrammar.semantic
       ]),
       0,
       Infinity
     )
   ],
-  ({ children }) => {
-    return children.length === 1 ? children[0] : new Alternative<any>(children);
-  }
+  ({ children }) =>
+    children.length === 1 ? children[0] : new Alternative<any>(children)
 );
 
 /**
- * "sequence" rule definition
+ * "semantic" rule definition
  */
 
-metagrammar.sequence.parser = new Sequence(
-  [
-    new Repetition(metagrammar.modulo, 1, Infinity),
-    new Repetition(tagAction, 0, 1)
-  ],
-  ({ children, context: { args } }) => {
-    if (!isInteger(last(children)))
-      return children.length === 1 ? children[0] : new Sequence<any>(children);
-    const index: number = last(children);
+metagrammar.semantic.parser = new Sequence(
+  [metagrammar.directive, new Repetition(tagAction, 0, 1)],
+  ([directive, index], { context: { args } }) => {
+    if (index === undefined) return directive;
     if (index >= args.length)
       throw new Error(
         `Invalid tag action reference (${index}) in parser expression`
@@ -138,14 +133,52 @@ metagrammar.sequence.parser = new Sequence(
       throw new Error(
         `Tag action ${index} is invalid (should be a function or an array of functions)`
       );
-    const finalAction: SemanticAction<any> = isFunction(action)
+    const final: SemanticAction<any> = isFunction(action)
       ? action
       : ({ raw }) => action.reduce((arg, fn) => fn(arg), raw);
-    children = dropRight(children);
-    return children.length === 1
-      ? new NonTerminal<any>(children[0], "BYPASS", null, finalAction)
-      : new Sequence<any>(children, finalAction);
+    return new NonTerminal<any>(directive, "BYPASS", null, final);
   }
+);
+
+/**
+ * "directive" rule definition
+ */
+
+metagrammar.directive.parser = new Sequence(
+  [
+    metagrammar.sequence,
+    new Repetition(new Sequence([new Text("@"), identifier]), 0, Infinity)
+  ],
+  ([sequence, ...directives]) =>
+    directives.reduce((parser, directive) => {
+      if (
+        ![
+          "omit",
+          "raw",
+          "token",
+          "skip",
+          "noskip",
+          "case",
+          "nocase",
+          "memo",
+          "matches"
+        ].includes(directive)
+      )
+        throw new Error(`Invalid directive <${directive}>`);
+      return parser[directive];
+    }, sequence)
+);
+
+/**
+ * "sequence" rule definition
+ */
+
+metagrammar.sequence.parser = new Repetition(
+  metagrammar.modulo,
+  1,
+  Infinity,
+  ({ children }) =>
+    children.length === 1 ? children[0] : new Sequence<any>(children)
 );
 
 /**
@@ -161,10 +194,8 @@ metagrammar.modulo.parser = new Sequence(
       Infinity
     )
   ],
-  ({ children }) => {
-    const [prefix, ...rest]: Parser<any>[] = children;
-    if (rest.length === 0) return prefix;
-    return rest.reduce(
+  ({ children }) =>
+    children.reduce(
       (acc, child) =>
         new Sequence<any>([
           acc,
@@ -173,10 +204,8 @@ metagrammar.modulo.parser = new Sequence(
             0,
             Infinity
           )
-        ]),
-      prefix
-    );
-  }
+        ])
+    )
 );
 
 /**
@@ -192,11 +221,10 @@ metagrammar.prefix.parser = new Sequence(
     ),
     metagrammar.suffix
   ],
-  ({ children }) => {
-    if (children.length === 1) return children[0];
-    const [operator, suffix] = children as [string, Parser<any>];
-    return new Predicate<any>(suffix, operator === "&");
-  }
+  ({ children }) =>
+    children.length === 1
+      ? children[0]
+      : new Predicate<any>(children[1], children[0] === "&")
 );
 
 /**
@@ -205,7 +233,7 @@ metagrammar.prefix.parser = new Sequence(
 
 metagrammar.suffix.parser = new Sequence(
   [
-    metagrammar.directive,
+    metagrammar.primary,
     new Repetition(
       new Alternative([
         new Text("?", ({ raw }) => raw),
@@ -222,53 +250,15 @@ metagrammar.suffix.parser = new Sequence(
       1
     )
   ],
-  ({ children }) => {
-    const [directive, ...quantifier] = children as [Parser<any>, ...any[]];
-    if (quantifier.length === 0) return directive;
-    if (quantifier[0] === "?") return new Repetition<any>(directive, 0, 1);
-    if (quantifier[0] === "+")
-      return new Repetition<any>(directive, 1, Infinity);
-    if (quantifier[0] === "*")
-      return new Repetition<any>(directive, 0, Infinity);
-    const [min, max] = [
-      quantifier[0],
-      quantifier.length === 2 ? quantifier[1] : quantifier[0]
-    ];
+  ([primary, ...quantifier]) => {
+    if (quantifier.length === 0) return primary;
+    if (quantifier[0] === "?") return new Repetition<any>(primary, 0, 1);
+    if (quantifier[0] === "+") return new Repetition<any>(primary, 1, Infinity);
+    if (quantifier[0] === "*") return new Repetition<any>(primary, 0, Infinity);
+    const [min, max] = [quantifier[0], quantifier[1] ?? quantifier[0]];
     if (min < 0 || max < 1 || max < min)
       throw new Error(`Invalid repetition range [${min}, ${max}]`);
-    return new Repetition<any>(directive, min, max);
-  }
-);
-
-/**
- * "directive" rule definition
- */
-
-metagrammar.directive.parser = new Sequence(
-  [
-    metagrammar.primary,
-    new Repetition(new Sequence([new Text("@"), identifier]), 0, Infinity)
-  ],
-  ({ children }) => {
-    const [primary, ...directives] = children as [Parser<any>, ...string[]];
-    if (directives.length === 0) return primary;
-    return directives.reduce((acc, directive) => {
-      if (
-        [
-          "omit",
-          "raw",
-          "token",
-          "skip",
-          "noskip",
-          "case",
-          "nocase",
-          "memo",
-          "matches"
-        ].includes(directive)
-      )
-        return (acc as any)[directive];
-      throw new Error(`Invalid directive <${directive}>`);
-    }, primary);
+    return new Repetition<any>(primary, min, max);
   }
 );
 
@@ -309,8 +299,7 @@ metagrammar.primary.parser = new Alternative([
         throw new Error(
           `Tag entity ${index} is invalid (should be a string, a RegExp, or a Parser)`
         );
-      if (item instanceof Parser) return item;
-      return new Text<any>(item);
+      return item instanceof Parser ? item : new Text<any>(item);
     }
   ),
   new Sequence(
