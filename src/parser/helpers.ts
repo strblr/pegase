@@ -66,7 +66,7 @@ export function preskip<TContext>(
  * Creates a copy of "pattern" but with additional flags
  */
 
-export function extendFlags(pattern: RegExp, ...flags: string[]) {
+export function extendFlags(pattern: RegExp, flags: string) {
   return new RegExp(pattern, uniq([...pattern.flags, ...flags]).join(""));
 }
 

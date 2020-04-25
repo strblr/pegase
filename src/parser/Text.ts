@@ -13,7 +13,7 @@ export class Text<TContext> extends Parser<TContext> {
     this.text = text;
     if (isString(text)) text = new RegExp(escapeRegExp(text));
     this.withCase = extendFlags(text, "y");
-    this.withoutCase = extendFlags(text, "i", "y");
+    this.withoutCase = extendFlags(text, "iy");
   }
 
   _parse(
