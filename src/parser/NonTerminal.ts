@@ -191,7 +191,7 @@ export class NonTerminal<TContext> extends Parser<TContext> {
     options: Options<TContext>,
     internals: Internals<TContext>
   ) {
-    if (options.diagnose && this.identity)
+    if (this.identity)
       internals = { ...internals, stack: [...internals.stack, this.identity] };
     switch (this.mode) {
       case "BYPASS":
