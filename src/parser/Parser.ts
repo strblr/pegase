@@ -45,15 +45,6 @@ export abstract class Parser<TContext> {
     throw report;
   }
 
-  children<TChildren = any[]>(
-    input: string,
-    options: Partial<Options<TContext>> = defaultOptions()
-  ): TChildren {
-    const report = this.parse(input, options);
-    if (report.match) return (report.match.children as unknown) as TChildren;
-    throw report;
-  }
-
   abstract _parse(
     input: string,
     options: Options<TContext>,
@@ -68,6 +59,10 @@ export abstract class Parser<TContext> {
 
   get raw() {
     return new NonTerminal(this, "BYPASS", null, ({ raw }) => raw);
+  }
+
+  get children() {
+    return new NonTerminal(this, "BYPASS", null, ({ children }) => children);
   }
 
   get count() {
