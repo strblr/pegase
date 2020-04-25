@@ -134,7 +134,7 @@ export class NonTerminal<TContext> extends Parser<TContext> {
       throw new Error("Cannot parse case setter with undefined child parser");
     const match = this.parser._parse(
       input,
-      { ...options, ignoreCase: this.mode === "NOCASE" },
+      { ...options, case: this.mode === "CASE" },
       internals
     );
     return (

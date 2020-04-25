@@ -4,7 +4,7 @@ export type Options<TContext> = Readonly<{
   from: number;
   skipper: Parser<TContext> | null;
   skip: boolean;
-  ignoreCase: boolean;
+  case: boolean;
   diagnose: boolean;
   context: TContext;
 }>;

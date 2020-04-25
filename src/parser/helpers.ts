@@ -11,7 +11,7 @@ export function defaultOptions(): Options<any> {
     from: 0,
     skipper: new Text(/\s*/),
     skip: true,
-    ignoreCase: false,
+    case: true,
     diagnose: true,
     context: undefined
   };

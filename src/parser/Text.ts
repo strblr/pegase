@@ -23,7 +23,7 @@ export class Text<TContext> extends Parser<TContext> {
   ) {
     const cursor = preskip(input, options, internals);
     if (cursor === null) return null;
-    const pattern = options.ignoreCase ? this.withoutCase : this.withCase;
+    const pattern = options.case ? this.withCase : this.withoutCase;
     pattern.lastIndex = cursor;
     const result = pattern.exec(input);
     if (result !== null)
