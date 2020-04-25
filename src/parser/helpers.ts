@@ -13,6 +13,7 @@ export function defaultOptions(): Options<any> {
     skip: true,
     case: true,
     diagnose: true,
+    trace: null,
     context: undefined
   };
 }

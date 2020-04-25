@@ -20,11 +20,28 @@ export class NonTerminal<TContext> extends Parser<TContext> {
   }
 
   /**
+   * The dispatcher links the NonTerminal modes to their appropriate parse method
+   */
+
+  private static dispatcher: Record<
+    NonTerminalMode,
+    "_parseByPass" | "_parseToken" | "_parseSkip" | "_parseCase" | "_parseCache"
+  > = {
+    BYPASS: "_parseByPass",
+    TOKEN: "_parseToken",
+    SKIP: "_parseSkip",
+    NOSKIP: "_parseSkip",
+    CASE: "_parseCase",
+    NOCASE: "_parseCase",
+    CACHE: "_parseCache"
+  };
+
+  /**
    * BYPASS mode
    * Simply tries to parse the child parser
    */
 
-  _parseByPass(
+  private _parseByPass(
     input: string,
     options: Options<TContext>,
     internals: Internals<TContext>
@@ -51,7 +68,7 @@ export class NonTerminal<TContext> extends Parser<TContext> {
    * Does pre-skipping before trying to parse the child parser with skipping deactivated
    */
 
-  _parseToken(
+  private _parseToken(
     input: string,
     options: Options<TContext>,
     internals: Internals<TContext>
@@ -94,7 +111,7 @@ export class NonTerminal<TContext> extends Parser<TContext> {
    * Tries to parse the child parser with skipper activated / deactivated
    */
 
-  _parseSkip(
+  private _parseSkip(
     input: string,
     options: Options<TContext>,
     internals: Internals<TContext>
@@ -125,7 +142,7 @@ export class NonTerminal<TContext> extends Parser<TContext> {
    * Tries to parse the child parser with case considered / ignored
    */
 
-  _parseCase(
+  private _parseCase(
     input: string,
     options: Options<TContext>,
     internals: Internals<TContext>
@@ -156,7 +173,7 @@ export class NonTerminal<TContext> extends Parser<TContext> {
    * Checks the cache before trying to parse the child parser.
    */
 
-  _parseCache(
+  private _parseCache(
     input: string,
     options: Options<TContext>,
     internals: Internals<TContext>
@@ -191,21 +208,36 @@ export class NonTerminal<TContext> extends Parser<TContext> {
     options: Options<TContext>,
     internals: Internals<TContext>
   ) {
-    if (this.identity)
+    if (this.identity) {
       internals = { ...internals, stack: [...internals.stack, this.identity] };
-    switch (this.mode) {
-      case "BYPASS":
-        return this._parseByPass(input, options, internals);
-      case "TOKEN":
-        return this._parseToken(input, options, internals);
-      case "SKIP":
-      case "NOSKIP":
-        return this._parseSkip(input, options, internals);
-      case "CASE":
-      case "NOCASE":
-        return this._parseCase(input, options, internals);
-      case "CACHE":
-        return this._parseCache(input, options, internals);
+      options.trace?.({
+        type: "ENTERED",
+        identity: this.identity,
+        input,
+        stack: internals.stack,
+        options
+      });
     }
+    const match = this[NonTerminal.dispatcher[this.mode]](
+      input,
+      options,
+      internals
+    );
+    if (this.identity)
+      options.trace?.({
+        ...(match
+          ? {
+              type: "MATCHED",
+              match
+            }
+          : {
+              type: "FAILED"
+            }),
+        identity: this.identity,
+        input,
+        stack: internals.stack,
+        options
+      });
+    return match;
   }
 }
