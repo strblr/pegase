@@ -4,10 +4,11 @@ test("Modulos in grammars should work", () => {
   const grammar = peg`("1" % ',' @count) % '|' $`;
 
   const finalCount = [3, 5, 1, 2];
+  expect(grammar.parse(" 1, 2, 1 | 1").match).toBe(null);
   expect(grammar.parse("  1 ,1,1 |1,1,  1,1|1 |1,1   ").match).not.toBe(null);
-  expect(grammar.children("1 ,1,1 |1,1, 1  ,   1,1|1 |   1,1 ")).toEqual(
-    finalCount
-  );
+  expect(
+    grammar.parse("1 ,1,1 |1,1, 1  ,   1,1|1 |   1,1 ").match.children
+  ).toEqual(finalCount);
 });
 
 test("Predicates should work correctly", () => {
@@ -22,32 +23,45 @@ test("Case directives should be respected", () => {
   const g1 = peg` 'test' $ `;
   const g2 = peg` ('test' @nocase) $ `;
 
-  expect(g1.match("test")).toBe(true);
-  expect(g1.match("TEST")).toBe(false);
-  expect(g1.match("tEsT")).toBe(false);
-  expect(g1.match("tEsTT")).toBe(false);
+  expect(g1.test.value("test")).toBe(true);
+  expect(g1.test.value("TEST")).toBe(false);
+  expect(g1.test.value("tEsT")).toBe(false);
+  expect(g1.test.value("tEsTT")).toBe(false);
 
-  expect(g1.nocase.match("test")).toBe(true);
-  expect(g1.nocase.match("TEST")).toBe(true);
-  expect(g1.nocase.match("tEsT")).toBe(true);
-  expect(g1.nocase.match("tEsTT")).toBe(false);
+  expect(g1.nocase.test.value("test")).toBe(true);
+  expect(g1.nocase.test.value("TEST")).toBe(true);
+  expect(g1.nocase.test.value("tEsT")).toBe(true);
+  expect(g1.nocase.test.value("tEsTT")).toBe(false);
 
-  expect(g2.match("test")).toBe(true);
-  expect(g2.match("TEST")).toBe(true);
-  expect(g2.match("tEsT")).toBe(true);
-  expect(g2.match("tEsTT")).toBe(false);
+  expect(g1.case.nocase.test.value("test")).toBe(true);
+  expect(g1.case.nocase.test.value("TEST")).toBe(false);
+  expect(g1.case.nocase.test.value("tEsT")).toBe(false);
+  expect(g1.case.nocase.test.value("tEsTT")).toBe(false);
+
+  expect(g2.test.value("test")).toBe(true);
+  expect(g2.test.value("TEST")).toBe(true);
+  expect(g2.test.value("tEsT")).toBe(true);
+  expect(g2.test.value("tEsTT")).toBe(false);
 });
 
 test("Prefix math expressions should be correctly converted to postfix", () => {
-  const reverse = ([op, a, b]) => [a, b, op].join(" ");
   const { expr } = peg`
     expr:
-      operator expr expr ${reverse}
-    | number
+      operator expr expr ${([op, a, b]) => [a, b, op].join(" ")}
+    | number @token @raw 
     
     operator: "+" | "-" | "*" | "/"
-    number: [0-9]+ @token @raw
+    number: [0-9]+
   `;
+  console.error(
+    expr
+      .parse("+ 23", {
+        trace(event) {
+          console.log(event.identity, event.type);
+        }
+      })
+      .log()
+  );
   expect(expr.value("+ - 1 2 * / 3 4 5")).toBe("1 2 - 3 4 / 5 * +");
 });
 
@@ -78,9 +92,6 @@ test("Math expressions should be correctly calculated", () => {
     num @token:
       '-'? [0-9]+ ('.' [0-9]*)? ${[parseFloat]}
   `;
-
-  console.log(peg`radix @token: 'A'`.radix);
-  console.error(calc.parse("12 +").log());
 
   expect(calc.value("2 + 3")).toBe(5);
   expect(calc.value("2 * 3")).toBe(6);

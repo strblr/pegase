@@ -37,7 +37,7 @@ export function pipeDirectives(directives: string[], base: Parser<any>) {
       case "raw":
       case "children":
       case "count":
-      case "matches":
+      case "test":
       case "token":
       case "skip":
       case "noskip":

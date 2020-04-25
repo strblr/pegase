@@ -32,10 +32,6 @@ export abstract class Parser<TContext> {
     );
   }
 
-  match(input: string, options: Partial<Options<TContext>> = defaultOptions()) {
-    return this.parse(input, options).match !== null;
-  }
-
   value<TValue = any>(
     input: string,
     options: Partial<Options<TContext>> = defaultOptions()
@@ -69,7 +65,7 @@ export abstract class Parser<TContext> {
     return new NonTerminal(this, "BYPASS", null, children => children.length);
   }
 
-  get matches(): Parser<TContext> {
+  get test(): Parser<TContext> {
     return new Alternative([
       new NonTerminal(this, "BYPASS", null, () => true),
       new Text("", () => false)
