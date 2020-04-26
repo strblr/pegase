@@ -79,6 +79,7 @@ import {
   test: >> number % >> ','
   test: >> &number
   test: >> number+
+  rule: a >> b
 `;*/
 
 /**
