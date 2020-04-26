@@ -56,6 +56,31 @@ import {
  *           | '$'
  */
 
+/*peg`
+  expr: operator (expr*) @count
+  rule: term @count *
+  keyword: "declare" @nocase "let"
+  term: (fact % '+') @children
+  term: fact % '+' @raw
+  
+  expr: operator expr* @count
+  rule: (term @count)*
+  keyword: "declare" @nocase "let"
+  term: (fact % '+') @children
+  term: fact % '+' @raw
+  
+  expr: operator (expr* @count)
+  rule: (term @count)*
+  keyword: ("declare" @nocase) "let"
+  term: fact % '+' @children
+  term: fact % ('+' @raw)
+  
+  instrs: (instr | >> ';')*
+  test: >> number % >> ','
+  test: >> &number
+  test: >> number+
+`;*/
+
 /**
  * Meta-grammar definition
  */
