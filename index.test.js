@@ -53,15 +53,6 @@ test("Prefix math expressions should be correctly converted to postfix", () => {
     operator: "+" | "-" | "*" | "/"
     number: [0-9]+
   `;
-  console.error(
-    expr
-      .parse("+ 23", {
-        trace(event) {
-          console.log(event.identity, event.type);
-        }
-      })
-      .log()
-  );
   expect(expr.value("+ - 1 2 * / 3 4 5")).toBe("1 2 - 3 4 / 5 * +");
 });
 
