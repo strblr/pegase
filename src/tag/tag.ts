@@ -40,7 +40,8 @@ import {
  * semantic:   directive tagAction?
  * directive:  sequence directives
  * sequence:   modulo+
- * modulo:     prefix % '%'
+ * modulo:     forward % '%'
+ * forward:    '>>'? prefix
  * prefix:     ('&' | '!')? suffix
  * suffix:     primary ('?' | '+' | '*' | '{' integer (',' integer)? '}')?
  * primary:    singleQuotedString
@@ -67,6 +68,7 @@ const metagrammar = {
   directive: rule<MetaContext<any>>("directive"),
   sequence: rule<MetaContext<any>>("sequence"),
   modulo: rule<MetaContext<any>>("modulo"),
+  forward: rule<MetaContext<any>>("forward"),
   prefix: rule<MetaContext<any>>("prefix"),
   suffix: rule<MetaContext<any>>("suffix"),
   primary: rule<MetaContext<any>>("primary")
@@ -172,7 +174,7 @@ metagrammar.sequence.parser = new Repetition(
 
 metagrammar.modulo.parser = new Sequence(
   [
-    metagrammar.prefix,
+    metagrammar.forward,
     new Repetition(
       new Sequence([new Text("%"), metagrammar.prefix]),
       0,
@@ -191,6 +193,25 @@ metagrammar.modulo.parser = new Sequence(
           )
         ])
     )
+);
+
+/**
+ * "forward" rule definition
+ */
+
+metagrammar.forward.parser = new Sequence(
+  [new Repetition(new Text(">>", ({ raw }) => raw), 0, 1), metagrammar.prefix],
+  ({ children }) =>
+    children.length === 1
+      ? children[0]
+      : new Sequence<any>([
+          new Repetition(
+            new Sequence([new Predicate(children[1], false), anyChar]),
+            0,
+            Infinity
+          ),
+          children[1]
+        ])
 );
 
 /**
