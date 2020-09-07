@@ -1,22 +1,22 @@
-import { Failures, Internals } from "../internals";
-import { Options, Parser } from ".";
+import { Failures, FailureType } from "../internals";
+import { Internals, Options, Parser } from ".";
 import { buildSafeMatch, SemanticAction } from "../match";
+
+export enum PredicatePolarity {
+  MustMatch,
+  MustFail
+}
 
 export class Predicate<TContext> extends Parser<TContext> {
   private readonly parser: Parser<TContext>;
-  private readonly polarity: boolean;
+  private readonly polarity: PredicatePolarity;
 
   constructor(
     parser: Parser<TContext>,
-    polarity: boolean,
+    polarity: PredicatePolarity,
     action?: SemanticAction<TContext>
   ) {
-    super(
-      action &&
-        ((...args) => {
-          action(...args);
-        })
-    );
+    super(action && ((...args) => (action(...args), undefined)));
     this.parser = parser;
     this.polarity = polarity;
   }
@@ -26,12 +26,12 @@ export class Predicate<TContext> extends Parser<TContext> {
     options: Options<TContext>,
     internals: Internals<TContext>
   ) {
-    const failures = new Failures();
+    const failures = new Failures<TContext>();
     const match = this.parser._parse(input, options, {
       ...internals,
       failures
     });
-    if (this.polarity === !!match)
+    if ((this.polarity === PredicatePolarity.MustMatch) === !!match)
       return buildSafeMatch(
         input,
         options.from,
@@ -41,26 +41,26 @@ export class Predicate<TContext> extends Parser<TContext> {
         options,
         internals
       );
-    else if (options.diagnose) {
-      if (match)
-        internals.failures.write({
-          from: match.from,
-          to: match.to,
-          stack: internals.stack,
-          type: "PREDICATE_FAILURE",
-          polarity: false,
-          match
-        });
-      else
-        internals.failures.write({
-          from: options.from,
-          to: options.from,
-          stack: internals.stack,
-          type: "PREDICATE_FAILURE",
-          polarity: true,
-          failures: failures.read()
-        });
-    }
+    else if (options.diagnose)
+      internals.failures.write(
+        match
+          ? {
+              from: match.from,
+              to: match.to,
+              stack: internals.stack,
+              type: FailureType.Predicate,
+              polarity: PredicatePolarity.MustFail,
+              match
+            }
+          : {
+              from: options.from,
+              to: options.from,
+              stack: internals.stack,
+              type: FailureType.Predicate,
+              polarity: PredicatePolarity.MustMatch,
+              failures: failures.read()
+            }
+      );
     return null;
   }
 }

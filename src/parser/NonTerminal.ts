@@ -1,6 +1,23 @@
-import { Failures, Internals } from "../internals";
-import { inferIdentity, NonTerminalMode, Options, Parser, preskip } from ".";
-import { buildSafeMatch, inferChildren, Match, SemanticAction } from "../match";
+import { Failures, FailureTerminal, FailureType } from "../internals";
+import {
+  inferIdentity,
+  Internals,
+  Options,
+  Parser,
+  preskip,
+  TraceEventType
+} from ".";
+import { buildSafeMatch, inferChildren, SemanticAction } from "../match";
+
+export enum NonTerminalMode {
+  Bypass,
+  Token,
+  Skip,
+  NoSkip,
+  Case,
+  NoCase,
+  Cache
+}
 
 export class NonTerminal<TContext> extends Parser<TContext> {
   parser: Parser<TContext> | null;
@@ -23,21 +40,19 @@ export class NonTerminal<TContext> extends Parser<TContext> {
    * The dispatcher links the NonTerminal modes to their appropriate parse method
    */
 
-  private static dispatcher: Record<
-    NonTerminalMode,
-    "_parseByPass" | "_parseToken" | "_parseSkip" | "_parseCase" | "_parseCache"
-  > = {
-    BYPASS: "_parseByPass",
-    TOKEN: "_parseToken",
-    SKIP: "_parseSkip",
-    NOSKIP: "_parseSkip",
-    CASE: "_parseCase",
-    NOCASE: "_parseCase",
-    CACHE: "_parseCache"
-  };
+  private static dispatcher = {
+    [NonTerminalMode.Bypass]: "_parseByPass",
+    [NonTerminalMode.Token]: "_parseToken",
+    [NonTerminalMode.Skip]: "_parseSkip",
+    [NonTerminalMode.NoSkip]: "_parseSkip",
+    [NonTerminalMode.Case]: "_parseCase",
+    [NonTerminalMode.NoCase]: "_parseCase",
+    [NonTerminalMode.Cache]: "_parseCache"
+  } as const;
 
   /**
-   * BYPASS mode
+   * Bypass mode
+   *
    * Simply tries to parse the child parser
    */
 
@@ -64,7 +79,8 @@ export class NonTerminal<TContext> extends Parser<TContext> {
   }
 
   /**
-   * TOKEN mode
+   * Token mode
+   *
    * Does pre-skipping before trying to parse the child parser with skipping deactivated
    */
 
@@ -77,7 +93,7 @@ export class NonTerminal<TContext> extends Parser<TContext> {
       throw new Error("Cannot parse token with undefined child parser");
     const cursor = preskip(input, options, internals);
     if (cursor === null) return null;
-    const failures = new Failures();
+    const failures = new Failures<TContext>();
     const match = this.parser._parse(
       input,
       { ...options, from: cursor, skip: false },
@@ -98,16 +114,17 @@ export class NonTerminal<TContext> extends Parser<TContext> {
         from: cursor,
         to: failures.farthest() ?? cursor,
         stack: internals.stack,
-        type: "TERMINAL_FAILURE",
-        terminal: "TOKEN",
-        identity: this.identity || inferIdentity(this.parser),
+        type: FailureType.Terminal,
+        terminal: FailureTerminal.Token,
+        identity: inferIdentity(this),
         failures: failures.read()
       });
     return null;
   }
 
   /**
-   * SKIP or NOSKIP mode
+   * Skip or NoSkip mode
+   *
    * Tries to parse the child parser with skipper activated / deactivated
    */
 
@@ -117,10 +134,10 @@ export class NonTerminal<TContext> extends Parser<TContext> {
     internals: Internals<TContext>
   ) {
     if (!this.parser)
-      throw new Error("Cannot parse skip setter with undefined child parser");
+      throw new Error("Cannot parse skip toggle with undefined child parser");
     const match = this.parser._parse(
       input,
-      { ...options, skip: this.mode === "SKIP" },
+      { ...options, skip: this.mode === NonTerminalMode.Skip },
       internals
     );
     return (
@@ -138,7 +155,8 @@ export class NonTerminal<TContext> extends Parser<TContext> {
   }
 
   /**
-   * CASE or NOCASE mode
+   * Case or NoCase mode
+   *
    * Tries to parse the child parser with case considered / ignored
    */
 
@@ -148,10 +166,10 @@ export class NonTerminal<TContext> extends Parser<TContext> {
     internals: Internals<TContext>
   ) {
     if (!this.parser)
-      throw new Error("Cannot parse case setter with undefined child parser");
+      throw new Error("Cannot parse case toggle with undefined child parser");
     const match = this.parser._parse(
       input,
-      { ...options, case: this.mode === "CASE" },
+      { ...options, case: this.mode === NonTerminalMode.Case },
       internals
     );
     return (
@@ -169,7 +187,8 @@ export class NonTerminal<TContext> extends Parser<TContext> {
   }
 
   /**
-   * CACHE mode
+   * Cache mode
+   *
    * Checks the cache before trying to parse the child parser.
    */
 
@@ -177,7 +196,7 @@ export class NonTerminal<TContext> extends Parser<TContext> {
     input: string,
     options: Options<TContext>,
     internals: Internals<TContext>
-  ): Match<TContext> | null {
+  ) {
     if (!this.parser)
       throw new Error(
         "Cannot parse cached non-terminal with undefined child parser"
@@ -208,36 +227,33 @@ export class NonTerminal<TContext> extends Parser<TContext> {
     options: Options<TContext>,
     internals: Internals<TContext>
   ) {
-    if (this.identity) {
-      internals = { ...internals, stack: [...internals.stack, this.identity] };
-      options.trace?.({
-        type: "ENTERED",
-        identity: this.identity,
-        input,
-        stack: internals.stack,
-        options
-      });
-    }
-    const match = this[NonTerminal.dispatcher[this.mode]](
+    const method = this[NonTerminal.dispatcher[this.mode]];
+    if (!this.identity) return method(input, options, internals);
+
+    internals = { ...internals, stack: [...internals.stack, this.identity] };
+    options.trace?.({
+      type: TraceEventType.Entered,
+      identity: this.identity,
       input,
-      options,
-      internals
-    );
-    if (this.identity)
-      options.trace?.({
-        ...(match
-          ? {
-              type: "MATCHED",
-              match
-            }
-          : {
-              type: "FAILED"
-            }),
-        identity: this.identity,
-        input,
-        stack: internals.stack,
-        options
-      });
+      stack: internals.stack,
+      options
+    });
+    const match = method(input, options, internals);
+    options.trace?.({
+      ...(match
+        ? {
+            type: TraceEventType.Matched,
+            match
+          }
+        : {
+            type: TraceEventType.Failed,
+            failures: internals.failures.read()
+          }),
+      identity: this.identity,
+      input,
+      stack: internals.stack,
+      options
+    });
     return match;
   }
 }

@@ -1,5 +1,5 @@
-import { Internals } from "../internals";
-import { Options } from "../parser";
+import { FailureType, WarningType } from "../internals";
+import { Internals, Options } from "../parser";
 import { Match, SemanticAction, SemanticMatchReport } from ".";
 
 /**
@@ -8,8 +8,8 @@ import { Match, SemanticAction, SemanticMatchReport } from ".";
  * Infers the children array of a Match, given the array of its sub-matches
  */
 
-export function inferChildren<TContext>(matches: Match<TContext>[]) {
-  return matches.reduce<any[]>(
+export function inferChildren<TContext>(matches: Array<Match<TContext>>) {
+  return matches.reduce<Array<any>>(
     (acc, match) => [
       ...acc,
       ...(match.synthesized
@@ -33,7 +33,7 @@ export function buildSafeMatch<TContext>(
   input: string,
   from: number,
   to: number,
-  children: any[],
+  children: Array<any>,
   action: SemanticAction<TContext> | null,
   options: Options<TContext>,
   internals: Internals<TContext>
@@ -42,12 +42,12 @@ export function buildSafeMatch<TContext>(
     return new Match(input, from, to, children, action, options, internals);
   } catch (failure) {
     if (!(failure instanceof Error)) throw failure;
-    options.diagnose &&
+    if (options.diagnose)
       internals.failures.write({
         from,
         to,
         stack: internals.stack,
-        type: "SEMANTIC_FAILURE",
+        type: FailureType.Semantic,
         message: failure.message
       });
     return null;
@@ -65,7 +65,8 @@ export function buildSemanticMatchReport<TContext>(
   input: string,
   from: number,
   to: number,
-  children: any[],
+  match: Match<TContext>,
+  children: Array<any>,
   options: Options<TContext>,
   internals: Internals<TContext>
 ): SemanticMatchReport<TContext> {
@@ -80,20 +81,30 @@ export function buildSemanticMatchReport<TContext>(
     children: { value: children },
     context: { value: options.context },
     warn: {
-      value: (message: string) => {
-        options.diagnose &&
+      value(message: string) {
+        if (options.diagnose)
           internals.warnings.write({
             from,
             to,
             stack: internals.stack,
-            type: "SEMANTIC_WARNING",
+            type: WarningType.Semantic,
             message
           });
       }
     },
-    archiveFailures: {
-      value: () => {
-        options.diagnose && internals.failures.archive();
+    fail: {
+      value(message: string) {
+        throw new Error(message);
+      }
+    },
+    archive: {
+      value() {
+        if (options.diagnose) internals.failures.archive();
+      }
+    },
+    propagate: {
+      value() {
+        (match as any).synthesized = false;
       }
     }
   });

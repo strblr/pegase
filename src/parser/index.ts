@@ -1,4 +1,4 @@
-export * from "./types";
+export * from "./shared";
 export * from "./Parser";
 export * from "./NonTerminal";
 export * from "./Sequence";

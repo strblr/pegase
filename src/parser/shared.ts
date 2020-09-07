@@ -1,3 +1,4 @@
+import { Cache, Failure, Failures, Warnings } from "../internals";
 import { Parser } from ".";
 import { Match } from "../match";
 
@@ -11,28 +12,36 @@ export type Options<TContext> = Readonly<{
   context: TContext;
 }>;
 
-export type NonTerminalMode =
-  | "BYPASS"
-  | "TOKEN"
-  | "SKIP"
-  | "NOSKIP"
-  | "CASE"
-  | "NOCASE"
-  | "CACHE";
+export type Internals<TContext> = Readonly<{
+  stack: Array<string>;
+  warnings: Warnings;
+  failures: Failures<TContext>;
+  cache: Cache<TContext>;
+}>;
+
+export enum TraceEventType {
+  Entered,
+  Matched,
+  Failed
+}
 
 export type TraceEvent<TContext> = Readonly<
   (
     | {
-        type: "ENTERED" | "FAILED";
+        type: TraceEventType.Entered;
       }
     | {
-        type: "MATCHED";
+        type: TraceEventType.Matched;
         match: Match<TContext>;
+      }
+    | {
+        type: TraceEventType.Failed;
+        failures: Array<Failure<TContext>>;
       }
   ) & {
     identity: string;
     input: string;
-    stack: string[];
+    stack: Array<string>;
     options: Options<TContext>;
   }
 >;

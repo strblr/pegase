@@ -1,6 +1,25 @@
-import { Internals } from "../internals";
-import { Options } from "../parser";
-import { buildSemanticMatchReport, SemanticAction } from ".";
+import { Internals, Options } from "../parser";
+import { buildSemanticMatchReport } from ".";
+
+export type SemanticMatchReport<TContext> = Array<any> &
+  Readonly<{
+    input: string;
+    from: number;
+    to: number;
+    raw: string;
+    stack: Array<string>;
+    children: Array<any>;
+    context: TContext;
+    warn(message: string): void;
+    fail(message: string): never;
+    archive(): void;
+    propagate(): void;
+  }>;
+
+export type SemanticAction<TContext> = (
+  semanticReport: SemanticMatchReport<TContext>,
+  ...children: Array<any>
+) => any;
 
 /**
  * class Match
@@ -12,7 +31,7 @@ export class Match<TContext> {
   readonly input: string;
   readonly from: number;
   readonly to: number;
-  readonly children: any[];
+  readonly children: Array<any>;
   readonly synthesized: boolean;
   readonly value: any;
 
@@ -20,7 +39,7 @@ export class Match<TContext> {
     input: string,
     from: number,
     to: number,
-    children: any[],
+    children: Array<any>,
     action: SemanticAction<TContext> | null,
     options: Options<TContext>,
     internals: Internals<TContext>
@@ -32,15 +51,18 @@ export class Match<TContext> {
 
     if (action) {
       this.synthesized = true;
-      const arg = buildSemanticMatchReport(
-        input,
-        from,
-        to,
-        children,
-        options,
-        internals
+      this.value = action(
+        buildSemanticMatchReport(
+          input,
+          from,
+          to,
+          this,
+          children,
+          options,
+          internals
+        ),
+        ...children
       );
-      this.value = action(arg, arg);
     } else if (children.length === 1) {
       this.synthesized = true;
       this.value = children[0];

@@ -1,5 +1,4 @@
-import { Internals } from "../internals";
-import { Options, Parser } from ".";
+import { Internals, Options, Parser } from ".";
 import { buildSafeMatch, inferChildren, Match, SemanticAction } from "../match";
 
 export class Repetition<TContext> extends Parser<TContext> {
@@ -24,7 +23,7 @@ export class Repetition<TContext> extends Parser<TContext> {
     options: Options<TContext>,
     internals: Internals<TContext>
   ) {
-    const matches: Match<TContext>[] = [];
+    const matches: Array<Match<TContext>> = [];
     let cursor = options.from,
       counter = 0;
     const succeed = () => {

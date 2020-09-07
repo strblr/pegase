@@ -1,11 +1,13 @@
-import { Internals } from "../internals";
-import { Options, Parser } from ".";
+import { Internals, Options, Parser } from ".";
 import { buildSafeMatch, inferChildren, SemanticAction } from "../match";
 
 export class Alternative<TContext> extends Parser<TContext> {
-  private readonly parsers: Parser<TContext>[];
+  private readonly parsers: Array<Parser<TContext>>;
 
-  constructor(parsers: Parser<TContext>[], action?: SemanticAction<TContext>) {
+  constructor(
+    parsers: Array<Parser<TContext>>,
+    action?: SemanticAction<TContext>
+  ) {
     super(action);
     this.parsers = parsers;
   }

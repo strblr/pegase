@@ -1,11 +1,13 @@
-import { Internals } from "../internals";
-import { Options, Parser } from ".";
+import { Internals, Options, Parser } from ".";
 import { buildSafeMatch, inferChildren, Match, SemanticAction } from "../match";
 
 export class Sequence<TContext> extends Parser<TContext> {
-  private readonly parsers: Parser<TContext>[];
+  private readonly parsers: Array<Parser<TContext>>;
 
-  constructor(parsers: Parser<TContext>[], action?: SemanticAction<TContext>) {
+  constructor(
+    parsers: Array<Parser<TContext>>,
+    action?: SemanticAction<TContext>
+  ) {
     super(action);
     this.parsers = parsers;
   }
@@ -15,7 +17,7 @@ export class Sequence<TContext> extends Parser<TContext> {
     options: Options<TContext>,
     internals: Internals<TContext>
   ) {
-    const matches: Match<TContext>[] = [];
+    const matches: Array<Match<TContext>> = [];
     let cursor = options.from;
     for (const parser of this.parsers) {
       const match = parser._parse(

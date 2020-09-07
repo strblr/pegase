@@ -1,11 +1,16 @@
-import { Internals } from "../internals";
-import { Options, Parser, preskip } from ".";
+import { FailureTerminal, FailureType } from "../internals";
+import { Internals, Options, Parser, preskip } from ".";
 import { buildSafeMatch, SemanticAction } from "../match";
 
-export class Bound<TContext> extends Parser<TContext> {
-  private readonly bound: "START" | "END";
+export enum BoundType {
+  Start,
+  End
+}
 
-  constructor(bound: "START" | "END", action?: SemanticAction<TContext>) {
+export class Bound<TContext> extends Parser<TContext> {
+  private readonly bound: BoundType;
+
+  constructor(bound: BoundType, action?: SemanticAction<TContext>) {
     super(action);
     this.bound = bound;
   }
@@ -15,19 +20,19 @@ export class Bound<TContext> extends Parser<TContext> {
     options: Options<TContext>,
     internals: Internals<TContext>
   ) {
-    const diagnose = (cursor: number) =>
-      options.diagnose &&
-      internals.failures.write({
-        from: cursor,
-        to: cursor,
-        stack: internals.stack,
-        type: "TERMINAL_FAILURE",
-        terminal: "BOUND",
-        bound: this.bound
-      });
-
+    const diagnose = (cursor: number) => {
+      if (options.diagnose)
+        internals.failures.write({
+          from: cursor,
+          to: cursor,
+          stack: internals.stack,
+          type: FailureType.Terminal,
+          terminal: FailureTerminal.Bound,
+          bound: this.bound
+        });
+    };
     switch (this.bound) {
-      case "START":
+      case BoundType.Start:
         if (options.from === 0)
           return buildSafeMatch(
             input,
@@ -41,7 +46,7 @@ export class Bound<TContext> extends Parser<TContext> {
         diagnose(options.from);
         return null;
 
-      case "END":
+      case BoundType.End:
         const cursor = preskip(input, options, internals);
         if (cursor === null) return null;
         if (cursor === input.length)

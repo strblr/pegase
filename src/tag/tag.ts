@@ -2,9 +2,12 @@ import { isFunction } from "lodash";
 import {
   Alternative,
   Bound,
+  BoundType,
   NonTerminal,
+  NonTerminalMode,
   Parser,
   Predicate,
+  PredicatePolarity,
   Repetition,
   rule,
   Sequence,
@@ -21,11 +24,9 @@ import {
   integer,
   isTagAction,
   isTagEntity,
-  MetaContext,
   pipeDirectives,
   singleQuotedString,
   tagAction,
-  TagArgument,
   tagEntity
 } from ".";
 
@@ -37,8 +38,8 @@ import {
  * pegase:     (definition+ | expression) $
  * definition: identifier directives ':' expression
  * expression: semantic % ('|' | '/')
- * semantic:   directive tagAction?
- * directive:  sequence directives
+ * semantic:   sequence tagAction?
+
  * sequence:   modulo+
  * modulo:     forward % '%'
  * forward:    '>>'? prefix
@@ -56,82 +57,61 @@ import {
  *           | '$'
  */
 
-/*peg`
-  expr: operator (expr*) @count
-  rule: term @count *
-  keyword: "declare" @nocase "let"
-  term: (fact % '+') @children
-  term: fact % '+' @raw
-  
-  expr: operator expr* @count
-  rule: (term @count)*
-  keyword: "declare" @nocase "let"
-  term: (fact % '+') @children
-  term: fact % '+' @raw
-  
-  expr: operator (expr* @count)
-  rule: (term @count)*
-  keyword: ("declare" @nocase) "let"
-  term: fact % '+' @children
-  term: fact % ('+' @raw)
-  
-  instrs: (instr | >> ';')*
-  test: >> number % >> ','
-  test: >> &number
-  test: >> number+
-  rule: a >> b
-`;*/
+export type TagEntity<TContext> = string | RegExp | Parser<TContext>;
+
+export type TagAction<TContext> =
+  | SemanticAction<TContext>
+  | [(raw: string) => any, ...Array<(value: any) => any>];
+
+export type TagArgument<TContext> =
+  | TagEntity<TContext>
+  | TagAction<TContext>
+  | Fragment<TContext>;
+
+export type Grammar<TContext = any> = Record<string, NonTerminal<TContext>>;
 
 /**
  * Meta-grammar definition
  */
 
-const metagrammar = {
-  pegase: rule<MetaContext<any>>("pegase"),
-  definition: rule<MetaContext<any>>("definition"),
-  expression: rule<MetaContext<any>>("expression"),
-  semantic: rule<MetaContext<any>>("semantic"),
-  directive: rule<MetaContext<any>>("directive"),
-  sequence: rule<MetaContext<any>>("sequence"),
-  modulo: rule<MetaContext<any>>("modulo"),
-  forward: rule<MetaContext<any>>("forward"),
-  prefix: rule<MetaContext<any>>("prefix"),
-  suffix: rule<MetaContext<any>>("suffix"),
-  primary: rule<MetaContext<any>>("primary")
-};
+type MetaContext = Readonly<{
+  args: Array<TagArgument<any>>;
+  grammar: Grammar;
+}>;
 
-/**
- * "pegase" rule definition
- */
+const metagrammar: Grammar<MetaContext> = {
+  pegase: rule("pegase"),
+  definition: rule("definition"),
+  expression: rule("expression"),
+  semantic: rule("semantic"),
+  sequence: rule("sequence"),
+  modulo: rule("modulo"),
+  forward: rule("forward"),
+  prefix: rule("prefix"),
+  suffix: rule("suffix"),
+  primary: rule("primary")
+};
 
 metagrammar.pegase.parser = new Sequence([
   new Alternative([
     new Repetition(metagrammar.definition, 1, Infinity),
     metagrammar.expression
   ]),
-  new Bound("END")
+  new Bound(BoundType.End)
 ]);
-
-/**
- * "definition" rule definition
- */
 
 metagrammar.definition.parser = new Sequence(
   [identifier, directives, new Text(":"), metagrammar.expression],
-  ([id, directives, expression], { context: { grammar } }) => {
+  ({ context: { grammar } }, id, directives, expression) => {
     if (!(id in grammar)) grammar[id] = rule();
     if (grammar[id].parser)
-      throw new Error(`Multiple definitions of non-terminal <${id}>`);
+      throw new Error(`Multiple definitions of non-terminal "${id}"`);
     grammar[id].parser = pipeDirectives(
       directives,
-      new NonTerminal<any>(expression, "BYPASS", id)
+      new NonTerminal(expression, NonTerminalMode.Bypass, id)
     );
   }
 );
-
-/**
- * "expression" rule definition
- */
 
 metagrammar.expression.parser = new Sequence(
   [
@@ -149,13 +129,9 @@ metagrammar.expression.parser = new Sequence(
     children.length === 1 ? children[0] : new Alternative<any>(children)
 );
 
-/**
- * "semantic" rule definition
- */
-
 metagrammar.semantic.parser = new Sequence(
-  [metagrammar.directive, new Repetition(tagAction, 0, 1)],
-  ([directive, index], { context: { args } }) => {
+  [metagrammar.sequence, new Repetition(tagAction, 0, 1)],
+  ({ context: { args } }, directive, index) => {
     if (index === undefined) return directive;
     if (index >= args.length)
       throw new Error(
@@ -164,27 +140,14 @@ metagrammar.semantic.parser = new Sequence(
     const action = args[index];
     if (!isTagAction(action))
       throw new Error(
-        `Tag action ${index} is invalid (should be a function or an array of functions)`
+        `Tag action ${index} is invalid (it should be a function or an array of functions)`
       );
     const final: SemanticAction<any> = isFunction(action)
       ? action
       : ({ raw }) => action.reduce((arg, fn) => fn(arg), raw);
-    return new NonTerminal<any>(directive, "BYPASS", null, final);
+    return new NonTerminal(directive, NonTerminalMode.Bypass, null, final);
   }
 );
-
-/**
- * "directive" rule definition
- */
-
-metagrammar.directive.parser = new Sequence(
-  [metagrammar.sequence, directives],
-  ([sequence, directives]) => pipeDirectives(directives, sequence)
-);
-
-/**
- * "sequence" rule definition
- */
 
 metagrammar.sequence.parser = new Repetition(
   metagrammar.modulo,
@@ -193,10 +156,6 @@ metagrammar.sequence.parser = new Repetition(
   ({ children }) =>
     children.length === 1 ? children[0] : new Sequence<any>(children)
 );
-
-/**
- * "modulo" rule definition
- */
 
 metagrammar.modulo.parser = new Sequence(
   [
@@ -221,10 +180,6 @@ metagrammar.modulo.parser = new Sequence(
     )
 );
 
-/**
- * "forward" rule definition
- */
-
 metagrammar.forward.parser = new Sequence(
   [new Repetition(new Text(">>", ({ raw }) => raw), 0, 1), metagrammar.prefix],
   ({ children }) =>
@@ -232,17 +187,16 @@ metagrammar.forward.parser = new Sequence(
       ? children[0]
       : new Sequence<any>([
           new Repetition(
-            new Sequence([new Predicate(children[1], false), anyChar]),
+            new Sequence([
+              new Predicate(children[1], PredicatePolarity.MustFail),
+              anyChar
+            ]),
             0,
             Infinity
           ),
           children[1]
         ])
 );
-
-/**
- * "prefix" rule definition
- */
 
 metagrammar.prefix.parser = new Sequence(
   [
@@ -256,12 +210,13 @@ metagrammar.prefix.parser = new Sequence(
   ({ children }) =>
     children.length === 1
       ? children[0]
-      : new Predicate<any>(children[1], children[0] === "&")
+      : new Predicate<any>(
+          children[1],
+          children[0] === "&"
+            ? PredicatePolarity.MustMatch
+            : PredicatePolarity.MustFail
+        )
 );
-
-/**
- * "suffix" rule definition
- */
 
 metagrammar.suffix.parser = new Sequence(
   [
@@ -282,7 +237,7 @@ metagrammar.suffix.parser = new Sequence(
       1
     )
   ],
-  ([primary, ...quantifier]) => {
+  (_, primary, ...quantifier) => {
     if (quantifier.length === 0) return primary;
     if (quantifier[0] === "?") return new Repetition<any>(primary, 0, 1);
     if (quantifier[0] === "+") return new Repetition<any>(primary, 1, Infinity);
@@ -294,34 +249,30 @@ metagrammar.suffix.parser = new Sequence(
   }
 );
 
-/**
- * "primary" rule definition
- */
-
 metagrammar.primary.parser = new Alternative([
   new NonTerminal(
     singleQuotedString,
-    "BYPASS",
+    NonTerminalMode.Bypass,
     null,
     ([literal]) => new Text<any>(literal)
   ),
   new NonTerminal(
     doubleQuotedString,
-    "BYPASS",
+    NonTerminalMode.Bypass,
     null,
     ([literal]) => new Text<any>(literal, ({ raw }) => raw)
   ),
   new NonTerminal(
     characterClass,
-    "BYPASS",
+    NonTerminalMode.Bypass,
     null,
     ([classRegex]) => new Text<any>(classRegex)
   ),
   new NonTerminal(
     tagEntity,
-    "BYPASS",
+    NonTerminalMode.Bypass,
     null,
-    ([index], { context: { args } }) => {
+    ({ context: { args } }, index) => {
       if (index >= args.length)
         throw new Error(
           `Invalid tag entity reference (${index}) in parser expression`
@@ -329,7 +280,7 @@ metagrammar.primary.parser = new Alternative([
       const item = args[index];
       if (!isTagEntity(item))
         throw new Error(
-          `Tag entity ${index} is invalid (should be a string, a RegExp, or a Parser)`
+          `Tag entity ${index} is invalid (it should be a string, a RegExp, or a Parser)`
         );
       return item instanceof Parser ? item : new Text<any>(item);
     }
@@ -337,9 +288,12 @@ metagrammar.primary.parser = new Alternative([
   new Sequence(
     [
       identifier,
-      new Predicate(new Sequence([directives, new Text(":")]), false)
+      new Predicate(
+        new Sequence([directives, new Text(":")]),
+        PredicatePolarity.MustFail
+      )
     ],
-    ([id], { context: { grammar } }) => {
+    ({ context: { grammar } }, id) => {
       if (!(id in grammar)) grammar[id] = rule();
       return grammar[id];
     }
@@ -347,12 +301,12 @@ metagrammar.primary.parser = new Alternative([
   new Sequence([new Text("("), metagrammar.expression, new Text(")")]),
   new Text("ε", () => epsilon),
   new Text(".", () => anyChar),
-  new Text("^", () => new Bound<any>("START")),
-  new Text("$", () => new Bound<any>("END"))
+  new Text("^", () => new Bound<any>(BoundType.Start)),
+  new Text("$", () => new Bound<any>(BoundType.End))
 ]);
 
 /**
- * The template tag function
+ * The final template tag function and the fragment function
  */
 
 export function peg<TContext = any>(
@@ -367,4 +321,33 @@ export function peg<TContext = any>(
   const report = metagrammar.pegase.parse(raw, { context });
   if (report.match) return report.match.value ?? context.grammar;
   throw report;
+}
+
+peg.fragment = function<TContext = any>(
+  chunks: TemplateStringsArray,
+  ...args: Array<TagArgument<TContext>>
+) {
+  return new Fragment<TContext>(chunks, args);
+};
+
+export class Fragment<TContext> {
+  chunks: TemplateStringsArray;
+  args: Array<TagArgument<TContext>>;
+
+  constructor(
+    chunks: TemplateStringsArray,
+    args: Array<TagArgument<TContext>>
+  ) {
+    this.chunks = chunks;
+    this.args = args;
+  }
+}
+
+export function defragment<TContext>(
+  fragment: Fragment<TContext>
+): [Array<string>, Array<Exclude<TagArgument<TContext>, Fragment<TContext>>>] {
+  const chunks = [...fragment.chunks];
+  const args = [...fragment.args];
+  fragment.args.forEach((arg, index) => {});
+  return [chunks, args];
 }

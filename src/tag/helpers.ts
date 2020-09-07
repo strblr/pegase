@@ -8,7 +8,9 @@ import { TagAction, TagEntity } from ".";
  * Checks if an entity is a valid TagEntity
  */
 
-export function isTagEntity(entity: any): entity is TagEntity<any> {
+export function isTagEntity<TContext>(
+  entity: any
+): entity is TagEntity<TContext> {
   return isString(entity) || isRegExp(entity) || entity instanceof Parser;
 }
 
@@ -18,7 +20,9 @@ export function isTagEntity(entity: any): entity is TagEntity<any> {
  * Checks if an entity is a valid TagAction
  */
 
-export function isTagAction(action: any): action is TagAction<any> {
+export function isTagAction<TContext>(
+  action: any
+): action is TagAction<TContext> {
   return (
     isFunction(action) || (isArray(action) && action.every(f => isFunction(f)))
   );
@@ -30,7 +34,10 @@ export function isTagAction(action: any): action is TagAction<any> {
  * Builds a higher-order parser based on a list of directives
  */
 
-export function pipeDirectives(directives: string[], base: Parser<any>) {
+export function pipeDirectives<TContext>(
+  directives: string[],
+  base: Parser<TContext>
+) {
   return directives.reduce((parser, directive) => {
     switch (directive) {
       case "omit":
@@ -46,7 +53,7 @@ export function pipeDirectives(directives: string[], base: Parser<any>) {
       case "memo":
         return parser[directive];
       default:
-        throw new Error(`Invalid directive <${directive}>`);
+        throw new Error(`Invalid directive @${directive}`);
     }
   }, base);
 }

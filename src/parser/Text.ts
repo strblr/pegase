@@ -1,6 +1,6 @@
 import { escapeRegExp, isString } from "lodash";
-import { Internals } from "../internals";
-import { extendFlags, Options, Parser, preskip } from ".";
+import { FailureTerminal, FailureType } from "../internals";
+import { extendFlags, Internals, Options, Parser, preskip } from ".";
 import { buildSafeMatch, SemanticAction } from "../match";
 
 export class Text<TContext> extends Parser<TContext> {
@@ -36,13 +36,13 @@ export class Text<TContext> extends Parser<TContext> {
         options,
         internals
       );
-    options.diagnose &&
+    else if (options.diagnose)
       internals.failures.write({
         from: cursor,
         to: cursor,
         stack: internals.stack,
-        type: "TERMINAL_FAILURE",
-        terminal: "TEXT",
+        type: FailureType.Terminal,
+        terminal: FailureTerminal.Text,
         text: this.text
       });
     return null;

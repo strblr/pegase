@@ -1,5 +1,13 @@
-import { Cache, Failures, Internals, Warnings } from "../internals";
-import { Alternative, defaultOptions, NonTerminal, Options, Text } from ".";
+import { Cache, Failures, Warnings } from "../internals";
+import {
+  Alternative,
+  defaultOptions,
+  Internals,
+  NonTerminal,
+  NonTerminalMode,
+  Options,
+  Text
+} from ".";
 import { Match, SemanticAction } from "../match";
 import { Report } from "../report";
 
@@ -13,18 +21,18 @@ export abstract class Parser<TContext> {
   parse(
     input: string,
     partialOptions: Partial<Options<TContext>> = defaultOptions()
-  ): Report<TContext> {
+  ) {
     const options = {
       ...defaultOptions(),
       ...partialOptions
     };
     const internals = {
       stack: [],
-      failures: new Failures(),
+      failures: new Failures<TContext>(),
       warnings: new Warnings(),
       cache: new Cache<TContext>()
     };
-    return new Report(
+    return new Report<TContext>(
       input,
       this._parse(input, options, internals),
       options,
@@ -32,13 +40,11 @@ export abstract class Parser<TContext> {
     );
   }
 
-  value<TValue = any>(
+  value(
     input: string,
-    options: Partial<Options<TContext>> = defaultOptions()
-  ): TValue {
-    const report = this.parse(input, options);
-    if (report.match) return report.match.value;
-    throw report;
+    partialOptions: Partial<Options<TContext>> = defaultOptions()
+  ) {
+    return this.parse(input, partialOptions).match?.value;
   }
 
   abstract _parse(
@@ -50,49 +56,64 @@ export abstract class Parser<TContext> {
   // Directives
 
   get omit() {
-    return new NonTerminal(this, "BYPASS", null, () => undefined);
+    return new NonTerminal(this, NonTerminalMode.Bypass, null, () => undefined);
   }
 
   get raw() {
-    return new NonTerminal(this, "BYPASS", null, ({ raw }) => raw);
+    return new NonTerminal(
+      this,
+      NonTerminalMode.Bypass,
+      null,
+      ({ raw }) => raw
+    );
   }
 
   get children() {
-    return new NonTerminal(this, "BYPASS", null, ({ children }) => children);
+    return new NonTerminal(
+      this,
+      NonTerminalMode.Bypass,
+      null,
+      ({ children }) => children
+    );
   }
 
   get count() {
-    return new NonTerminal(this, "BYPASS", null, children => children.length);
+    return new NonTerminal(
+      this,
+      NonTerminalMode.Bypass,
+      null,
+      children => children.length
+    );
   }
 
   get test(): Parser<TContext> {
     return new Alternative([
-      new NonTerminal(this, "BYPASS", null, () => true),
+      new NonTerminal(this, NonTerminalMode.Bypass, null, () => true),
       new Text("", () => false)
     ]);
   }
 
   get token() {
-    return new NonTerminal(this, "TOKEN", null);
+    return new NonTerminal(this, NonTerminalMode.Token, null);
   }
 
   get skip() {
-    return new NonTerminal(this, "SKIP", null);
+    return new NonTerminal(this, NonTerminalMode.Skip, null);
   }
 
   get noskip() {
-    return new NonTerminal(this, "NOSKIP", null);
+    return new NonTerminal(this, NonTerminalMode.NoSkip, null);
   }
 
   get case() {
-    return new NonTerminal(this, "CASE", null);
+    return new NonTerminal(this, NonTerminalMode.Case, null);
   }
 
   get nocase() {
-    return new NonTerminal(this, "NOCASE", null);
+    return new NonTerminal(this, NonTerminalMode.NoCase, null);
   }
 
   get memo() {
-    return new NonTerminal(this, "CACHE", null);
+    return new NonTerminal(this, NonTerminalMode.Cache, null);
   }
 }

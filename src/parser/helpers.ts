@@ -1,6 +1,5 @@
 import { uniq } from "lodash";
-import { Internals } from "../internals";
-import { NonTerminal, Options, Parser, Text } from ".";
+import { Internals, NonTerminal, NonTerminalMode, Options, Text } from ".";
 
 /**
  * defaultOptions
@@ -25,7 +24,11 @@ export function defaultOptions(): Options<any> {
  */
 
 export function rule<TContext = any>(identity?: string) {
-  return new NonTerminal<TContext>(null, "BYPASS", identity || null);
+  return new NonTerminal<TContext>(
+    null,
+    NonTerminalMode.Bypass,
+    identity || null
+  );
 }
 
 /**
@@ -35,7 +38,11 @@ export function rule<TContext = any>(identity?: string) {
  */
 
 export function token<TContext = any>(identity?: string) {
-  return new NonTerminal<TContext>(null, "TOKEN", identity || null);
+  return new NonTerminal<TContext>(
+    null,
+    NonTerminalMode.Token,
+    identity || null
+  );
 }
 
 /**
@@ -77,8 +84,7 @@ export function extendFlags(pattern: RegExp, flags: string) {
  * Finds the nearest possible identity by going down the NonTerminal chain
  */
 
-export function inferIdentity<TContext>(parser: Parser<TContext>) {
-  if (!(parser instanceof NonTerminal)) return null;
+export function inferIdentity<TContext>(parser: NonTerminal<TContext>) {
   let cursor = parser;
   while (!cursor.identity && cursor.parser instanceof NonTerminal)
     cursor = cursor.parser;
