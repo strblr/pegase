@@ -37,7 +37,7 @@
     "@babel/code-frame": "^7.10.4",
     "joinn": "^1.1.1",
     "line-column": "^1.0.2",
-    "lodash": "^4.17.20"
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
     "@types/babel__code-frame": "^7.0.1",
