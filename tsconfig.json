@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
-    "target": "es5",
-    "module": "commonjs",
+    "target": "ES5",
+    "module": "CommonJS",
     "esModuleInterop": true,
     "declaration": true,
     "downlevelIteration": true,
     "outDir": "./lib",
     "strict": true,
-    "lib": ["es2018", "dom"]
+    "lib": ["ESNext", "DOM"]
   },
   "include": ["src"],
-  "exclude": ["node_modules", "**/__tests__/*"]
+  "exclude": ["node_modules"]
 }

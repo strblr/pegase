@@ -1,11 +1,11 @@
 {
   "name": "pegase",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "An inline, intuitive and powerful PEG parser generator for Javascript",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "test": "jest",
+    "test": "tsc & jest",
     "build": "tsc",
     "prepare": "yarn build"
   },
@@ -34,16 +34,12 @@
   },
   "homepage": "https://ostrebler.github.io/pegase/",
   "dependencies": {
-    "@babel/code-frame": "^7.10.4",
-    "joinn": "^1.1.1",
-    "line-column": "^1.0.2",
-    "lodash": "^4.17.20"
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
-    "@types/babel__code-frame": "^7.0.1",
-    "@types/line-column": "^1.0.0",
-    "@types/lodash": "^4.14.161",
-    "jest": "^26.4.2",
-    "typescript": "^4.0.2"
+    "@types/jest": "^26.0.23",
+    "@types/lodash": "^4.14.170",
+    "jest": "^27.0.1",
+    "typescript": "^4.3.2"
   }
 }
