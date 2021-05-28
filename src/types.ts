@@ -80,7 +80,7 @@ export type ParseOptions<Context> = {
   input: string;
   from: number;
   grammar?: GrammarParser<any, Context>;
-  skipper?: Parser<any, Context>;
+  skipper: Parser<any, Context>;
   skip: boolean;
   ignoreCase: boolean;
   context: Context;

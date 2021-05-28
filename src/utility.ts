@@ -9,7 +9,7 @@ export function preskip<Context>(
   options: ParseOptions<Context>,
   internals: Internals
 ) {
-  if (!options.skip || !options.skipper) return options.from;
+  if (!options.skip) return options.from;
   const match = options.skipper.exec({ ...options, skip: false }, internals);
   return match && match.to;
 }

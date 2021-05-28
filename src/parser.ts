@@ -26,7 +26,7 @@ export abstract class Parser<Value, Context> {
     const fullOptions = {
       input,
       from: 0,
-      skipper: new RawParser<undefined, Context>(/\s*/, false),
+      skipper: spaces,
       skip: true,
       ignoreCase: false,
       context: undefined as any,
@@ -170,3 +170,7 @@ export class EdgeParser<Context> extends Parser<undefined, Context> {
     }
   }
 }
+
+// Global parsers
+
+export const spaces = new RawParser<undefined, any>(/\s*/, false);
