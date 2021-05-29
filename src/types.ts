@@ -1,8 +1,11 @@
 import { GrammarParser, Parser } from ".";
 
 export type Internals = {
+  // TODO: putting captures here probably doesn't work because of nested overridings. Consider putting it as a field of Match
+  captures: Record<string, any>;
   warnings: Array<Warning>;
   failures: Array<Failure>;
+  committedFailures: Array<Failure>;
 };
 
 export type Warning = Range & {
@@ -90,8 +93,8 @@ export type SemanticAction<Value, Context> = (args: {
   $options: ParseOptions<Context>;
   $from: Range["from"];
   $to: Range["to"];
-  $match: string;
   $value: any;
+  $raw: string;
   $captures: Record<string, any>;
   $commit(): void;
   $warn(message: string): void;
@@ -105,15 +108,18 @@ export type Match<Value> = Range & {
 
 export type Result<Value> = SuccessResult<Value> | FailResult;
 
-export type SuccessResult<Value> = Match<Value> & {
-  success: true;
-  match: string;
-  captures: Record<string, any>;
-  warnings: Array<Warning>;
+export type SuccessResult<Value> = ResultCommon &
+  Match<Value> & {
+    success: true;
+    raw: string;
+  };
+
+export type FailResult = ResultCommon & {
+  success: false;
 };
 
-export type FailResult = {
-  success: false;
+type ResultCommon = {
+  captures: Record<string, any>;
   warnings: Array<Warning>;
-  failure: Failure;
+  failures: Array<Failure>;
 };
