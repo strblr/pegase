@@ -1,8 +1,6 @@
 import { GrammarParser, Parser } from ".";
 
 export type Internals = {
-  // TODO: putting captures here probably doesn't work because of nested overridings. Consider putting it as a field of Match
-  captures: Record<string, any>;
   warnings: Array<Warning>;
   failures: Array<Failure>;
   committedFailures: Array<Failure>;
@@ -37,7 +35,7 @@ export type Expectation =
   | MismatchExpectation;
 
 export type StringExpectation = {
-  type: ExpectationType.String;
+  type: ExpectationType.Literal;
   literal: string;
 };
 
@@ -62,7 +60,7 @@ export type MismatchExpectation = {
 };
 
 export enum ExpectationType {
-  String,
+  Literal,
   RegExp,
   Edge,
   Token,
@@ -91,19 +89,19 @@ export type ParseOptions<Context> = {
 
 export type SemanticAction<Value, Context> = (args: {
   $options: ParseOptions<Context>;
+  $raw: string;
   $from: Range["from"];
   $to: Range["to"];
   $value: any;
-  $raw: string;
-  $captures: Record<string, any>;
+  $captures?: Record<string, any>;
   $commit(): void;
   $warn(message: string): void;
-  $fail(message: string): void;
   [capture: string]: any;
 }) => Value;
 
 export type Match<Value> = Range & {
   value: Value;
+  captures?: Record<string, any>;
 };
 
 export type Result<Value> = SuccessResult<Value> | FailResult;
@@ -119,7 +117,6 @@ export type FailResult = ResultCommon & {
 };
 
 type ResultCommon = {
-  captures: Record<string, any>;
   warnings: Array<Warning>;
   failures: Array<Failure>;
 };

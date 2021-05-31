@@ -1,7 +1,5 @@
-import escapeRegExp from "lodash/escapeRegExp";
 import {
   EdgeType,
-  Expectation,
   ExpectationType,
   extendFlags,
   FailureType,
@@ -34,56 +32,87 @@ export abstract class Parser<Value, Context> {
       ...options
     };
     const internals = {
-      captures: Object.create(null),
       warnings: [],
       failures: [],
       committedFailures: []
     };
     const match = this.exec(fullOptions, internals);
     const common = {
-      captures: internals.captures,
       warnings: internals.warnings,
       failures: [
         ...internals.committedFailures,
         mergeFailures(internals.failures)
       ]
     };
-    if (!match) return { success: false, ...common };
     return {
       ...common,
-      ...match,
-      success: true,
-      raw: fullOptions.input.substring(match.from, match.to)
+      ...(!match
+        ? { success: false }
+        : {
+            ...match,
+            success: true,
+            raw: fullOptions.input.substring(match.from, match.to)
+          })
     };
   }
 }
 
-// RawParser
+// LiteralParser
 
-export class RawParser<
+export class LiteralParser<
   Value extends string | undefined,
   Context
 > extends Parser<Value, Context> {
-  readonly raw: string | RegExp;
+  readonly literal: string;
+  readonly emit: Value extends string ? true : false;
+
+  constructor(literal: string, emit: Value extends string ? true : false) {
+    super();
+    this.literal = literal;
+    this.emit = emit;
+  }
+
+  exec(options: ParseOptions<Context>, internals: Internals) {
+    const cursor = preskip(options, internals);
+    if (cursor === null) return null;
+    const to = cursor + this.literal.length;
+    const raw = options.input.substring(cursor, to);
+    const result = options.ignoreCase
+      ? this.literal.toUpperCase() === raw.toUpperCase()
+      : this.literal === raw;
+    if (result)
+      return {
+        from: cursor,
+        to,
+        value: (this.emit ? raw : undefined) as Value
+      };
+    internals.failures.push({
+      from: cursor,
+      to: cursor,
+      type: FailureType.Expectation,
+      expected: [{ type: ExpectationType.Literal, literal: this.literal }]
+    });
+    return null;
+  }
+}
+
+// RegExpParser
+
+export class RegExpParser<
+  Value extends string | undefined,
+  Context
+> extends Parser<Value, Context> {
+  readonly regExp: RegExp;
   readonly emit: Value extends string ? true : false;
   private readonly withCase: RegExp;
   private readonly withoutCase: RegExp;
-  private readonly expectedOnFail: () => Expectation;
 
-  constructor(raw: string | RegExp, emit: Value extends string ? true : false) {
+  constructor(regExp: RegExp, emit: Value extends string ? true : false) {
     super();
-    this.raw = raw;
+    this.regExp = regExp;
     this.emit = emit;
-    if (raw instanceof RegExp) {
-      const regExp = raw;
-      this.expectedOnFail = () => ({ type: ExpectationType.RegExp, regExp });
-    } else {
-      const literal = raw;
-      this.expectedOnFail = () => ({ type: ExpectationType.String, literal });
-      raw = new RegExp(escapeRegExp(literal));
-    }
-    this.withCase = extendFlags(raw, "y");
-    this.withoutCase = extendFlags(raw, "iy");
+    this.withCase = extendFlags(regExp, "y");
+    this.withoutCase = extendFlags(regExp, "iy");
   }
 
   exec(options: ParseOptions<Context>, internals: Internals) {
@@ -96,13 +125,14 @@ export class RawParser<
       return {
         from: cursor,
         to: cursor + result[0].length,
-        value: (this.emit ? result[0] : undefined) as Value
+        value: (this.emit ? result[0] : undefined) as Value,
+        captures: result.groups
       };
     internals.failures.push({
       from: cursor,
       to: cursor,
       type: FailureType.Expectation,
-      expected: [this.expectedOnFail()]
+      expected: [{ type: ExpectationType.RegExp, regExp: this.regExp }]
     });
     return result;
   }
@@ -110,48 +140,62 @@ export class RawParser<
 
 // EdgeParser
 
-export class EdgeParser<Context> extends Parser<undefined, Context> {
-  edge: EdgeType;
+export abstract class EdgeParser<Context> extends Parser<undefined, Context> {
+  readonly edge: EdgeType;
 
-  constructor(edge: EdgeType) {
+  protected constructor(edge: EdgeType) {
     super();
     this.edge = edge;
   }
+}
+
+// StartEdgeParser
+
+export class StartEdgeParser<Context> extends EdgeParser<Context> {
+  constructor() {
+    super(EdgeType.Start);
+  }
 
   exec(options: ParseOptions<Context>, internals: Internals) {
-    switch (this.edge) {
-      case EdgeType.Start:
-        if (options.from === 0)
-          return {
-            from: 0,
-            to: 0,
-            value: undefined
-          };
-        internals.failures.push({
-          from: options.from,
-          to: options.from,
-          type: FailureType.Expectation,
-          expected: [{ type: ExpectationType.Edge, edge: EdgeType.Start }]
-        });
-        return null;
+    if (options.from === 0)
+      return {
+        from: 0,
+        to: 0,
+        value: undefined
+      };
+    internals.failures.push({
+      from: options.from,
+      to: options.from,
+      type: FailureType.Expectation,
+      expected: [{ type: ExpectationType.Edge, edge: EdgeType.Start }]
+    });
+    return null;
+  }
+}
 
-      case EdgeType.End:
-        const cursor = preskip(options, internals);
-        if (cursor === null) return null;
-        if (cursor === options.input.length)
-          return {
-            from: cursor,
-            to: cursor,
-            value: undefined
-          };
-        internals.failures.push({
-          from: cursor,
-          to: cursor,
-          type: FailureType.Expectation,
-          expected: [{ type: ExpectationType.Edge, edge: EdgeType.End }]
-        });
-        return null;
-    }
+// EndEdgeParser
+
+export class EndEdgeParser<Context> extends EdgeParser<Context> {
+  constructor() {
+    super(EdgeType.End);
+  }
+
+  exec(options: ParseOptions<Context>, internals: Internals) {
+    const cursor = preskip(options, internals);
+    if (cursor === null) return null;
+    if (cursor === options.input.length)
+      return {
+        from: cursor,
+        to: cursor,
+        value: undefined
+      };
+    internals.failures.push({
+      from: cursor,
+      to: cursor,
+      type: FailureType.Expectation,
+      expected: [{ type: ExpectationType.Edge, edge: EdgeType.End }]
+    });
+    return null;
   }
 }
 
@@ -166,10 +210,10 @@ export class GrammarParser<Value, Context> extends Parser<Value, Context> {
   }
 
   exec(options: ParseOptions<Context>, internals: Internals) {
-    return this.rules
-      .values()
-      .next()
-      .value.exec({ ...options, grammar: this }, internals);
+    return (this.rules.values().next().value as Parser<Value, Context>).exec(
+      { ...options, grammar: this },
+      internals
+    );
   }
 }
 
@@ -195,63 +239,9 @@ export class ReferenceParser<Value, Context> extends Parser<Value, Context> {
   }
 }
 
-// ActionParser
-
-export class ActionParser<Value, Context> extends Parser<Value, Context> {
-  parser: Parser<any, Context>;
-  action: SemanticAction<Value, Context>;
-
-  constructor(
-    parser: Parser<any, Context>,
-    action: SemanticAction<Value, Context>
-  ) {
-    super();
-    this.parser = parser;
-    this.action = action;
-  }
-
-  exec(options: ParseOptions<Context>, internals: Internals) {
-    const match = this.parser.exec(options, internals);
-    if (match === null) return null;
-    const $fail = (message: string) => {
-      internals.failures.push({
-        from: match.from,
-        to: match.to,
-        type: FailureType.Semantic,
-        message
-      });
-    };
-    let value;
-    try {
-      value = this.action({
-        ...internals.captures,
-        $options: options,
-        $from: match.from,
-        $to: match.to,
-        $value: match.value,
-        $raw: options.input.substring(match.from, match.to),
-        $captures: internals.captures,
-        $commit() {
-          internals.committedFailures.push(mergeFailures(internals.failures));
-          internals.failures = [];
-        },
-        $warn(message: string) {
-          internals.warnings.push({ from: match.from, to: match.to, message });
-        },
-        $fail
-      });
-    } catch (e) {
-      if (!(e instanceof Error)) throw e;
-      $fail(e.message);
-      value = (undefined as unknown) as Value;
-    }
-    return { ...match, value };
-  }
-}
-
 // OptionParser
 
-class OptionParser<Value, Context> extends Parser<Value, Context> {
+export class OptionParser<Value, Context> extends Parser<Value, Context> {
   readonly parsers: Array<Parser<any, Context>>;
 
   constructor(parsers: Array<Parser<any, Context>>) {
@@ -268,7 +258,73 @@ class OptionParser<Value, Context> extends Parser<Value, Context> {
   }
 }
 
+// DelegateParser
+
+export abstract class DelegateParser<
+  Value,
+  Context,
+  DValue = Value
+> extends Parser<Value, Context> {
+  readonly parser: Parser<DValue, Context>;
+
+  protected constructor(parser: Parser<DValue, Context>) {
+    super();
+    this.parser = parser;
+  }
+}
+
+// ActionParser
+
+export class ActionParser<Value, Context> extends DelegateParser<
+  Value,
+  Context,
+  any
+> {
+  readonly action: SemanticAction<Value, Context>;
+
+  constructor(
+    parser: Parser<any, Context>,
+    action: SemanticAction<Value, Context>
+  ) {
+    super(parser);
+    this.action = action;
+  }
+
+  exec(options: ParseOptions<Context>, internals: Internals) {
+    const match = this.parser.exec(options, internals);
+    if (match === null) return null;
+    try {
+      const value = this.action({
+        ...match.captures,
+        $options: options,
+        $raw: options.input.substring(match.from, match.to),
+        $from: match.from,
+        $to: match.to,
+        $value: match.value,
+        $captures: match.captures,
+        $commit() {
+          internals.committedFailures.push(mergeFailures(internals.failures));
+          internals.failures = [];
+        },
+        $warn(message: string) {
+          internals.warnings.push({ from: match.from, to: match.to, message });
+        }
+      });
+      return { ...match, value };
+    } catch (e) {
+      if (!(e instanceof Error)) throw e;
+      internals.failures.push({
+        from: match.from,
+        to: match.to,
+        type: FailureType.Semantic,
+        message: e.message
+      });
+      return null;
+    }
+  }
+}
+
 // Global parsers
 
-export const spaces = new RawParser<undefined, any>(/\s*/, false);
-export const any = new RawParser<undefined, any>(/./, false);
+export const spaces = new RegExpParser<undefined, any>(/\s*/, false);
+export const any = new RegExpParser<undefined, any>(/./, false);
