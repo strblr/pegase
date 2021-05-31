@@ -1,5 +1,16 @@
 import { GrammarParser, Parser } from ".";
 
+export type PegTemplateArg<Context> =
+  | string
+  | RegExp
+  | Parser<any, Context>
+  | SemanticAction<any, Context>;
+
+export type Directives = Record<
+  string,
+  (parser: Parser<any, any>) => Parser<any, any>
+>;
+
 export type Internals = {
   warnings: Array<Warning>;
   failures: Array<Failure>;
