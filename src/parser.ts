@@ -101,19 +101,14 @@ export class LiteralParser<
 
 // RegExpParser
 
-export class RegExpParser<
-  Value extends string | undefined,
-  Context
-> extends Parser<Value, Context> {
+export class RegExpParser<Context> extends Parser<string, Context> {
   readonly regExp: RegExp;
-  readonly emit: Value extends string ? true : false;
   private readonly withCase: RegExp;
   private readonly withoutCase: RegExp;
 
-  constructor(regExp: RegExp, emit: Value extends string ? true : false) {
+  constructor(regExp: RegExp) {
     super();
     this.regExp = regExp;
-    this.emit = emit;
     this.withCase = extendFlags(regExp, "y");
     this.withoutCase = extendFlags(regExp, "iy");
   }
@@ -128,7 +123,7 @@ export class RegExpParser<
       return {
         from: cursor,
         to: cursor + result[0].length,
-        value: (this.emit ? result[0] : undefined) as Value,
+        value: result[0],
         captures: result.groups ?? Object.create(null)
       };
     internals.failures.push({
@@ -496,5 +491,5 @@ export class ActionParser<Value, Context> extends DelegateParser<
 
 // Global parsers
 
-export const spaces = new RegExpParser<undefined, any>(/\s*/, false);
-export const any = new RegExpParser<undefined, any>(/./, false);
+export const spaces = new RegExpParser<any>(/\s*/);
+export const any = new RegExpParser<any>(/./);
