@@ -1,3 +1,4 @@
+import assign from "lodash/assign";
 import {
   EdgeType,
   ExpectationType,
@@ -85,7 +86,8 @@ export class LiteralParser<
       return {
         from: cursor,
         to,
-        value: (this.emit ? raw : undefined) as Value
+        value: (this.emit ? raw : undefined) as Value,
+        captures: Object.create(null)
       };
     internals.failures.push({
       from: cursor,
@@ -127,7 +129,7 @@ export class RegExpParser<
         from: cursor,
         to: cursor + result[0].length,
         value: (this.emit ? result[0] : undefined) as Value,
-        captures: result.groups
+        captures: result.groups ?? Object.create(null)
       };
     internals.failures.push({
       from: cursor,
@@ -162,7 +164,8 @@ export class StartEdgeParser<Context> extends EdgeParser<Context> {
       return {
         from: 0,
         to: 0,
-        value: undefined
+        value: undefined,
+        captures: Object.create(null)
       };
     internals.failures.push({
       from: options.from,
@@ -188,7 +191,8 @@ export class EndEdgeParser<Context> extends EdgeParser<Context> {
       return {
         from: cursor,
         to: cursor,
-        value: undefined
+        value: undefined,
+        captures: Object.create(null)
       };
     internals.failures.push({
       from: cursor,
@@ -197,24 +201,6 @@ export class EndEdgeParser<Context> extends EdgeParser<Context> {
       expected: [{ type: ExpectationType.Edge, edge: EdgeType.End }]
     });
     return null;
-  }
-}
-
-// GrammarParser
-
-export class GrammarParser<Value, Context> extends Parser<Value, Context> {
-  readonly rules: Map<string, Parser<any, Context>>;
-
-  constructor() {
-    super();
-    this.rules = new Map();
-  }
-
-  exec(options: ParseOptions<Context>, internals: Internals) {
-    return (this.rules.values().next().value as Parser<Value, Context>).exec(
-      { ...options, grammar: this },
-      internals
-    );
   }
 }
 
@@ -236,7 +222,12 @@ export class ReferenceParser<Value, Context> extends Parser<Value, Context> {
       throw new Error(
         `Pegase couldn't resolve rule "${this.label}". You need to define it or merge it from another grammar.`
       );
-    return parser.exec(options, internals);
+    const match = parser.exec(options, internals);
+    if (match === null) return null;
+    return {
+      ...match,
+      captures: assign(Object.create(null), { [this.label]: match.value })
+    };
   }
 }
 
@@ -259,6 +250,42 @@ export class OptionParser<Value, Context> extends Parser<Value, Context> {
   }
 }
 
+// SequenceParser
+
+export class SequenceParser<Value extends Array<any>, Context> extends Parser<
+  Value,
+  Context
+> {
+  readonly parsers: Array<Parser<any, Context>>;
+
+  constructor(parsers: Array<Parser<any, Context>>) {
+    super();
+    this.parsers = parsers;
+  }
+
+  exec(options: ParseOptions<Context>, internals: Internals) {
+    let from = options.from;
+    const matches: Array<Match<any>> = [];
+    for (const parser of this.parsers) {
+      const match = parser.exec({ ...options, from }, internals);
+      if (match === null) return null;
+      from = match.to;
+      matches.push(match);
+    }
+    return {
+      from: matches[0].from,
+      to: from,
+      value: matches
+        .map(match => match.value)
+        .filter(value => value !== undefined) as Value,
+      captures: assign(
+        Object.create(null),
+        ...matches.map(match => match.captures)
+      )
+    };
+  }
+}
+
 // DelegateParser
 
 export abstract class DelegateParser<
@@ -271,6 +298,24 @@ export abstract class DelegateParser<
   protected constructor(parser: Parser<DValue, Context>) {
     super();
     this.parser = parser;
+  }
+}
+
+// GrammarParser
+
+export class GrammarParser<Value, Context> extends DelegateParser<
+  Value,
+  Context
+> {
+  readonly rules: Map<string, Parser<any, Context>>;
+
+  constructor(rules: Map<string, Parser<any, Context>>) {
+    super(rules.values().next().value);
+    this.rules = rules;
+  }
+
+  exec(options: ParseOptions<Context>, internals: Internals) {
+    return this.parser.exec(options, internals);
   }
 }
 
@@ -375,6 +420,31 @@ export class ActionParser<Value, Context> extends DelegateParser<
       });
       return null;
     }
+  }
+}
+
+// CaptureParser
+
+export class CaptureParser<Value, Context> extends DelegateParser<
+  Value,
+  Context
+> {
+  name: string;
+
+  constructor(parser: Parser<Value, Context>, name: string) {
+    super(parser);
+    this.name = name;
+  }
+
+  exec(options: ParseOptions<Context>, internals: Internals) {
+    const match = this.parser.exec(options, internals);
+    if (match === null) return null;
+    return {
+      ...match,
+      captures: Object.assign(Object.create(null), match.captures, {
+        [this.name]: match.value
+      })
+    };
   }
 }
 

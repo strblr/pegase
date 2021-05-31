@@ -93,7 +93,7 @@ export type SemanticAction<Value, Context> = (args: {
   $from: Range["from"];
   $to: Range["to"];
   $value: any;
-  $captures?: Record<string, any>;
+  $captures: Record<string, any>;
   $commit(): void;
   $warn(message: string): void;
   [capture: string]: any;
@@ -101,7 +101,7 @@ export type SemanticAction<Value, Context> = (args: {
 
 export type Match<Value> = Range & {
   value: Value;
-  captures?: Record<string, any>;
+  captures: Record<string, any>;
 };
 
 export type Result<Value> = SuccessResult<Value> | FailResult;
