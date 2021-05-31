@@ -1,7 +1,5 @@
 import { peg } from ".";
 
-const g = peg`test`;
-
 test("Modulos in grammars should work", () => {
   const grammar = peg`("1" % ',' @count) % '|' $`;
 
