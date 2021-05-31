@@ -2,6 +2,7 @@ import {
   EdgeType,
   ExpectationType,
   extendFlags,
+  Failure,
   FailureType,
   Internals,
   Match,
@@ -270,6 +271,59 @@ export abstract class DelegateParser<
   protected constructor(parser: Parser<DValue, Context>) {
     super();
     this.parser = parser;
+  }
+}
+
+// TokenParser
+
+export class TokenParser<Value, Context> extends DelegateParser<
+  Value,
+  Context
+> {
+  alias?: string;
+
+  constructor(parser: Parser<Value, Context>, alias?: string) {
+    super(parser);
+    this.alias = alias;
+  }
+
+  exec(options: ParseOptions<Context>, internals: Internals) {
+    const cursor = preskip(options, internals);
+    if (cursor === null) return null;
+    const failures: Array<Failure> = [];
+    const match = this.parser.exec(
+      { ...options, from: cursor, skip: false },
+      { ...internals, failures }
+    );
+    if (match) return match;
+    internals.failures.push({
+      from: cursor,
+      to: cursor,
+      type: FailureType.Expectation,
+      expected: [{ type: ExpectationType.Token, alias: this.alias }]
+    });
+    return null;
+  }
+}
+
+// OptionMergeParser
+
+export class OptionMergeParser<Value, Context> extends DelegateParser<
+  Value,
+  Context
+> {
+  options: Partial<ParseOptions<Context>>;
+
+  constructor(
+    parser: Parser<Value, Context>,
+    options: Partial<ParseOptions<Context>>
+  ) {
+    super(parser);
+    this.options = options;
+  }
+
+  exec(options: ParseOptions<Context>, internals: Internals) {
+    return this.parser.exec({ ...options, ...this.options }, internals);
   }
 }
 

@@ -28,13 +28,13 @@ export enum FailureType {
 }
 
 export type Expectation =
-  | StringExpectation
+  | LiteralExpectation
   | RegExpExpectation
   | EdgeExpectation
   | TokenExpectation
   | MismatchExpectation;
 
-export type StringExpectation = {
+export type LiteralExpectation = {
   type: ExpectationType.Literal;
   literal: string;
 };
@@ -51,7 +51,7 @@ export type EdgeExpectation = {
 
 export type TokenExpectation = {
   type: ExpectationType.Token;
-  label?: string;
+  alias?: string;
 };
 
 export type MismatchExpectation = {
