@@ -256,16 +256,16 @@ export class SequenceParser<Value extends Array<any>, Context> extends Parser<
   Value,
   Context
 > {
-  readonly parsers: Array<Parser<any, Context>>;
+  readonly parsers: Array<Parser<Value[number], Context>>;
 
-  constructor(parsers: Array<Parser<any, Context>>) {
+  constructor(parsers: Array<Parser<Value[number], Context>>) {
     super();
     this.parsers = parsers;
   }
 
   exec(options: ParseOptions<Context>, internals: Internals) {
     let from = options.from;
-    const matches: Array<Match<any>> = [];
+    const matches: Array<Match<Value[number]>> = [];
     for (const parser of this.parsers) {
       const match = parser.exec({ ...options, from }, internals);
       if (match === null) return null;
@@ -351,6 +351,52 @@ export class TokenParser<Value, Context> extends DelegateParser<
   }
 }
 
+// RepetitionParser
+
+export class RepetitionParser<
+  Value extends Array<any>,
+  Context
+> extends DelegateParser<Value, Context, Value[number]> {
+  readonly min: number;
+  readonly max: number;
+
+  constructor(
+    parser: Parser<Value[number], Context>,
+    min: number,
+    max: number
+  ) {
+    super(parser);
+    this.min = min;
+    this.max = max;
+  }
+
+  exec(options: ParseOptions<Context>, internals: Internals) {
+    let from = options.from,
+      counter = 0;
+    const matches: Array<Match<Value[number]>> = [];
+    const success = () => ({
+      ...(matches.length === 0
+        ? { from: options.from, to: options.from }
+        : { from: matches[0].from, to: matches[matches.length - 1].to }),
+      value: matches.map(match => match.value) as Value,
+      captures: assign(
+        Object.create(null),
+        ...matches.map(match => match.captures)
+      )
+    });
+    while (true) {
+      if (counter === this.max) return success();
+      const match = this.parser.exec({ ...options, from }, internals);
+      if (match) {
+        matches.push(match);
+        from = match.to;
+        counter++;
+      } else if (counter < this.min) return null;
+      else return success();
+    }
+  }
+}
+
 // OptionMergeParser
 
 export class OptionMergeParser<Value, Context> extends DelegateParser<
@@ -369,6 +415,31 @@ export class OptionMergeParser<Value, Context> extends DelegateParser<
 
   exec(options: ParseOptions<Context>, internals: Internals) {
     return this.parser.exec({ ...options, ...this.options }, internals);
+  }
+}
+
+// CaptureParser
+
+export class CaptureParser<Value, Context> extends DelegateParser<
+  Value,
+  Context
+> {
+  name: string;
+
+  constructor(parser: Parser<Value, Context>, name: string) {
+    super(parser);
+    this.name = name;
+  }
+
+  exec(options: ParseOptions<Context>, internals: Internals) {
+    const match = this.parser.exec(options, internals);
+    if (match === null) return null;
+    return {
+      ...match,
+      captures: Object.assign(Object.create(null), match.captures, {
+        [this.name]: match.value
+      })
+    };
   }
 }
 
@@ -420,31 +491,6 @@ export class ActionParser<Value, Context> extends DelegateParser<
       });
       return null;
     }
-  }
-}
-
-// CaptureParser
-
-export class CaptureParser<Value, Context> extends DelegateParser<
-  Value,
-  Context
-> {
-  name: string;
-
-  constructor(parser: Parser<Value, Context>, name: string) {
-    super(parser);
-    this.name = name;
-  }
-
-  exec(options: ParseOptions<Context>, internals: Internals) {
-    const match = this.parser.exec(options, internals);
-    if (match === null) return null;
-    return {
-      ...match,
-      captures: Object.assign(Object.create(null), match.captures, {
-        [this.name]: match.value
-      })
-    };
   }
 }
 
