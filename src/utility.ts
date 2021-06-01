@@ -1,8 +1,7 @@
-import uniq from "lodash/uniq";
 import { Failure, FailureType, Internals, ParseOptions } from ".";
 
 export function extendFlags(regExp: RegExp, flags: string) {
-  return new RegExp(regExp, uniq([...regExp.flags, ...flags]).join(""));
+  return new RegExp(regExp, [...new Set([...regExp.flags, ...flags])].join(""));
 }
 
 export function preskip<Context>(

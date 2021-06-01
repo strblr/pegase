@@ -1,4 +1,3 @@
-import assign from "lodash/assign";
 import {
   EdgeType,
   ExpectationType,
@@ -13,6 +12,27 @@ import {
   Result,
   SemanticAction
 } from ".";
+
+/** The parser inheritance structure
+ *
+ * Parser
+ * | LiteralParser
+ * | RegExpParser
+ * | EdgeParser
+ * | | StartEdgeParser
+ * | | EndEdgeParser
+ * | ReferenceParser
+ * | OptionParser
+ * | SequenceParser
+ * | DelegateParser
+ * | | GrammarParser
+ * | | TokenParser
+ * | | RepetitionParser
+ * | | OptionMergeParser
+ * | | CaptureParser
+ * | | ActionParser
+ *
+ */
 
 export abstract class Parser<Value, Context> {
   abstract exec(
@@ -75,23 +95,23 @@ export class LiteralParser<
   }
 
   exec(options: ParseOptions<Context>, internals: Internals) {
-    const cursor = preskip(options, internals);
-    if (cursor === null) return null;
-    const to = cursor + this.literal.length;
-    const raw = options.input.substring(cursor, to);
+    const from = preskip(options, internals);
+    if (from === null) return null;
+    const to = from + this.literal.length;
+    const raw = options.input.substring(from, to);
     const result = options.ignoreCase
       ? this.literal.toUpperCase() === raw.toUpperCase()
       : this.literal === raw;
     if (result)
       return {
-        from: cursor,
+        from,
         to,
         value: (this.emit ? raw : undefined) as Value,
         captures: Object.create(null)
       };
     internals.failures.push({
-      from: cursor,
-      to: cursor,
+      from,
+      to: from,
       type: FailureType.Expectation,
       expected: [{ type: ExpectationType.Literal, literal: this.literal }]
     });
@@ -114,21 +134,21 @@ export class RegExpParser<Context> extends Parser<string, Context> {
   }
 
   exec(options: ParseOptions<Context>, internals: Internals) {
-    const cursor = preskip(options, internals);
-    if (cursor === null) return null;
+    const from = preskip(options, internals);
+    if (from === null) return null;
     const regExp = options.ignoreCase ? this.withoutCase : this.withCase;
-    regExp.lastIndex = cursor;
+    regExp.lastIndex = from;
     const result = regExp.exec(options.input);
     if (result !== null)
       return {
-        from: cursor,
-        to: cursor + result[0].length,
+        from,
+        to: from + result[0].length,
         value: result[0],
         captures: result.groups ?? Object.create(null)
       };
     internals.failures.push({
-      from: cursor,
-      to: cursor,
+      from,
+      to: from,
       type: FailureType.Expectation,
       expected: [{ type: ExpectationType.RegExp, regExp: this.regExp }]
     });
@@ -180,18 +200,18 @@ export class EndEdgeParser<Context> extends EdgeParser<Context> {
   }
 
   exec(options: ParseOptions<Context>, internals: Internals) {
-    const cursor = preskip(options, internals);
-    if (cursor === null) return null;
-    if (cursor === options.input.length)
+    const from = preskip(options, internals);
+    if (from === null) return null;
+    if (from === options.input.length)
       return {
-        from: cursor,
-        to: cursor,
+        from,
+        to: from,
         value: undefined,
         captures: Object.create(null)
       };
     internals.failures.push({
-      from: cursor,
-      to: cursor,
+      from,
+      to: from,
       type: FailureType.Expectation,
       expected: [{ type: ExpectationType.Edge, edge: EdgeType.End }]
     });
@@ -221,7 +241,9 @@ export class ReferenceParser<Value, Context> extends Parser<Value, Context> {
     if (match === null) return null;
     return {
       ...match,
-      captures: assign(Object.create(null), { [this.label]: match.value })
+      captures: Object.assign(Object.create(null), {
+        [this.label]: match.value
+      })
     };
   }
 }
@@ -273,7 +295,7 @@ export class SequenceParser<Value extends Array<any>, Context> extends Parser<
       value: matches
         .map(match => match.value)
         .filter(value => value !== undefined) as Value,
-      captures: assign(
+      captures: Object.assign(
         Object.create(null),
         ...matches.map(match => match.captures)
       )
@@ -328,17 +350,17 @@ export class TokenParser<Value, Context> extends DelegateParser<
   }
 
   exec(options: ParseOptions<Context>, internals: Internals) {
-    const cursor = preskip(options, internals);
-    if (cursor === null) return null;
+    const from = preskip(options, internals);
+    if (from === null) return null;
     const failures: Array<Failure> = [];
     const match = this.parser.exec(
-      { ...options, from: cursor, skip: false },
+      { ...options, from, skip: false },
       { ...internals, failures }
     );
     if (match) return match;
     internals.failures.push({
-      from: cursor,
-      to: cursor,
+      from,
+      to: from,
       type: FailureType.Expectation,
       expected: [{ type: ExpectationType.Token, alias: this.alias }]
     });
@@ -374,7 +396,7 @@ export class RepetitionParser<
         ? { from: options.from, to: options.from }
         : { from: matches[0].from, to: matches[matches.length - 1].to }),
       value: matches.map(match => match.value) as Value,
-      captures: assign(
+      captures: Object.assign(
         Object.create(null),
         ...matches.map(match => match.captures)
       )

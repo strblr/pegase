@@ -127,7 +127,7 @@ export type FailResult = ResultCommon & {
   success: false;
 };
 
-type ResultCommon = {
+export type ResultCommon = {
   warnings: Array<Warning>;
   failures: Array<Failure>;
 };
