@@ -1,15 +1,19 @@
 import { GrammarParser, Parser } from ".";
 
+export type AnyParser = Parser<any, any>;
+
+export type MetaContext = {
+  directives: Directives;
+  tagArgs: Map<string, PegTemplateArg<any>>;
+};
+
 export type PegTemplateArg<Context> =
   | string
   | RegExp
   | Parser<any, Context>
-  | SemanticAction<any, Context>;
+  | SemanticAction<any, any, Context>;
 
-export type Directives = Record<
-  string,
-  (parser: Parser<any, any>) => Parser<any, any>
->;
+export type Directives = Record<string, (parser: AnyParser) => AnyParser>;
 
 export type Internals = {
   warnings: Array<Warning>;
@@ -98,12 +102,13 @@ export type ParseOptions<Context> = {
   context: Context;
 };
 
-export type SemanticAction<Value, Context> = (args: {
+export type SemanticAction<Value, PValue, Context> = (args: {
   $options: ParseOptions<Context>;
+  $context: Context;
   $raw: string;
   $from: Range["from"];
   $to: Range["to"];
-  $value: any;
+  $value: PValue;
   $captures: Record<string, any>;
   $commit(): void;
   $warn(message: string): void;

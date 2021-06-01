@@ -22,7 +22,7 @@ import {
  * | | StartEdgeParser
  * | | EndEdgeParser
  * | ReferenceParser
- * | OptionParser
+ * | OptionsParser
  * | SequenceParser
  * | DelegateParser
  * | | GrammarParser
@@ -248,12 +248,12 @@ export class ReferenceParser<Value, Context> extends Parser<Value, Context> {
   }
 }
 
-// OptionParser
+// OptionsParser
 
-export class OptionParser<Value, Context> extends Parser<Value, Context> {
-  readonly parsers: Array<Parser<any, Context>>;
+export class OptionsParser<Value, Context> extends Parser<Value, Context> {
+  readonly parsers: Array<Parser<Value, Context>>;
 
-  constructor(parsers: Array<Parser<any, Context>>) {
+  constructor(parsers: Array<Parser<Value, Context>>) {
     super();
     this.parsers = parsers;
   }
@@ -273,9 +273,9 @@ export class SequenceParser<Value extends Array<any>, Context> extends Parser<
   Value,
   Context
 > {
-  readonly parsers: Array<Parser<Value[number], Context>>;
+  readonly parsers: Array<Parser<Value[number] | undefined, Context>>;
 
-  constructor(parsers: Array<Parser<Value[number], Context>>) {
+  constructor(parsers: Array<Parser<Value[number] | undefined, Context>>) {
     super();
     this.parsers = parsers;
   }
@@ -305,14 +305,13 @@ export class SequenceParser<Value extends Array<any>, Context> extends Parser<
 
 // DelegateParser
 
-export abstract class DelegateParser<
+export abstract class DelegateParser<Value, PValue, Context> extends Parser<
   Value,
-  Context,
-  DValue = Value
-> extends Parser<Value, Context> {
-  readonly parser: Parser<DValue, Context>;
+  Context
+> {
+  readonly parser: Parser<PValue, Context>;
 
-  protected constructor(parser: Parser<DValue, Context>) {
+  protected constructor(parser: Parser<PValue, Context>) {
     super();
     this.parser = parser;
   }
@@ -321,6 +320,7 @@ export abstract class DelegateParser<
 // GrammarParser
 
 export class GrammarParser<Value, Context> extends DelegateParser<
+  Value,
   Value,
   Context
 > {
@@ -339,6 +339,7 @@ export class GrammarParser<Value, Context> extends DelegateParser<
 // TokenParser
 
 export class TokenParser<Value, Context> extends DelegateParser<
+  Value,
   Value,
   Context
 > {
@@ -373,7 +374,7 @@ export class TokenParser<Value, Context> extends DelegateParser<
 export class RepetitionParser<
   Value extends Array<any>,
   Context
-> extends DelegateParser<Value, Context, Value[number]> {
+> extends DelegateParser<Value, Value[number], Context> {
   readonly min: number;
   readonly max: number;
 
@@ -418,6 +419,7 @@ export class RepetitionParser<
 
 export class OptionMergeParser<Value, Context> extends DelegateParser<
   Value,
+  Value,
   Context
 > {
   options: Partial<ParseOptions<Context>>;
@@ -438,6 +440,7 @@ export class OptionMergeParser<Value, Context> extends DelegateParser<
 // CaptureParser
 
 export class CaptureParser<Value, Context> extends DelegateParser<
+  Value,
   Value,
   Context
 > {
@@ -462,16 +465,16 @@ export class CaptureParser<Value, Context> extends DelegateParser<
 
 // ActionParser
 
-export class ActionParser<Value, Context> extends DelegateParser<
+export class ActionParser<Value, PValue, Context> extends DelegateParser<
   Value,
-  Context,
-  any
+  PValue,
+  Context
 > {
-  readonly action: SemanticAction<Value, Context>;
+  readonly action: SemanticAction<Value, PValue, Context>;
 
   constructor(
-    parser: Parser<any, Context>,
-    action: SemanticAction<Value, Context>
+    parser: Parser<PValue, Context>,
+    action: SemanticAction<Value, PValue, Context>
   ) {
     super(parser);
     this.action = action;
@@ -484,6 +487,7 @@ export class ActionParser<Value, Context> extends DelegateParser<
       const value = this.action({
         ...match.captures,
         $options: options,
+        $context: options.context,
         $raw: options.input.substring(match.from, match.to),
         $from: match.from,
         $to: match.to,
@@ -515,3 +519,4 @@ export class ActionParser<Value, Context> extends DelegateParser<
 
 export const spaces = new RegExpParser<any>(/\s*/);
 export const any = new RegExpParser<any>(/./);
+export const identifier = new RegExpParser(/[$_a-zA-Z][$_a-zA-Z0-9]*/);
