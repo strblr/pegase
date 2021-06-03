@@ -45,7 +45,7 @@ export enum FailureType {
 export type Expectation =
   | LiteralExpectation
   | RegExpExpectation
-  | EdgeExpectation
+  | EndEdgeExpectation
   | TokenExpectation
   | MismatchExpectation;
 
@@ -59,9 +59,8 @@ export type RegExpExpectation = {
   regExp: RegExp;
 };
 
-export type EdgeExpectation = {
-  type: ExpectationType.Edge;
-  edge: EdgeType;
+export type EndEdgeExpectation = {
+  type: ExpectationType.EndEdge;
 };
 
 export type TokenExpectation = {
@@ -77,7 +76,7 @@ export type MismatchExpectation = {
 export enum ExpectationType {
   Literal,
   RegExp,
-  Edge,
+  EndEdge,
   Token,
   Mismatch
 }
@@ -86,11 +85,6 @@ export type Range = {
   from: number;
   to: number;
 };
-
-export enum EdgeType {
-  Start,
-  End
-}
 
 export type ParseOptions<Context> = {
   input: string;
@@ -136,3 +130,32 @@ export type ResultCommon = {
   warnings: Array<Warning>;
   failures: Array<Failure>;
 };
+
+// Helpers
+
+export type ContextOf<P> = P extends Parser<any, infer C> ? C : never;
+
+export type ValueOfOptions<Ps> = Ps extends ReadonlyArray<Parser<infer V, any>>
+  ? V
+  : never;
+
+export type ValueOfSequence<Ps> = Ps extends readonly [
+  Parser<infer V, any>,
+  ...(infer R)
+]
+  ? [V] extends [undefined]
+    ? ValueOfSequence<R>
+    : readonly [V, ...ValueOfSequence<R>]
+  : readonly [];
+
+export type ValueOfGrammar<Rs> = Rs extends readonly [
+  readonly [string, Parser<infer V, any>],
+  ...(infer R)
+]
+  ? V
+  : Rs extends ReadonlyArray<readonly [string, Parser<infer V, any>]>
+  ? V
+  : never;
+
+type A = [Parser<number, any>, Parser<string, any>];
+type B = ValueOfOptions<A>;

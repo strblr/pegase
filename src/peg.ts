@@ -4,6 +4,7 @@ import {
   Directives,
   EndEdgeParser,
   GrammarParser,
+  identifier,
   LiteralParser,
   MetaContext,
   OptionMergeParser,
@@ -11,6 +12,7 @@ import {
   Parser,
   PegTemplateArg,
   ReferenceParser,
+  RegExpParser,
   RepetitionParser,
   SequenceParser,
   TokenParser
@@ -53,7 +55,7 @@ export function createPeg() {
  *
  * parser: (grammar | options) $
  * grammar: ($identifier directives ':' options)+
- * options: action % ('|' | '/')
+ * options: action % ('|' | '/')   => action (('|' | '/') action)*
  * action: sequence $actionArg?
  * sequence: modulo+
  * modulo: forward % '%'
@@ -74,63 +76,84 @@ export function createPeg() {
  *
  */
 
-const a = new OptionsParser<Parser<any, any>, MetaContext>([
-  new ReferenceParser<Parser<any, any>, MetaContext>("grammar"),
-  new ReferenceParser<Parser<any, any>, MetaContext>("options")
-]);
+declare const a: Parser<AnyParser, MetaContext>;
 
-const metagrammar = new GrammarParser<AnyParser, MetaContext>(
-  new Map<string, Parser<AnyParser, MetaContext>>([
-    [
-      "parser",
-      new ActionParser(
-        new SequenceParser<[AnyParser], MetaContext>([
-          new OptionsParser([
-            new ReferenceParser("grammar"),
-            new ReferenceParser("options")
-          ]),
-          new EndEdgeParser()
-        ]),
-        ({ $value }) => $value[0]
-      )
-    ],
-    [
-      "grammar",
-      new ActionParser(
-        new RepetitionParser<
-          Array<[string, Array<string>, AnyParser]>,
-          MetaContext
-        >(new SequenceParser([]), 1, Infinity),
-        ({ $value, $context }) => {
-          return new GrammarParser(
-            new Map(
-              $value.map(([label, directives, parser]) => {
-                return [
-                  label,
-                  directives.reduce((acc, directive) => {
-                    if (directive === "token")
-                      return new TokenParser(acc, label);
-                    return $context.directives[directive](acc);
-                  }, parser)
-                ] as const;
-              })
-            )
+const metagrammar = GrammarParser.create([
+  [
+    "parser",
+    ActionParser.create(
+      SequenceParser.create([
+        OptionsParser.create([
+          ReferenceParser.create<AnyParser, MetaContext>("grammar"),
+          ReferenceParser.create<AnyParser, MetaContext>("options")
+        ] as const),
+        EndEdgeParser.create<MetaContext>()
+      ] as const),
+      ({ $value }) => $value[0]
+    )
+  ],
+  [
+    "grammar",
+    ActionParser.create(
+      RepetitionParser.create(
+        SequenceParser.create([
+          identifier as RegExpParser<MetaContext>,
+          ReferenceParser.create<ReadonlyArray<string>, MetaContext>(
+            "directives"
+          ),
+          LiteralParser.create<undefined, MetaContext>(":", false),
+          ReferenceParser.create<AnyParser, MetaContext>("options")
+        ] as const),
+        1,
+        Infinity
+      ),
+      ({ $value, $context }) => {
+        const rules = $value.map(([label, directives, parser]) => {
+          const p = directives.reduce(
+            (acc, directive) =>
+              directive === "token"
+                ? TokenParser.create(acc, label)
+                : $context.directives[directive](acc),
+            parser
           );
-        }
-      )
-    ],
-    ["options", a],
-    ["action", a],
-    ["sequence", a],
-    ["modulo", a],
-    ["forward", a],
-    ["predicate", a],
-    ["repetition", a],
-    ["directive", a],
-    ["primary", a],
-    ["directives", a]
-  ])
-);
+          return [label, p] as const;
+        });
+        return GrammarParser.create(rules);
+      }
+    )
+  ],
+  [
+    "options",
+    ActionParser.create(
+      SequenceParser.create([
+        ReferenceParser.create<AnyParser, MetaContext>("action"),
+        RepetitionParser.create(
+          SequenceParser.create([
+            OptionsParser.create([
+              LiteralParser.create<undefined, MetaContext>("|", false),
+              LiteralParser.create<undefined, MetaContext>("/", false)
+            ] as const),
+            ReferenceParser.create<AnyParser, MetaContext>("action")
+          ] as const),
+          0,
+          Infinity
+        )
+      ] as const),
+      ({ $value }) => {
+        return OptionsParser.create([$value[0], ...$value[1].map(([p]) => p)]);
+      }
+    )
+  ],
+  ["action", a],
+  ["sequence", a],
+  ["modulo", a],
+  ["forward", a],
+  ["predicate", a],
+  ["repetition", a],
+  ["directive", a],
+  ["primary", a],
+  ["directives", a]
+] as const);
 
 export const peg = createPeg();
 

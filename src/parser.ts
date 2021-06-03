@@ -1,5 +1,6 @@
 import {
-  EdgeType,
+  AnyParser,
+  ContextOf,
   ExpectationType,
   extendFlags,
   Failure,
@@ -10,7 +11,10 @@ import {
   ParseOptions,
   preskip,
   Result,
-  SemanticAction
+  SemanticAction,
+  ValueOfGrammar,
+  ValueOfOptions,
+  ValueOfSequence
 } from ".";
 
 /** The parser inheritance structure
@@ -88,6 +92,13 @@ export class LiteralParser<
   readonly literal: string;
   readonly emit: Value extends string ? true : false;
 
+  static create<Value extends string | undefined, Context>(
+    literal: string,
+    emit: Value extends string ? true : false
+  ) {
+    return new LiteralParser<Value, Context>(literal, emit);
+  }
+
   constructor(literal: string, emit: Value extends string ? true : false) {
     super();
     this.literal = literal;
@@ -126,6 +137,10 @@ export class RegExpParser<Context> extends Parser<string, Context> {
   private readonly withCase: RegExp;
   private readonly withoutCase: RegExp;
 
+  static create<Context>(regExp: RegExp) {
+    return new RegExpParser<Context>(regExp);
+  }
+
   constructor(regExp: RegExp) {
     super();
     this.regExp = regExp;
@@ -156,47 +171,11 @@ export class RegExpParser<Context> extends Parser<string, Context> {
   }
 }
 
-// EdgeParser
-
-export abstract class EdgeParser<Context> extends Parser<undefined, Context> {
-  readonly edge: EdgeType;
-
-  protected constructor(edge: EdgeType) {
-    super();
-    this.edge = edge;
-  }
-}
-
-// StartEdgeParser
-
-export class StartEdgeParser<Context> extends EdgeParser<Context> {
-  constructor() {
-    super(EdgeType.Start);
-  }
-
-  exec(options: ParseOptions<Context>, internals: Internals) {
-    if (options.from === 0)
-      return {
-        from: 0,
-        to: 0,
-        value: undefined,
-        captures: Object.create(null)
-      };
-    internals.failures.push({
-      from: options.from,
-      to: options.from,
-      type: FailureType.Expectation,
-      expected: [{ type: ExpectationType.Edge, edge: EdgeType.Start }]
-    });
-    return null;
-  }
-}
-
 // EndEdgeParser
 
-export class EndEdgeParser<Context> extends EdgeParser<Context> {
-  constructor() {
-    super(EdgeType.End);
+export class EndEdgeParser<Context> extends Parser<undefined, Context> {
+  static create<Context>() {
+    return new EndEdgeParser<Context>();
   }
 
   exec(options: ParseOptions<Context>, internals: Internals) {
@@ -213,7 +192,7 @@ export class EndEdgeParser<Context> extends EdgeParser<Context> {
       from,
       to: from,
       type: FailureType.Expectation,
-      expected: [{ type: ExpectationType.Edge, edge: EdgeType.End }]
+      expected: [{ type: ExpectationType.EndEdge }]
     });
     return null;
   }
@@ -223,6 +202,10 @@ export class EndEdgeParser<Context> extends EdgeParser<Context> {
 
 export class ReferenceParser<Value, Context> extends Parser<Value, Context> {
   label: string;
+
+  static create<Value, Context>(label: string) {
+    return new ReferenceParser<Value, Context>(label);
+  }
 
   constructor(label: string) {
     super();
@@ -251,9 +234,16 @@ export class ReferenceParser<Value, Context> extends Parser<Value, Context> {
 // OptionsParser
 
 export class OptionsParser<Value, Context> extends Parser<Value, Context> {
-  readonly parsers: Array<Parser<Value, Context>>;
+  readonly parsers: ReadonlyArray<Parser<Value, Context>>;
 
-  constructor(parsers: Array<Parser<Value, Context>>) {
+  static create<Parsers extends ReadonlyArray<AnyParser>>(parsers: Parsers) {
+    return new OptionsParser<
+      ValueOfOptions<Parsers>,
+      ContextOf<Parsers[number]>
+    >(parsers);
+  }
+
+  constructor(parsers: ReadonlyArray<Parser<Value, Context>>) {
     super();
     this.parsers = parsers;
   }
@@ -269,13 +259,22 @@ export class OptionsParser<Value, Context> extends Parser<Value, Context> {
 
 // SequenceParser
 
-export class SequenceParser<Value extends Array<any>, Context> extends Parser<
-  Value,
+export class SequenceParser<
+  Value extends ReadonlyArray<any>,
   Context
-> {
-  readonly parsers: Array<Parser<Value[number] | undefined, Context>>;
+> extends Parser<Value, Context> {
+  readonly parsers: ReadonlyArray<Parser<Value[number] | undefined, Context>>;
 
-  constructor(parsers: Array<Parser<Value[number] | undefined, Context>>) {
+  static create<Parsers extends ReadonlyArray<AnyParser>>(parsers: Parsers) {
+    return new SequenceParser<
+      ValueOfSequence<Parsers>,
+      ContextOf<Parsers[number]>
+    >(parsers);
+  }
+
+  constructor(
+    parsers: ReadonlyArray<Parser<Value[number] | undefined, Context>>
+  ) {
     super();
     this.parsers = parsers;
   }
@@ -292,9 +291,9 @@ export class SequenceParser<Value extends Array<any>, Context> extends Parser<
     return {
       from: matches[0].from,
       to: from,
-      value: matches
+      value: (matches
         .map(match => match.value)
-        .filter(value => value !== undefined) as Value,
+        .filter(value => value !== undefined) as unknown) as Value,
       captures: Object.assign(
         Object.create(null),
         ...matches.map(match => match.captures)
@@ -326,9 +325,18 @@ export class GrammarParser<Value, Context> extends DelegateParser<
 > {
   readonly rules: Map<string, Parser<any, Context>>;
 
-  constructor(rules: Map<string, Parser<any, Context>>) {
+  static create<Rules extends ReadonlyArray<readonly [string, AnyParser]>>(
+    rules: Rules
+  ) {
+    return new GrammarParser<
+      ValueOfGrammar<Rules>,
+      ContextOf<Rules[number][1]>
+    >(rules);
+  }
+
+  constructor(rules: ReadonlyArray<readonly [string, Parser<any, Context>]>) {
     super(rules.values().next().value);
-    this.rules = rules;
+    this.rules = new Map(rules);
   }
 
   exec(options: ParseOptions<Context>, internals: Internals) {
@@ -344,6 +352,13 @@ export class TokenParser<Value, Context> extends DelegateParser<
   Context
 > {
   alias?: string;
+
+  static create<Value, Context>(
+    parser: Parser<Value, Context>,
+    alias?: string
+  ) {
+    return new TokenParser(parser, alias);
+  }
 
   constructor(parser: Parser<Value, Context>, alias?: string) {
     super(parser);
@@ -372,11 +387,23 @@ export class TokenParser<Value, Context> extends DelegateParser<
 // RepetitionParser
 
 export class RepetitionParser<
-  Value extends Array<any>,
+  Value extends ReadonlyArray<any>,
   Context
 > extends DelegateParser<Value, Value[number], Context> {
   readonly min: number;
   readonly max: number;
+
+  static create<Value, Context>(
+    parser: Parser<Value, Context>,
+    min: number,
+    max: number
+  ) {
+    return new RepetitionParser<ReadonlyArray<Value>, Context>(
+      parser,
+      min,
+      max
+    );
+  }
 
   constructor(
     parser: Parser<Value[number], Context>,
@@ -396,7 +423,7 @@ export class RepetitionParser<
       ...(matches.length === 0
         ? { from: options.from, to: options.from }
         : { from: matches[0].from, to: matches[matches.length - 1].to }),
-      value: matches.map(match => match.value) as Value,
+      value: (matches.map(match => match.value) as unknown) as Value,
       captures: Object.assign(
         Object.create(null),
         ...matches.map(match => match.captures)
@@ -424,6 +451,13 @@ export class OptionMergeParser<Value, Context> extends DelegateParser<
 > {
   options: Partial<ParseOptions<Context>>;
 
+  static create<Value, Context>(
+    parser: Parser<Value, Context>,
+    options: Partial<ParseOptions<Context>>
+  ) {
+    return new OptionMergeParser(parser, options);
+  }
+
   constructor(
     parser: Parser<Value, Context>,
     options: Partial<ParseOptions<Context>>
@@ -445,6 +479,10 @@ export class CaptureParser<Value, Context> extends DelegateParser<
   Context
 > {
   name: string;
+
+  static create<Value, Context>(parser: Parser<Value, Context>, name: string) {
+    return new CaptureParser(parser, name);
+  }
 
   constructor(parser: Parser<Value, Context>, name: string) {
     super(parser);
@@ -471,6 +509,13 @@ export class ActionParser<Value, PValue, Context> extends DelegateParser<
   Context
 > {
   readonly action: SemanticAction<Value, PValue, Context>;
+
+  static create<Value, PValue, Context>(
+    parser: Parser<PValue, Context>,
+    action: SemanticAction<Value, PValue, Context>
+  ) {
+    return new ActionParser(parser, action);
+  }
 
   constructor(
     parser: Parser<PValue, Context>,
@@ -517,6 +562,6 @@ export class ActionParser<Value, PValue, Context> extends DelegateParser<
 
 // Global parsers
 
-export const spaces = new RegExpParser<any>(/\s*/);
-export const any = new RegExpParser<any>(/./);
-export const identifier = new RegExpParser(/[$_a-zA-Z][$_a-zA-Z0-9]*/);
+export const spaces = RegExpParser.create<any>(/\s*/);
+export const any = RegExpParser.create<any>(/./);
+export const identifier = RegExpParser.create<any>(/[$_a-zA-Z][$_a-zA-Z0-9]*/);
