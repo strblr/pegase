@@ -1,22 +1,53 @@
 import {
+  action,
   ActionParser,
   AnyParser,
+  chain,
   Directives,
-  EndEdgeParser,
-  GrammarParser,
-  identifier,
+  end,
+  lit,
   LiteralParser,
   MetaContext,
-  OptionMergeParser,
   OptionsParser,
+  or,
   Parser,
   PegTemplateArg,
+  ref,
   ReferenceParser,
   RegExpParser,
+  repeat,
   RepetitionParser,
+  rules,
   SequenceParser,
-  TokenParser
+  token,
+  tweak
 } from ".";
+
+export const preset = {
+  eps: lit("", false),
+  any: lit(/./),
+  id: lit(/[$_a-zA-Z][$_a-zA-Z0-9]*/),
+  actionArg: lit(/@@\d+/)
+};
+
+export const defaultDirectives: Directives = {
+  raw: parser => action(parser, ({ $raw }) => $raw),
+  omit: parser => action(parser, () => undefined),
+  token: parser => token(parser),
+  skip: parser => tweak(parser, { skip: true }),
+  noskip: parser => tweak(parser, { skip: false }),
+  case: parser => tweak(parser, { ignoreCase: false }),
+  nocase: parser => tweak(parser, { ignoreCase: true }),
+  count: parser =>
+    action(parser, ({ $value }) =>
+      Array.isArray($value) ? $value.length : -1
+    ),
+  test: parser =>
+    or(
+      action(parser, () => true),
+      action(preset.eps, () => false)
+    )
+};
 
 export function createPeg() {
   function peg<Value = any, Context = any>(
@@ -26,25 +57,7 @@ export function createPeg() {
     return {} as Parser<Value, Context>;
   }
 
-  peg.directives = {
-    raw: parser => new ActionParser(parser, ({ $raw }) => $raw),
-    omit: parser => new ActionParser(parser, () => 45),
-    token: parser => new TokenParser(parser),
-    skip: parser => new OptionMergeParser(parser, { skip: true }),
-    noskip: parser => new OptionMergeParser(parser, { skip: false }),
-    case: parser => new OptionMergeParser(parser, { ignoreCase: false }),
-    nocase: parser => new OptionMergeParser(parser, { ignoreCase: true }),
-    count: parser =>
-      new ActionParser(parser, ({ $value }) =>
-        Array.isArray($value) ? $value.length : -1
-      ),
-    test: parser =>
-      new OptionsParser([
-        new ActionParser(parser, () => true),
-        new ActionParser(new LiteralParser("", false), () => false)
-      ])
-  } as Directives;
-
+  peg.directives = { ...defaultDirectives } as Directives;
   peg.extendDirectives = (addons: Directives) =>
     Object.assign(peg.directives, addons);
 
@@ -78,48 +91,47 @@ export function createPeg() {
 
 declare const a: Parser<AnyParser, MetaContext>;
 
-const metagrammar = GrammarParser.create([
+const metagrammar = rules(
   [
     "parser",
-    ActionParser.create(
-      SequenceParser.create([
-        OptionsParser.create([
-          ReferenceParser.create<AnyParser, MetaContext>("grammar"),
-          ReferenceParser.create<AnyParser, MetaContext>("options")
-        ] as const),
-        EndEdgeParser.create<MetaContext>()
-      ] as const),
+    action(
+      chain(
+        or(
+          ref<AnyParser, MetaContext>("grammar"),
+          ref<AnyParser, MetaContext>("options")
+        ),
+        end<MetaContext>()
+      ),
       ({ $value }) => $value[0]
     )
   ],
   [
     "grammar",
-    ActionParser.create(
-      RepetitionParser.create(
-        SequenceParser.create([
-          identifier as RegExpParser<MetaContext>,
-          ReferenceParser.create<ReadonlyArray<string>, MetaContext>(
-            "directives"
-          ),
-          LiteralParser.create<undefined, MetaContext>(":", false),
-          ReferenceParser.create<AnyParser, MetaContext>("options")
-        ] as const),
+    action(
+      repeat(
+        chain(
+          preset.id as RegExpParser<MetaContext>, // TODO: remove the "as", "any" contexts should be coerced when possible to narrower
+          ref<Array<string>, MetaContext>("directives"),
+          lit<false, MetaContext>(":", false),
+          ref<AnyParser, MetaContext>("options")
+        ),
         1,
         Infinity
       ),
-      ({ $value, $context }) => {
-        const rules = $value.map(([label, directives, parser]) => {
-          const p = directives.reduce(
-            (acc, directive) =>
-              directive === "token"
-                ? TokenParser.create(acc, label)
-                : $context.directives[directive](acc),
-            parser
-          );
-          return [label, p] as const;
-        });
-        return GrammarParser.create(rules);
-      }
+      ({ $value, $context }) =>
+        rules(
+          // TODO: should not be of value "never"
+          ...$value.map(([label, directives, parser]) => {
+            const p = directives.reduce(
+              (acc, directive) =>
+                directive === "token"
+                  ? token(acc, label)
+                  : $context.directives[directive](acc),
+              parser
+            );
+            return [label, p] as [string, AnyParser];
+          })
+        )
     )
   ],
   [
@@ -139,13 +151,34 @@ const metagrammar = GrammarParser.create([
           Infinity
         )
       ] as const),
-      ({ $value }) => {
-        return OptionsParser.create([$value[0], ...$value[1].map(([p]) => p)]);
-      }
+      ({ $value }) =>
+        OptionsParser.create([$value[0], ...$value[1].map(([p]) => p)])
     )
   ],
-  ["action", a],
-  ["sequence", a],
+  [
+    "action",
+    ActionParser.create(
+      SequenceParser.create([
+        ReferenceParser.create<AnyParser, MetaContext>("sequence"),
+        RepetitionParser.create(actionArg as RegExpParser<MetaContext>, 0, 1)
+      ] as const),
+      ({ $value: [sequence, action], $context }) =>
+        action.length === 0
+          ? sequence
+          : ActionParser.create(sequence, $context.actionArgs.get(action[0])!)
+    )
+  ],
+  [
+    "sequence",
+    ActionParser.create(
+      RepetitionParser.create(
+        ReferenceParser.create<AnyParser, MetaContext>("sequence"),
+        1,
+        Infinity
+      ),
+      ({ $value }) => SequenceParser.create($value)
+    )
+  ],
   ["modulo", a],
   ["forward", a],
   ["predicate", a],
@@ -153,7 +186,7 @@ const metagrammar = GrammarParser.create([
   ["directive", a],
   ["primary", a],
   ["directives", a]
-] as const);
+);
 
 export const peg = createPeg();
 

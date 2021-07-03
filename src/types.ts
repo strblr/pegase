@@ -4,7 +4,14 @@ export type AnyParser = Parser<any, any>;
 
 export type MetaContext = {
   directives: Directives;
-  tagArgs: Map<string, PegTemplateArg<any>>;
+  actionArgs: Map<
+    string,
+    Extract<PegTemplateArg<any>, SemanticAction<any, any, any>>
+  >;
+  primaryArgs: Map<
+    string,
+    Exclude<PegTemplateArg<any>, SemanticAction<any, any, any>>
+  >;
 };
 
 export type PegTemplateArg<Context> =
@@ -135,27 +142,24 @@ export type ResultCommon = {
 
 export type ContextOf<P> = P extends Parser<any, infer C> ? C : never;
 
-export type ValueOfOptions<Ps> = Ps extends ReadonlyArray<Parser<infer V, any>>
+export type ValueOfOptions<Parsers extends Array<any>> = Parsers extends Array<
+  Parser<infer V, any>
+>
   ? V
   : never;
 
-export type ValueOfSequence<Ps> = Ps extends readonly [
-  Parser<infer V, any>,
-  ...(infer R)
+export type ValueOfSequence<Parsers extends Array<any>> = Parsers extends [
+  Parser<infer Value, any>,
+  ...(infer Rest)
 ]
-  ? [V] extends [undefined]
-    ? ValueOfSequence<R>
-    : readonly [V, ...ValueOfSequence<R>]
-  : readonly [];
+  ? [Value] extends [undefined]
+    ? ValueOfSequence<Rest>
+    : [Value, ...ValueOfSequence<Rest>]
+  : [];
 
-export type ValueOfGrammar<Rs> = Rs extends readonly [
-  readonly [string, Parser<infer V, any>],
-  ...(infer R)
+export type ValueOfGrammar<Rules extends Array<any>> = Rules extends [
+  [string, Parser<infer Value, any>],
+  ...any
 ]
-  ? V
-  : Rs extends ReadonlyArray<readonly [string, Parser<infer V, any>]>
-  ? V
+  ? Value
   : never;
-
-type A = [Parser<number, any>, Parser<string, any>];
-type B = ValueOfOptions<A>;
