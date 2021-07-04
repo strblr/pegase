@@ -1,24 +1,17 @@
 import {
   action,
-  ActionParser,
   AnyParser,
   chain,
   Directives,
   end,
   lit,
-  LiteralParser,
   MetaContext,
-  OptionsParser,
   or,
   Parser,
   PegTemplateArg,
   ref,
-  ReferenceParser,
-  RegExpParser,
   repeat,
-  RepetitionParser,
   rules,
-  SequenceParser,
   token,
   tweak
 } from ".";
@@ -30,19 +23,25 @@ export const preset = {
   actionArg: lit(/@@\d+/)
 };
 
-export const defaultDirectives: Directives = {
-  raw: parser => action(parser, ({ $raw }) => $raw),
-  omit: parser => action(parser, () => undefined),
-  token: parser => token(parser),
-  skip: parser => tweak(parser, { skip: true }),
-  noskip: parser => tweak(parser, { skip: false }),
-  case: parser => tweak(parser, { ignoreCase: false }),
-  nocase: parser => tweak(parser, { ignoreCase: true }),
-  count: parser =>
+export const defaultDirectives = {
+  raw: <Value, Context>(parser: Parser<Value, Context>) =>
+    action(parser, ({ $raw }) => $raw),
+  omit: <Value, Context>(parser: Parser<Value, Context>) =>
+    action(parser, () => undefined),
+  token: <Value, Context>(parser: Parser<Value, Context>) => token(parser),
+  skip: <Value, Context>(parser: Parser<Value, Context>) =>
+    tweak(parser, { skip: true }),
+  noskip: <Value, Context>(parser: Parser<Value, Context>) =>
+    tweak(parser, { skip: false }),
+  case: <Value, Context>(parser: Parser<Value, Context>) =>
+    tweak(parser, { ignoreCase: false }),
+  nocase: <Value, Context>(parser: Parser<Value, Context>) =>
+    tweak(parser, { ignoreCase: true }),
+  count: <Value, Context>(parser: Parser<Value, Context>) =>
     action(parser, ({ $value }) =>
       Array.isArray($value) ? $value.length : -1
     ),
-  test: parser =>
+  test: <Value, Context>(parser: Parser<Value, Context>) =>
     or(
       action(parser, () => true),
       action(preset.eps, () => false)
@@ -100,7 +99,7 @@ const metagrammar = rules(
           ref<AnyParser, MetaContext>("grammar"),
           ref<AnyParser, MetaContext>("options")
         ),
-        end<MetaContext>()
+        end()
       ),
       ({ $value }) => $value[0]
     )
@@ -110,9 +109,9 @@ const metagrammar = rules(
     action(
       repeat(
         chain(
-          preset.id as RegExpParser<MetaContext>, // TODO: remove the "as", "any" contexts should be coerced when possible to narrower
+          preset.id,
           ref<Array<string>, MetaContext>("directives"),
-          lit<false, MetaContext>(":", false),
+          lit(":", false),
           ref<AnyParser, MetaContext>("options")
         ),
         1,
@@ -136,47 +135,39 @@ const metagrammar = rules(
   ],
   [
     "options",
-    ActionParser.create(
-      SequenceParser.create([
-        ReferenceParser.create<AnyParser, MetaContext>("action"),
-        RepetitionParser.create(
-          SequenceParser.create([
-            OptionsParser.create([
-              LiteralParser.create<undefined, MetaContext>("|", false),
-              LiteralParser.create<undefined, MetaContext>("/", false)
-            ] as const),
-            ReferenceParser.create<AnyParser, MetaContext>("action")
-          ] as const),
+    action(
+      chain(
+        ref<AnyParser, MetaContext>("action"),
+        repeat(
+          chain(
+            or(lit("|", false), lit("/", false)),
+            ref<AnyParser, MetaContext>("action")
+          ),
           0,
           Infinity
         )
-      ] as const),
-      ({ $value }) =>
-        OptionsParser.create([$value[0], ...$value[1].map(([p]) => p)])
+      ),
+      ({ $value }) => or($value[0], ...$value[1].map(([p]) => p))
     )
   ],
   [
     "action",
-    ActionParser.create(
-      SequenceParser.create([
-        ReferenceParser.create<AnyParser, MetaContext>("sequence"),
-        RepetitionParser.create(actionArg as RegExpParser<MetaContext>, 0, 1)
-      ] as const),
-      ({ $value: [sequence, action], $context }) =>
-        action.length === 0
+    action(
+      chain(
+        ref<AnyParser, MetaContext>("sequence"),
+        repeat(preset.actionArg, 0, 1)
+      ),
+      ({ $value: [sequence, act], $context }) =>
+        act.length === 0
           ? sequence
-          : ActionParser.create(sequence, $context.actionArgs.get(action[0])!)
+          : action(sequence, $context.actionArgs.get(act[0])!)
     )
   ],
   [
     "sequence",
-    ActionParser.create(
-      RepetitionParser.create(
-        ReferenceParser.create<AnyParser, MetaContext>("sequence"),
-        1,
-        Infinity
-      ),
-      ({ $value }) => SequenceParser.create($value)
+    action(
+      repeat(ref<AnyParser, MetaContext>("sequence"), 1, Infinity),
+      ({ $value }) => chain(...$value)
     )
   ],
   ["modulo", a],

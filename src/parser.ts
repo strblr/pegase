@@ -4,6 +4,7 @@ import {
   Failure,
   FailureType,
   Internals,
+  ItemOf,
   Match,
   mergeFailures,
   ParseOptions,
@@ -41,7 +42,7 @@ export abstract class Parser<Value, Context> {
     input: string,
     options?: Partial<ParseOptions<Context>>
   ): Result<Value> {
-    const fullOptions = {
+    const fullOptions: ParseOptions<Context> = {
       input,
       from: 0,
       skipper: defaultSkipper,
@@ -56,15 +57,12 @@ export abstract class Parser<Value, Context> {
       committedFailures: []
     };
     const match = this.exec(fullOptions, internals);
-    const common = {
+    return {
       warnings: internals.warnings,
       failures: [
         ...internals.committedFailures,
         mergeFailures(internals.failures)
-      ]
-    };
-    return {
-      ...common,
+      ],
       ...(!match
         ? { success: false }
         : {
@@ -91,7 +89,7 @@ export class LiteralParser<
     this.emit = emit;
   }
 
-  exec(options: ParseOptions<any>, internals: Internals) {
+  exec(options: ParseOptions<Context>, internals: Internals) {
     const from = preskip(options, internals);
     if (from === null) return null;
     const to = from + this.literal.length;
@@ -179,7 +177,7 @@ export class EndEdgeParser<Context> extends Parser<undefined, Context> {
 // ReferenceParser
 
 export class ReferenceParser<Value, Context> extends Parser<Value, Context> {
-  label: string;
+  readonly label: string;
 
   constructor(label: string) {
     super();
@@ -230,16 +228,16 @@ export class SequenceParser<Value extends Array<any>, Context> extends Parser<
   Value,
   Context
 > {
-  readonly parsers: Array<Parser<Value[number] | undefined, Context>>;
+  readonly parsers: Array<Parser<ItemOf<Value> | undefined, Context>>;
 
-  constructor(parsers: Array<Parser<Value[number] | undefined, Context>>) {
+  constructor(parsers: Array<Parser<ItemOf<Value> | undefined, Context>>) {
     super();
     this.parsers = parsers;
   }
 
   exec(options: ParseOptions<Context>, internals: Internals) {
     let from = options.from;
-    const matches: Array<Match<Value[number]>> = [];
+    const matches: Array<Match<ItemOf<Value>>> = [];
     for (const parser of this.parsers) {
       const match = parser.exec({ ...options, from }, internals);
       if (match === null) return null;
@@ -285,12 +283,12 @@ export class GrammarParser<Value, Context> extends DelegateParser<
   readonly rules: Map<string, Parser<any, Context>>;
 
   constructor(rules: Array<[string, Parser<any, Context>]>) {
-    super(rules.values().next().value);
+    super(rules[0][1]);
     this.rules = new Map(rules);
   }
 
   exec(options: ParseOptions<Context>, internals: Internals) {
-    return this.parser.exec(options, internals);
+    return this.parser.exec({ ...options, grammar: this }, internals);
   }
 }
 
@@ -301,7 +299,7 @@ export class TokenParser<Value, Context> extends DelegateParser<
   Value,
   Context
 > {
-  alias?: string;
+  readonly alias?: string;
 
   constructor(parser: Parser<Value, Context>, alias?: string) {
     super(parser);
@@ -332,12 +330,12 @@ export class TokenParser<Value, Context> extends DelegateParser<
 export class RepetitionParser<
   Value extends Array<any>,
   Context
-> extends DelegateParser<Value, Value[number], Context> {
+> extends DelegateParser<Value, ItemOf<Value>, Context> {
   readonly min: number;
   readonly max: number;
 
   constructor(
-    parser: Parser<Value[number], Context>,
+    parser: Parser<ItemOf<Value>, Context>,
     min: number,
     max: number
   ) {
@@ -349,7 +347,7 @@ export class RepetitionParser<
   exec(options: ParseOptions<Context>, internals: Internals) {
     let from = options.from,
       counter = 0;
-    const matches: Array<Match<Value[number]>> = [];
+    const matches: Array<Match<ItemOf<Value>>> = [];
     const success = () => ({
       ...(matches.length === 0
         ? { from: options.from, to: options.from }
@@ -380,7 +378,7 @@ export class TweakParser<Value, Context> extends DelegateParser<
   Value,
   Context
 > {
-  options: Partial<ParseOptions<Context>>;
+  readonly options: Partial<ParseOptions<Context>>;
 
   constructor(
     parser: Parser<Value, Context>,
@@ -402,7 +400,7 @@ export class CaptureParser<Value, Context> extends DelegateParser<
   Value,
   Context
 > {
-  name: string;
+  readonly name: string;
 
   constructor(parser: Parser<Value, Context>, name: string) {
     super(parser);
@@ -453,7 +451,7 @@ export class ActionParser<Value, PreviousValue, Context> extends DelegateParser<
         $captures: match.captures,
         $commit() {
           internals.committedFailures.push(mergeFailures(internals.failures));
-          internals.failures = [];
+          internals.failures.length = 0;
         },
         $warn(message: string) {
           internals.warnings.push({ from: match.from, to: match.to, message });
@@ -473,4 +471,4 @@ export class ActionParser<Value, PreviousValue, Context> extends DelegateParser<
   }
 }
 
-export const defaultSkipper = new RegExpParser(/\s*/);
+export const defaultSkipper = new RegExpParser<any>(/\s*/);
