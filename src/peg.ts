@@ -1,21 +1,20 @@
 import {
-  action,
-  AnyParser,
-  chain,
+  ActionParser,
+  buildModulo,
   Directives,
-  end,
-  flattenModulo,
-  lit,
+  EndEdgeParser,
+  GrammarParser,
+  LiteralParser,
   MetaContext,
-  or,
+  OptionsParser,
   Parser,
-  PegTemplateActionArg,
   PegTemplateArg,
-  ref,
-  repeat,
-  rules,
-  token,
-  tweak
+  ReferenceParser,
+  RegExpParser,
+  RepetitionParser,
+  SequenceParser,
+  TokenParser,
+  TweakParser
 } from ".";
 
 export function createPeg() {
@@ -25,9 +24,9 @@ export function createPeg() {
   ) {
     const raw = chunks.reduce(
       (acc, chunk, index) =>
-        acc +
-        (typeof args[index - 1] === "function" ? `~${index - 1}` : index - 1) +
-        chunk
+        `${acc}${
+          typeof args[index - 1] === "function" ? `~${index - 1}` : index - 1
+        }${chunk}`
     );
     const result = metagrammar.parse(raw, {
       context: { directives: peg.directives, args }
@@ -44,38 +43,35 @@ export function createPeg() {
 }
 
 export const preset = {
-  eps: lit("", false),
-  any: lit(/./),
-  id: lit(/[$_a-zA-Z][$_a-zA-Z0-9]*/),
-  actionArg: action(lit(/~\d+/), ({ $raw }) => parseInt($raw.substring(1))),
-  primaryArg: lit(/\d+/)
+  eps: new LiteralParser(""),
+  any: new RegExpParser(/./),
+  id: new RegExpParser(/[$_a-zA-Z][$_a-zA-Z0-9]*/),
+  primaryRef: new ActionParser(new RegExpParser(/\d+/), ({ $raw }) =>
+    parseInt($raw)
+  ),
+  actionRef: new ActionParser(new RegExpParser(/~\d+/), ({ $raw }) =>
+    parseInt($raw.substring(1))
+  )
 };
 
-export const defaultDirectives = {
-  raw: <Value, Context>(parser: Parser<Value, Context>) =>
-    action(parser, ({ $raw }) => $raw),
-  omit: <Value, Context>(parser: Parser<Value, Context>) =>
-    action(parser, () => undefined),
-  token: <Value, Context>(parser: Parser<Value, Context>) => token(parser),
-  skip: <Value, Context>(parser: Parser<Value, Context>) =>
-    tweak(parser, { skip: true }),
-  noskip: <Value, Context>(parser: Parser<Value, Context>) =>
-    tweak(parser, { skip: false }),
-  case: <Value, Context>(parser: Parser<Value, Context>) =>
-    tweak(parser, { ignoreCase: false }),
-  nocase: <Value, Context>(parser: Parser<Value, Context>) =>
-    tweak(parser, { ignoreCase: true }),
-  index: <Value, Context>(parser: Parser<Value, Context>) =>
-    action(parser, ({ $from }) => $from),
-  count: <Value, Context>(parser: Parser<Value, Context>) =>
-    action(parser, ({ $value }) =>
+export const defaultDirectives: Directives = {
+  raw: parser => new ActionParser(parser, ({ $raw }) => $raw),
+  omit: parser => new ActionParser(parser, () => undefined),
+  token: parser => new TokenParser(parser),
+  skip: parser => new TweakParser(parser, { skip: true }),
+  noskip: parser => new TweakParser(parser, { skip: false }),
+  case: parser => new TweakParser(parser, { ignoreCase: false }),
+  nocase: parser => new TweakParser(parser, { ignoreCase: true }),
+  index: parser => new ActionParser(parser, ({ $from }) => $from),
+  count: parser =>
+    new ActionParser(parser, ({ $value }) =>
       Array.isArray($value) ? $value.length : -1
     ),
-  test: <Value, Context>(parser: Parser<Value, Context>) =>
-    or(
-      action(parser, () => true),
-      action(preset.eps, () => false)
-    )
+  test: parser =>
+    new OptionsParser([
+      new ActionParser(parser, () => true),
+      new ActionParser(preset.eps, () => false)
+    ])
 };
 
 /** The peg metagrammar
@@ -86,10 +82,11 @@ export const defaultDirectives = {
  * action: sequence $actionArg?
  * sequence: modulo+
  * modulo: forward % '%'
- * forward: '>'? predicate
+ * forward: '>'? directive
+ * directive: capture directives
+ * capture: '<' $identifier '>' predicate
  * predicate: ('&' | '!')? repetition
- * repetition: directive ('?' | '+' | '*' | '{' $integer (',' $integer)? '}')?
- * directive: primary directives
+ * repetition: primary ('?' | '+' | '*' | '{' $integer (',' $integer)? '}')?
  * primary:
  *   $singleQuoteString
  * | $doubleQuoteString
@@ -103,110 +100,91 @@ export const defaultDirectives = {
  *
  */
 
-declare const a: Parser<AnyParser, MetaContext>;
+declare const a: Parser<Parser, MetaContext>;
 
-const metagrammar = rules(
+const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "parser",
-    action(
-      chain(
-        or(
-          ref<AnyParser, MetaContext>("grammar"),
-          ref<AnyParser, MetaContext>("options")
-        ),
-        end<MetaContext>()
-      ),
+    new ActionParser(
+      new SequenceParser([
+        new OptionsParser([
+          new ReferenceParser("grammar"),
+          new ReferenceParser("options")
+        ]),
+        new EndEdgeParser()
+      ]),
       ({ $value: [parser] }) => parser
     )
   ],
   [
     "grammar",
-    action(
-      repeat(
-        chain(
+    new ActionParser(
+      new RepetitionParser(
+        new SequenceParser([
           preset.id,
-          ref<Array<string>, MetaContext>("directives"),
-          lit<false, MetaContext>(":", false),
-          ref<AnyParser, MetaContext>("options")
-        ),
+          new ReferenceParser("directives"),
+          new LiteralParser(":"),
+          new ReferenceParser("options")
+        ]),
         1,
         Infinity
       ),
-      ({ $value, $context }) =>
-        rules(
-          ...$value.map(([label, directives, parser]) => {
-            const p = directives.reduce(
-              (acc, directive) =>
-                directive === "token"
-                  ? token(acc, label)
-                  : $context.directives[directive](acc),
-              parser
-            );
-            return [label, p] as [string, AnyParser];
-          })
+      ({ $options, $match }) =>
+        new GrammarParser(
+          $match.value.map(
+            ([label, directives, parser]: [string, Array<string>, Parser]) => {
+              const p = directives.reduce(
+                (acc, directive) =>
+                  directive === "token"
+                    ? new TokenParser(acc, label)
+                    : $options.context.directives[directive](acc),
+                parser
+              );
+              return [label, p];
+            }
+          )
         )
     )
   ],
   [
     "options",
-    action(
-      chain(
-        ref<AnyParser, MetaContext>("action"),
-        repeat(
-          chain(
-            or(
-              lit<false, MetaContext>("|", false),
-              lit<false, MetaContext>("/", false)
-            ),
-            ref<AnyParser, MetaContext>("action")
-          ),
-          0,
-          Infinity
-        )
+    new ActionParser(
+      buildModulo(
+        new ReferenceParser("action"),
+        new OptionsParser([new LiteralParser("|"), new LiteralParser("/")])
       ),
-      ({ $value }) => or(...flattenModulo($value))
+      ({ $match }) => new OptionsParser($match.value)
     )
   ],
   [
     "action",
-    action(
-      chain(
-        ref<AnyParser, MetaContext>("sequence"),
-        repeat(preset.actionArg, 0, 1)
-      ),
-      ({ $value: [sequence, act], $context }) =>
-        act.length === 0
+    new ActionParser(
+      new SequenceParser([
+        new ReferenceParser("sequence"),
+        new RepetitionParser(preset.actionRef, 0, 1)
+      ]),
+      ({ $options, $match }) => {
+        const [sequence, action] = $match.value as [Parser, Array<number>];
+        return action.length === 0
           ? sequence
-          : action(sequence, $context.args[act[0]] as PegTemplateActionArg<any>)
+          : new ActionParser(sequence, $options.context.args[action[0]]);
+      }
     )
   ],
   [
     "sequence",
-    action(
-      repeat(ref<AnyParser, MetaContext>("sequence"), 1, Infinity),
-      ({ $value }) => chain(...$value)
+    new ActionParser(
+      new RepetitionParser(new ReferenceParser("sequence"), 1, Infinity),
+      ({ $value }) => new SequenceParser($value)
     )
   ],
   [
     "modulo",
-    action(
-      chain(
-        ref<AnyParser, MetaContext>("forward"),
-        repeat(
-          chain(
-            lit<false, MetaContext>("%", false),
-            ref<AnyParser, MetaContext>("forward")
-          ),
-          0,
-          Infinity
-        )
-      ),
-      ({ $value }) =>
-        flattenModulo($value).reduce((acc, sep) =>
-          action(
-            chain(acc, repeat(chain(sep, acc), 0, Infinity)),
-            ({ $value }) => flattenModulo($value)
-          )
+    new ActionParser(
+      buildModulo(new ReferenceParser("forward"), new LiteralParser("%")),
+      ({ $match }) =>
+        ($match.value as Array<Parser>).reduce((acc, sep) =>
+          buildModulo(acc, sep)
         )
     )
   ],
@@ -216,7 +194,7 @@ const metagrammar = rules(
   ["directive", a],
   ["primary", a],
   ["directives", a]
-);
+]);
 
 export const peg = createPeg();
 

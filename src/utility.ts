@@ -1,13 +1,19 @@
-import { Failure, FailureType, Internals, ParseOptions } from ".";
+import {
+  ActionParser,
+  Failure,
+  FailureType,
+  Internals,
+  ParseOptions,
+  Parser,
+  RepetitionParser,
+  SequenceParser
+} from ".";
 
 export function extendFlags(regExp: RegExp, flags: string) {
   return new RegExp(regExp, [...new Set([...regExp.flags, ...flags])].join(""));
 }
 
-export function preskip<Context>(
-  options: ParseOptions<Context>,
-  internals: Internals
-) {
+export function preskip(options: ParseOptions, internals: Internals) {
   if (!options.skip) return options.from;
   const match = options.skipper.exec({ ...options, skip: false }, internals);
   return match && match.to;
@@ -24,9 +30,16 @@ export function mergeFailures(failures: Array<Failure>) {
   });
 }
 
-export function flattenModulo<T, S = never>(value: [T, Array<[T] | [S, T]>]) {
-  return [
-    value[0],
-    ...value[1].reduce<Array<T | S>>((acc, elem) => [...acc, ...elem], [])
-  ];
+export function buildModulo(item: Parser, separator: Parser) {
+  return new ActionParser(
+    new SequenceParser([
+      item,
+      new RepetitionParser(new SequenceParser([separator, item]), 0, Infinity)
+    ]),
+    ({ $match }) => {
+      const value = $match.value as Array<any>;
+      if (value.length === 1) return (value[0] as Array<any>).flat();
+      return [value[0], ...(value[1] as Array<any>).flat()];
+    }
+  );
 }
