@@ -4,8 +4,7 @@ export type AnyParser = Parser<any, any>;
 
 export type MetaContext = {
   directives: Directives;
-  actionArgs: Map<string, PegTemplateActionArg<any>>;
-  primaryArgs: Map<string, PegTemplatePrimaryArg<any>>;
+  args: Array<PegTemplateArg<any>>;
 };
 
 export type PegTemplateArg<Context> =
@@ -175,11 +174,10 @@ export type JoinedContext<Parsers extends Array<any>> = Parsers extends [
     : never
   : any;
 
-export type ValueOfOptions<Parsers extends Array<any>> = Parsers extends [
-  Parser<infer Value, any>,
-  ...(infer Rest)
-]
-  ? Value | ValueOfOptions<Rest>
+export type ValueOfOptions<Parsers extends Array<any>> = Parsers extends Array<
+  Parser<infer Value, any>
+>
+  ? Value
   : never;
 
 export type ValueOfSequence<Parsers extends Array<any>> = Parsers extends [
@@ -195,24 +193,42 @@ export type ValueOfSequence<Parsers extends Array<any>> = Parsers extends [
       ? RestValue | [Exclude<Value, undefined>, ...RestValue]
       : [Value, ...RestValue]
     : never
-  : [];
+  : Parsers extends []
+  ? []
+  : Parsers extends Array<Parser<infer Value, any>>
+  ? [Exclude<Value, undefined>] extends [never]
+    ? []
+    : Array<Exclude<Value, undefined>>
+  : never;
 
 export type ValueOfGrammar<Rules extends Array<any>> = Rules extends [
   [string, Parser<infer Value, any>],
   ...any
 ]
   ? Value
+  : Rules extends []
+  ? never
+  : Rules extends Array<[string, Parser<infer Value, any>]>
+  ? Value
   : never;
 
 /*
-type A = ValueOfOptions<
-  [
-    Parser<number, { x: number }>,
-    Parser<string, { y: string }>,
-    Parser<unknown, unknown>,
-    Parser<undefined, any>,
-    Parser<boolean, { z: boolean }>,
-    Parser<any, any>
-  ]
->;
+type A = [
+  Parser<number, { x: number }>,
+  Parser<string, { y: string }>,
+  Parser<unknown, unknown>,
+  Parser<undefined, any>,
+  Parser<boolean, { z: boolean }>,
+  Parser<any, any>
+];
+
+type B = A[number][];
+
+type C = [A[0], A[1], ...A[number][]];
+
+type G = [["A", A[0]], ["B", A[1]]];
+
+type H = G[number][];
+
+type R = ValueOfGrammar<H>;
 */

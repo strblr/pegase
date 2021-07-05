@@ -4,10 +4,12 @@ import {
   chain,
   Directives,
   end,
+  flattenModulo,
   lit,
   MetaContext,
   or,
   Parser,
+  PegTemplateActionArg,
   PegTemplateArg,
   ref,
   repeat,
@@ -16,11 +18,37 @@ import {
   tweak
 } from ".";
 
+export function createPeg() {
+  function peg<Value = any, Context = any>(
+    chunks: TemplateStringsArray,
+    ...args: Array<PegTemplateArg<Context>>
+  ) {
+    const raw = chunks.reduce(
+      (acc, chunk, index) =>
+        acc +
+        (typeof args[index - 1] === "function" ? `~${index - 1}` : index - 1) +
+        chunk
+    );
+    const result = metagrammar.parse(raw, {
+      context: { directives: peg.directives, args }
+    });
+    if (!result.success) throw result;
+    return result.value as Parser<Value, Context>;
+  }
+
+  peg.directives = { ...defaultDirectives } as Directives;
+  peg.extendDirectives = (addons: Directives) =>
+    Object.assign(peg.directives, addons);
+
+  return peg;
+}
+
 export const preset = {
   eps: lit("", false),
   any: lit(/./),
   id: lit(/[$_a-zA-Z][$_a-zA-Z0-9]*/),
-  actionArg: lit(/@@\d+/)
+  actionArg: action(lit(/~\d+/), ({ $raw }) => parseInt($raw.substring(1))),
+  primaryArg: lit(/\d+/)
 };
 
 export const defaultDirectives = {
@@ -37,6 +65,8 @@ export const defaultDirectives = {
     tweak(parser, { ignoreCase: false }),
   nocase: <Value, Context>(parser: Parser<Value, Context>) =>
     tweak(parser, { ignoreCase: true }),
+  index: <Value, Context>(parser: Parser<Value, Context>) =>
+    action(parser, ({ $from }) => $from),
   count: <Value, Context>(parser: Parser<Value, Context>) =>
     action(parser, ({ $value }) =>
       Array.isArray($value) ? $value.length : -1
@@ -47,21 +77,6 @@ export const defaultDirectives = {
       action(preset.eps, () => false)
     )
 };
-
-export function createPeg() {
-  function peg<Value = any, Context = any>(
-    chunks: TemplateStringsArray,
-    ...args: Array<PegTemplateArg<Context>>
-  ) {
-    return {} as Parser<Value, Context>;
-  }
-
-  peg.directives = { ...defaultDirectives } as Directives;
-  peg.extendDirectives = (addons: Directives) =>
-    Object.assign(peg.directives, addons);
-
-  return peg;
-}
 
 /** The peg metagrammar
  *
@@ -99,9 +114,9 @@ const metagrammar = rules(
           ref<AnyParser, MetaContext>("grammar"),
           ref<AnyParser, MetaContext>("options")
         ),
-        end()
+        end<MetaContext>()
       ),
-      ({ $value }) => $value[0]
+      ({ $value: [parser] }) => parser
     )
   ],
   [
@@ -111,7 +126,7 @@ const metagrammar = rules(
         chain(
           preset.id,
           ref<Array<string>, MetaContext>("directives"),
-          lit(":", false),
+          lit<false, MetaContext>(":", false),
           ref<AnyParser, MetaContext>("options")
         ),
         1,
@@ -119,7 +134,6 @@ const metagrammar = rules(
       ),
       ({ $value, $context }) =>
         rules(
-          // TODO: should not be of value "never"
           ...$value.map(([label, directives, parser]) => {
             const p = directives.reduce(
               (acc, directive) =>
@@ -140,14 +154,17 @@ const metagrammar = rules(
         ref<AnyParser, MetaContext>("action"),
         repeat(
           chain(
-            or(lit("|", false), lit("/", false)),
+            or(
+              lit<false, MetaContext>("|", false),
+              lit<false, MetaContext>("/", false)
+            ),
             ref<AnyParser, MetaContext>("action")
           ),
           0,
           Infinity
         )
       ),
-      ({ $value }) => or($value[0], ...$value[1].map(([p]) => p))
+      ({ $value }) => or(...flattenModulo($value))
     )
   ],
   [
@@ -160,7 +177,7 @@ const metagrammar = rules(
       ({ $value: [sequence, act], $context }) =>
         act.length === 0
           ? sequence
-          : action(sequence, $context.actionArgs.get(act[0])!)
+          : action(sequence, $context.args[act[0]] as PegTemplateActionArg<any>)
     )
   ],
   [
@@ -170,7 +187,29 @@ const metagrammar = rules(
       ({ $value }) => chain(...$value)
     )
   ],
-  ["modulo", a],
+  [
+    "modulo",
+    action(
+      chain(
+        ref<AnyParser, MetaContext>("forward"),
+        repeat(
+          chain(
+            lit<false, MetaContext>("%", false),
+            ref<AnyParser, MetaContext>("forward")
+          ),
+          0,
+          Infinity
+        )
+      ),
+      ({ $value }) =>
+        flattenModulo($value).reduce((acc, sep) =>
+          action(
+            chain(acc, repeat(chain(sep, acc), 0, Infinity)),
+            ({ $value }) => flattenModulo($value)
+          )
+        )
+    )
+  ],
   ["forward", a],
   ["predicate", a],
   ["repetition", a],

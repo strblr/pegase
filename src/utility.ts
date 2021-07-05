@@ -23,3 +23,10 @@ export function mergeFailures(failures: Array<Failure>) {
     return failure;
   });
 }
+
+export function flattenModulo<T, S = never>(value: [T, Array<[T] | [S, T]>]) {
+  return [
+    value[0],
+    ...value[1].reduce<Array<T | S>>((acc, elem) => [...acc, ...elem], [])
+  ];
+}
