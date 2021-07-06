@@ -25,6 +25,7 @@ import {
  * | | GrammarParser
  * | | TokenParser
  * | | RepetitionParser
+ * | | PredicateParser
  * | | TweakParser
  * | | CaptureParser
  * | | ActionParser
@@ -300,7 +301,13 @@ export class TokenParser extends DelegateParser {
       from,
       to: from,
       type: FailureType.Expectation,
-      expected: [{ type: ExpectationType.Token, alias: this.alias }]
+      expected: [
+        {
+          type: ExpectationType.Token,
+          alias: this.alias,
+          failure: mergeFailures(failures)
+        }
+      ]
     });
     return null;
   }
@@ -344,6 +351,41 @@ export class RepetitionParser extends DelegateParser {
       } else if (counter < this.min) return null;
       else return success();
     }
+  }
+}
+
+// PredicateParser
+
+export class PredicateParser extends DelegateParser {
+  readonly polarity: boolean;
+
+  constructor(parser: Parser, polarity: boolean) {
+    super(parser);
+    this.polarity = polarity;
+  }
+
+  exec(options: ParseOptions, internals: Internals) {
+    const failures: Array<Failure> = [];
+    const match = this.parser.exec(options, { ...internals, failures });
+    const success = () => ({
+      from: options.from,
+      to: options.from,
+      value: undefined,
+      captures: Object.create(null)
+    });
+    if (this.polarity) {
+      internals.failures.push(...failures);
+      if (!match) return null;
+      return success();
+    }
+    if (!match) return success();
+    internals.failures.push({
+      from: match.from,
+      to: match.to,
+      type: FailureType.Expectation,
+      expected: [{ type: ExpectationType.Mismatch, match }]
+    });
+    return null;
   }
 }
 

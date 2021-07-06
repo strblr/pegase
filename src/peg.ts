@@ -9,6 +9,7 @@ import {
   OptionsParser,
   Parser,
   PegTemplateArg,
+  PredicateParser,
   ReferenceParser,
   RegExpParser,
   RepetitionParser,
@@ -82,7 +83,7 @@ export const defaultDirectives: Directives = {
  * action: sequence $actionArg?
  * sequence: modulo+
  * modulo: forward % '%'
- * forward: '>'? directive
+ * forward: '>>'? directive
  * directive: capture directives
  * capture: '<' $identifier '>' predicate
  * predicate: ('&' | '!')? repetition
@@ -188,10 +189,37 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         )
     )
   ],
-  ["forward", a],
+  [
+    "forward",
+    new ActionParser(
+      new SequenceParser([
+        new RepetitionParser(new LiteralParser(">>", true), 0, 1),
+        new ReferenceParser("directive")
+      ]),
+      ({ $match }) => {
+        const [operator, directive] = $match.value as [[] | [">"], Parser];
+        if (operator.length === 0) return directive;
+        return new ActionParser(
+          new SequenceParser([
+            new RepetitionParser(
+              new SequenceParser([
+                new PredicateParser(directive, false),
+                preset.any
+              ]),
+              0,
+              Infinity
+            ),
+            directive
+          ]),
+          ({ $match }) => $match.value[1]
+        );
+      }
+    )
+  ],
+  ["directive", a],
+  ["capture", a],
   ["predicate", a],
   ["repetition", a],
-  ["directive", a],
   ["primary", a],
   ["directives", a]
 ]);
@@ -200,8 +228,8 @@ export const peg = createPeg();
 
 /*
 const math = peg`
-  expr: <first>term <rest>(("+" | "-") term)*
+  expr: term % ("+" | "-")
   term: <first>fact <rest>(("*" | "/") fact)*
-  fact: 
+  fact: ${a => a.$options.context}
 `;
 */

@@ -64,6 +64,7 @@ export type EndEdgeExpectation = {
 export type TokenExpectation = {
   type: ExpectationType.Token;
   alias?: string;
+  failure: Failure;
 };
 
 export type MismatchExpectation = {
