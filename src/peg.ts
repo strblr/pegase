@@ -1,6 +1,7 @@
 import {
   ActionParser,
   buildModulo,
+  CaptureParser,
   Directives,
   EndEdgeParser,
   GrammarParser,
@@ -47,9 +48,7 @@ export const preset = {
   eps: new LiteralParser(""),
   any: new RegExpParser(/./),
   id: new RegExpParser(/[$_a-zA-Z][$_a-zA-Z0-9]*/),
-  primaryRef: new ActionParser(new RegExpParser(/\d+/), ({ $raw }) =>
-    parseInt($raw)
-  ),
+  int: new ActionParser(new RegExpParser(/\d+/), ({ $raw }) => parseInt($raw)),
   actionRef: new ActionParser(new RegExpParser(/~\d+/), ({ $raw }) =>
     parseInt($raw.substring(1))
   )
@@ -85,7 +84,7 @@ export const defaultDirectives: Directives = {
  * modulo: forward % '%'
  * forward: '>>'? directive
  * directive: capture directives
- * capture: '<' $identifier '>' predicate
+ * capture: ('<' $identifier '>')? predicate
  * predicate: ('&' | '!')? repetition
  * repetition: primary ('?' | '+' | '*' | '{' $integer (',' $integer)? '}')?
  * primary:
@@ -216,10 +215,109 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
       }
     )
   ],
-  ["directive", a],
-  ["capture", a],
-  ["predicate", a],
-  ["repetition", a],
+  [
+    "directive",
+    new ActionParser(
+      new SequenceParser([
+        new ReferenceParser("capture"),
+        new ReferenceParser("directives")
+      ]),
+      ({ $options, $match }) => {
+        const [capture, directives] = $match.value as [Parser, Array<string>];
+        return directives.reduce(
+          (acc, directive) => $options.context.directives[directive](acc),
+          capture
+        );
+      }
+    )
+  ],
+  [
+    "capture",
+    new ActionParser(
+      new SequenceParser([
+        new RepetitionParser(
+          new SequenceParser([
+            new LiteralParser("<"),
+            preset.id,
+            new LiteralParser(">")
+          ]),
+          0,
+          1
+        ),
+        new ReferenceParser("predicate")
+      ]),
+      ({ $match }) => {
+        const [rep, predicate] = $match.value as [[] | [[string]], Parser];
+        if (rep.length === 0) return predicate;
+        return new CaptureParser(predicate, rep[0][0]);
+      }
+    )
+  ],
+  [
+    "predicate",
+    new ActionParser(
+      new SequenceParser([
+        new RepetitionParser(
+          new OptionsParser([
+            new LiteralParser("&", true),
+            new LiteralParser("!", true)
+          ]),
+          0,
+          1
+        ),
+        new ReferenceParser("repetition")
+      ]),
+      ({ $match }) => {
+        const [polarity, repetition] = $match.value as [[] | [string], Parser];
+        if (polarity.length === 0) return repetition;
+        return new PredicateParser(repetition, polarity[0] === "&");
+      }
+    )
+  ],
+  [
+    "repetition",
+    new ActionParser(
+      new SequenceParser([
+        new ReferenceParser("primary"),
+        new RepetitionParser(
+          new OptionsParser([
+            new LiteralParser("?", true),
+            new LiteralParser("+", true),
+            new LiteralParser("*", true),
+            new SequenceParser([
+              new LiteralParser("{"),
+              preset.int,
+              new RepetitionParser(
+                new SequenceParser([new LiteralParser(","), preset.int]),
+                0,
+                1
+              ),
+              new LiteralParser("}")
+            ])
+          ]),
+          0,
+          1
+        )
+      ]),
+      ({ $match }) => {
+        const [primary, quant] = $match.value as [
+          Parser,
+          [] | ["?" | "+" | "*" | [number, [] | [[number]]]]
+        ];
+        if (quant.length === 0) return primary;
+        const op = quant[0];
+        const [min, max] =
+          op === "?"
+            ? [0, 1]
+            : op === "+"
+            ? [1, Infinity]
+            : op === "*"
+            ? [0, Infinity]
+            : op.flat(2);
+        return new RepetitionParser(primary, min, max ?? min);
+      }
+    )
+  ],
   ["primary", a],
   ["directives", a]
 ]);
