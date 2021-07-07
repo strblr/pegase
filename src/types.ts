@@ -1,5 +1,7 @@
 import { Parser } from ".";
 
+// Related to parser generation
+
 export type MetaContext = {
   directives: Directives;
   args: Array<PegTemplateArg>;
@@ -11,7 +13,31 @@ export type PegTemplateArg<Context = any> =
   | Parser<any, Context>
   | SemanticAction<Context>;
 
-export type Directives = Record<string, (parser: Parser) => Parser>;
+export type SemanticAction<Context = any> = (args: {
+  $raw: string;
+  $options: ParseOptions<Context>;
+  $match: Match;
+  $commit(): void;
+  $warn(message: string): void;
+  [capture: string]: any;
+}) => any;
+
+export type Directives = Record<
+  string,
+  (parser: Parser, rule?: string) => Parser
+>;
+
+// Related to parsing processing
+
+export type ParseOptions<Context = any> = {
+  input: string;
+  from: number;
+  grammar?: Parser<any, Context>;
+  skipper: Parser<any, Context>;
+  skip: boolean;
+  ignoreCase: boolean;
+  context: Context;
+};
 
 export type Internals = {
   warnings: Array<Warning>;
@@ -80,34 +106,17 @@ export enum ExpectationType {
   Mismatch
 }
 
+export type Match<Value = any> = Range & {
+  value: Value;
+  captures: Record<string, any>;
+};
+
 export type Range = {
   from: number;
   to: number;
 };
 
-export type ParseOptions<Context = any> = {
-  input: string;
-  from: number;
-  grammar?: Parser<any, Context>;
-  skipper: Parser<any, Context>;
-  skip: boolean;
-  ignoreCase: boolean;
-  context: Context;
-};
-
-export type SemanticAction<Context = any> = (args: {
-  $raw: string;
-  $options: ParseOptions<Context>;
-  $match: Match;
-  $commit(): void;
-  $warn(message: string): void;
-  [capture: string]: any;
-}) => any;
-
-export type Match<Value = any> = Range & {
-  value: Value;
-  captures: Record<string, any>;
-};
+// Related to parsing results
 
 export type Result<Value = any> = SuccessResult<Value> | FailResult;
 

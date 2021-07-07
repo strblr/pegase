@@ -1,5 +1,6 @@
 import {
   ActionParser,
+  Directives,
   Failure,
   FailureType,
   Internals,
@@ -9,15 +10,21 @@ import {
   SequenceParser
 } from ".";
 
+// extendFlags
+
 export function extendFlags(regExp: RegExp, flags: string) {
   return new RegExp(regExp, [...new Set([...regExp.flags, ...flags])].join(""));
 }
+
+// preskip
 
 export function preskip(options: ParseOptions, internals: Internals) {
   if (!options.skip) return options.from;
   const match = options.skipper.exec({ ...options, skip: false }, internals);
   return match && match.to;
 }
+
+// mergeFailures
 
 export function mergeFailures(failures: Array<Failure>) {
   return failures.reduce((failure, current) => {
@@ -29,6 +36,25 @@ export function mergeFailures(failures: Array<Failure>) {
     return failure;
   });
 }
+
+// pipeDirectives
+
+export function pipeDirectives(
+  definitions: Directives,
+  parser: Parser,
+  directives: Array<string>,
+  rule?: string
+) {
+  return directives.reduce((parser, directive) => {
+    if (!(directive in definitions))
+      throw new Error(
+        `Couldn't resolve directive "${directive}". You need to merge it to the default directives using peg.extendDirectives.`
+      );
+    return definitions[directive](parser, rule);
+  }, parser);
+}
+
+// buildModulo
 
 export function buildModulo(item: Parser, separator: Parser) {
   return new ActionParser(
