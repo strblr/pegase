@@ -3,6 +3,7 @@ import {
   Directives,
   Failure,
   FailureType,
+  GrammarParser,
   Internals,
   ParseOptions,
   Parser,
@@ -71,4 +72,23 @@ export function buildModulo(item: Parser, separator: Parser) {
       return [value[0], ...(value[1] as Array<any>).flat()];
     }
   );
+}
+
+// merge (grammars)
+
+export function merge(...parsers: Array<Parser>) {
+  return new GrammarParser(
+    parsers.reduce<Array<[string, Parser]>>((acc, parser) => {
+      if (!(parser instanceof GrammarParser))
+        throw new Error("You can only merge grammar parsers");
+      return [...acc, ...parser.rules.entries()];
+    }, [])
+  );
+}
+
+// nullObject
+
+export function nullObject(...sources: Array<object>): Record<string, any> {
+  const object = Object.create(null);
+  return sources.length === 0 ? object : Object.assign(object, ...sources);
 }

@@ -7,6 +7,7 @@ import {
   GrammarParser,
   LiteralParser,
   MetaContext,
+  nullObject,
   OptionsParser,
   Parser,
   PegTemplateArg,
@@ -51,10 +52,7 @@ export function createPeg() {
     return result.value as Parser<Value, Context>;
   }
 
-  peg.directives = Object.assign<{}, Directives>(
-    Object.create(null),
-    defaultDirectives
-  );
+  peg.directives = nullObject(defaultDirectives) as Directives;
 
   peg.extendDirectives = (addons: Directives) =>
     Object.assign(peg.directives, addons);
@@ -87,28 +85,25 @@ export const preset = {
 
 // The default directive definitions
 
-export const defaultDirectives = Object.assign<{}, Directives>(
-  Object.create(null),
-  {
-    raw: parser => new ActionParser(parser, ({ $raw }) => $raw),
-    omit: parser => new ActionParser(parser, () => undefined),
-    token: (parser, rule) => new TokenParser(parser, rule),
-    skip: parser => new TweakParser(parser, { skip: true }),
-    noskip: parser => new TweakParser(parser, { skip: false }),
-    case: parser => new TweakParser(parser, { ignoreCase: false }),
-    nocase: parser => new TweakParser(parser, { ignoreCase: true }),
-    index: parser => new ActionParser(parser, ({ $from }) => $from),
-    count: parser =>
-      new ActionParser(parser, ({ $value }) =>
-        Array.isArray($value) ? $value.length : -1
-      ),
-    test: parser =>
-      new OptionsParser([
-        new ActionParser(parser, () => true),
-        new ActionParser(preset.eps, () => false)
-      ])
-  }
-);
+export const defaultDirectives: Directives = nullObject({
+  raw: parser => new ActionParser(parser, ({ $raw }) => $raw),
+  omit: parser => new ActionParser(parser, () => undefined),
+  token: (parser, rule) => new TokenParser(parser, rule),
+  skip: parser => new TweakParser(parser, { skip: true }),
+  noskip: parser => new TweakParser(parser, { skip: false }),
+  case: parser => new TweakParser(parser, { ignoreCase: false }),
+  nocase: parser => new TweakParser(parser, { ignoreCase: true }),
+  index: parser => new ActionParser(parser, ({ $from }) => $from),
+  count: parser =>
+    new ActionParser(parser, ({ $value }) =>
+      Array.isArray($value) ? $value.length : -1
+    ),
+  test: parser =>
+    new OptionsParser([
+      new ActionParser(parser, () => true),
+      new ActionParser(preset.eps, () => false)
+    ])
+} as Directives);
 
 /** The peg metagrammar
  *

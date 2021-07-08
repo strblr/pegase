@@ -6,6 +6,7 @@ import {
   FailureType,
   Internals,
   Match,
+  nullObject,
   ParseOptions,
   preskip,
   Result,
@@ -21,14 +22,13 @@ import {
  * | ReferenceParser
  * | OptionsParser
  * | SequenceParser
- * | DelegateParser
- * | | GrammarParser
- * | | TokenParser
- * | | RepetitionParser
- * | | PredicateParser
- * | | TweakParser
- * | | CaptureParser
- * | | ActionParser
+ * | GrammarParser
+ * | TokenParser
+ * | RepetitionParser
+ * | PredicateParser
+ * | TweakParser
+ * | CaptureParser
+ * | ActionParser
  *
  */
 
@@ -42,13 +42,13 @@ export abstract class Parser<Value = any, Context = any> {
     input: string,
     options?: Partial<ParseOptions<Context>>
   ): Result<Value> {
-    const fullOptions: ParseOptions<Context> = {
+    const fullOptions = {
       input,
       from: 0,
       skipper: defaultSkipper,
       skip: true,
       ignoreCase: false,
-      context: (undefined as unknown) as Context,
+      context: undefined as any,
       ...options
     };
     const internals = {
@@ -101,7 +101,7 @@ export class LiteralParser extends Parser {
         from,
         to,
         value: this.emit ? raw : undefined,
-        captures: Object.create(null)
+        captures: nullObject()
       };
     internals.failures.push({
       from,
@@ -138,7 +138,7 @@ export class RegExpParser extends Parser {
         from,
         to: from + result[0].length,
         value: result[0],
-        captures: result.groups ?? Object.create(null)
+        captures: nullObject(result.groups ?? {})
       };
     internals.failures.push({
       from,
@@ -161,7 +161,7 @@ export class EndEdgeParser extends Parser {
         from,
         to: from,
         value: undefined,
-        captures: Object.create(null)
+        captures: nullObject()
       };
     internals.failures.push({
       from,
@@ -195,9 +195,7 @@ export class ReferenceParser extends Parser {
     if (match === null) return null;
     return {
       ...match,
-      captures: Object.assign(Object.create(null), {
-        [this.label]: match.value
-      })
+      captures: nullObject({ [this.label]: match.value })
     };
   }
 }
@@ -246,32 +244,20 @@ export class SequenceParser extends Parser {
       value: matches
         .map(match => match.value)
         .filter(value => value !== undefined),
-      captures: Object.assign(
-        Object.create(null),
-        ...matches.map(match => match.captures)
-      )
+      captures: nullObject(...matches.map(match => match.captures))
     };
-  }
-}
-
-// DelegateParser
-
-export abstract class DelegateParser extends Parser {
-  readonly parser: Parser;
-
-  protected constructor(parser: Parser) {
-    super();
-    this.parser = parser;
   }
 }
 
 // GrammarParser
 
-export class GrammarParser extends DelegateParser {
+export class GrammarParser extends Parser {
+  readonly parser: Parser;
   readonly rules: Map<string, Parser>;
 
   constructor(rules: Array<[string, Parser]>) {
-    super(rules[0][1]);
+    super();
+    this.parser = rules[0][1];
     this.rules = new Map(rules);
   }
 
@@ -282,11 +268,13 @@ export class GrammarParser extends DelegateParser {
 
 // TokenParser
 
-export class TokenParser extends DelegateParser {
+export class TokenParser extends Parser {
+  readonly parser: Parser;
   readonly alias?: string;
 
   constructor(parser: Parser, alias?: string) {
-    super(parser);
+    super();
+    this.parser = parser;
     this.alias = alias;
   }
 
@@ -317,12 +305,14 @@ export class TokenParser extends DelegateParser {
 
 // RepetitionParser
 
-export class RepetitionParser extends DelegateParser {
+export class RepetitionParser extends Parser {
+  readonly parser: Parser;
   readonly min: number;
   readonly max: number;
 
   constructor(parser: Parser, min: number, max: number) {
-    super(parser);
+    super();
+    this.parser = parser;
     this.min = min;
     this.max = max;
   }
@@ -338,10 +328,7 @@ export class RepetitionParser extends DelegateParser {
       value: matches
         .map(match => match.value)
         .filter(value => value !== undefined),
-      captures: Object.assign(
-        Object.create(null),
-        ...matches.map(match => match.captures)
-      )
+      captures: nullObject(...matches.map(match => match.captures))
     });
     while (true) {
       if (counter === this.max) return success();
@@ -358,11 +345,13 @@ export class RepetitionParser extends DelegateParser {
 
 // PredicateParser
 
-export class PredicateParser extends DelegateParser {
+export class PredicateParser extends Parser {
+  readonly parser: Parser;
   readonly polarity: boolean;
 
   constructor(parser: Parser, polarity: boolean) {
-    super(parser);
+    super();
+    this.parser = parser;
     this.polarity = polarity;
   }
 
@@ -373,7 +362,7 @@ export class PredicateParser extends DelegateParser {
       from: options.from,
       to: options.from,
       value: undefined,
-      captures: Object.create(null)
+      captures: nullObject()
     });
     if (this.polarity) {
       internals.failures.push(...failures);
@@ -393,11 +382,13 @@ export class PredicateParser extends DelegateParser {
 
 // TweakParser
 
-export class TweakParser extends DelegateParser {
+export class TweakParser extends Parser {
+  readonly parser: Parser;
   readonly options: Partial<ParseOptions>;
 
   constructor(parser: Parser, options: Partial<ParseOptions>) {
-    super(parser);
+    super();
+    this.parser = parser;
     this.options = options;
   }
 
@@ -408,11 +399,13 @@ export class TweakParser extends DelegateParser {
 
 // CaptureParser
 
-export class CaptureParser extends DelegateParser {
+export class CaptureParser extends Parser {
+  readonly parser: Parser;
   readonly name: string;
 
   constructor(parser: Parser, name: string) {
-    super(parser);
+    super();
+    this.parser = parser;
     this.name = name;
   }
 
@@ -421,20 +414,21 @@ export class CaptureParser extends DelegateParser {
     if (match === null) return null;
     return {
       ...match,
-      captures: Object.assign(Object.create(null), match.captures, {
-        [this.name]: match.value
-      })
+      value: undefined,
+      captures: nullObject(match.captures, { [this.name]: match.value })
     };
   }
 }
 
 // ActionParser
 
-export class ActionParser extends DelegateParser {
+export class ActionParser extends Parser {
+  readonly parser: Parser;
   readonly action: SemanticAction;
 
   constructor(parser: Parser, action: SemanticAction) {
-    super(parser);
+    super();
+    this.parser = parser;
     this.action = action;
   }
 
