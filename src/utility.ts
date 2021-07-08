@@ -26,15 +26,18 @@ export function preskip(options: ParseOptions, internals: Internals) {
 
 // mergeFailures
 
-export function mergeFailures(failures: Array<Failure>) {
-  return failures.reduce((failure, current) => {
-    if (current.to > failure.to) return current;
-    if (current.to < failure.to) return failure;
-    if (current.type === FailureType.Semantic) return current;
-    if (failure.type === FailureType.Semantic) return failure;
-    failure.expected.push(...current.expected);
-    return failure;
-  });
+export function collapseFailures(failures: Array<Failure>) {
+  if (failures.length === 0) return [];
+  return [
+    failures.reduce((failure, current) => {
+      if (current.to > failure.to) return current;
+      if (current.to < failure.to) return failure;
+      if (current.type === FailureType.Semantic) return current;
+      if (failure.type === FailureType.Semantic) return failure;
+      failure.expected.push(...current.expected);
+      return failure;
+    })
+  ];
 }
 
 // pipeDirectives

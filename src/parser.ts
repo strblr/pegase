@@ -1,11 +1,11 @@
 import {
+  collapseFailures,
   ExpectationType,
   extendFlags,
   Failure,
   FailureType,
   Internals,
   Match,
-  mergeFailures,
   ParseOptions,
   preskip,
   Result,
@@ -59,16 +59,18 @@ export abstract class Parser<Value = any, Context = any> {
     const match = this.exec(fullOptions, internals);
     return {
       warnings: internals.warnings,
-      failures: [
-        ...internals.committedFailures,
-        mergeFailures(internals.failures)
-      ],
-      ...(!match
-        ? { success: false }
-        : {
+      ...(match
+        ? {
             ...match,
             success: true,
             raw: fullOptions.input.substring(match.from, match.to)
+          }
+        : {
+            success: false,
+            failures: [
+              ...internals.committedFailures,
+              ...collapseFailures(internals.failures)
+            ]
           })
     };
   }
@@ -305,7 +307,7 @@ export class TokenParser extends DelegateParser {
         {
           type: ExpectationType.Token,
           alias: this.alias,
-          failure: mergeFailures(failures)
+          failure: collapseFailures(failures)[0]
         }
       ]
     });
@@ -446,7 +448,9 @@ export class ActionParser extends DelegateParser {
         $options: options,
         $match: match,
         $commit() {
-          internals.committedFailures.push(mergeFailures(internals.failures));
+          internals.committedFailures.push(
+            ...collapseFailures(internals.failures)
+          );
           internals.failures.length = 0;
         },
         $warn(message: string) {

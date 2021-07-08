@@ -62,8 +62,8 @@ export type SemanticFailure = Range & {
 };
 
 export enum FailureType {
-  Expectation,
-  Semantic
+  Expectation = "EXPECTATION",
+  Semantic = "SEMANTIC"
 }
 
 export type Expectation =
@@ -99,11 +99,11 @@ export type MismatchExpectation = {
 };
 
 export enum ExpectationType {
-  Literal,
-  RegExp,
-  EndEdge,
-  Token,
-  Mismatch
+  Literal = "LITERAL",
+  RegExp = "REGEXP",
+  EndEdge = "END_EDGE",
+  Token = "TOKEN",
+  Mismatch = "MISMATCH"
 }
 
 export type Match<Value = any> = Range & {
@@ -120,17 +120,14 @@ export type Range = {
 
 export type Result<Value = any> = SuccessResult<Value> | FailResult;
 
-export type SuccessResult<Value = any> = ResultCommon &
-  Match<Value> & {
-    success: true;
-    raw: string;
-  };
-
-export type FailResult = ResultCommon & {
-  success: false;
+export type SuccessResult<Value = any> = Match<Value> & {
+  success: true;
+  raw: string;
+  warnings: Array<Warning>;
 };
 
-export type ResultCommon = {
+export type FailResult = {
+  success: false;
   warnings: Array<Warning>;
   failures: Array<Failure>;
 };

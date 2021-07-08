@@ -1,5 +1,15 @@
-import { peg } from ".";
+import { RegExpParser } from ".";
 
+function show(entity: any) {
+  console.log(JSON.stringify(entity, null, 2));
+}
+
+test("First test", () => {
+  const p = new RegExpParser(/a+/);
+  show(p.parse("   b aaaa a "));
+});
+
+/*
 test("Modulos in grammars should work", () => {
   const grammar = peg`("1" % ',' @count) % '|' $`;
 
@@ -135,3 +145,4 @@ test("Math expressions should be correctly calculated", () => {
     )
   ).toBeCloseTo(71470.126502);
 });
+*/

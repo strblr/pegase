@@ -5,7 +5,7 @@
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "test": "tsc & jest",
+    "test": "tsc & jest lib/index.test.js",
     "build": "tsc",
     "prepare": "yarn build"
   },
