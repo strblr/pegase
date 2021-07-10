@@ -2,11 +2,6 @@ import { Parser } from ".";
 
 // Related to parser generation
 
-export type MetaContext = {
-  directives: Directives;
-  args: Array<PegTemplateArg>;
-};
-
 export type PegTemplateArg<Context = any> =
   | string
   | RegExp
@@ -21,6 +16,11 @@ export type SemanticAction<Context = any> = (args: {
   $warn(message: string): void;
   [capture: string]: any;
 }) => any;
+
+export type MetaContext = {
+  directives: Directives;
+  args: Array<PegTemplateArg>;
+};
 
 export type Directives = Record<
   string,
@@ -37,13 +37,17 @@ export type ParseOptions<Context = any> = {
   skip: boolean;
   ignoreCase: boolean;
   context: Context;
+  tracer?(event: TraceEvent, label: string): void;
 };
 
-export type Internals = FailureInternals & {
+export enum TraceEvent {
+  Entered = "ENTERED",
+  Matched = "MATCHED",
+  Failed = "FAILED"
+}
+
+export type Internals = {
   warnings: Array<Warning>;
-};
-
-export type FailureInternals = {
   failures: Array<Failure>;
   committedFailures: Array<Failure>;
 };

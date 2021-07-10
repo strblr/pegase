@@ -1,10 +1,17 @@
 import {
   ActionParser,
+  actionRef,
+  any,
   buildModulo,
   CaptureParser,
+  charClass,
+  directive,
   Directives,
   EndEdgeParser,
+  eps,
   GrammarParser,
+  id,
+  int,
   LiteralParser,
   MetaContext,
   nullObject,
@@ -18,6 +25,8 @@ import {
   RepetitionParser,
   SemanticAction,
   SequenceParser,
+  stringLit,
+  stringLitDouble,
   TokenParser,
   TweakParser
 } from ".";
@@ -60,29 +69,6 @@ export function createPeg() {
   return peg;
 }
 
-// The preset parsers
-
-export const preset = {
-  eps: new LiteralParser(""),
-  any: new RegExpParser(/./),
-  id: new RegExpParser(/[_a-zA-Z][_a-zA-Z0-9]*/),
-  int: new ActionParser(new RegExpParser(/\d+/), ({ $raw }) => parseInt($raw)),
-  actionRef: new ActionParser(new RegExpParser(/~\d+/), ({ $raw }) =>
-    parseInt($raw.substring(1))
-  ),
-  charClass: new ActionParser(
-    new RegExpParser(/\[(?:[^\\\]]|\\.)*]/),
-    ({ $raw }) => new RegExp($raw)
-  ),
-  string: new ActionParser(new RegExpParser(/'(?:[^\\']|\\.)*'/), ({ $raw }) =>
-    JSON.parse(`"${$raw.substring(1, $raw.length - 1)}"`)
-  ),
-  doubleString: new ActionParser(
-    new RegExpParser(/"(?:[^\\"]|\\.)*"/),
-    ({ $raw }) => JSON.parse($raw)
-  )
-};
-
 // The default directive definitions
 
 export const defaultDirectives: Directives = nullObject({
@@ -101,7 +87,7 @@ export const defaultDirectives: Directives = nullObject({
   test: parser =>
     new OptionsParser([
       new ActionParser(parser, () => true),
-      new ActionParser(preset.eps, () => false)
+      new ActionParser(eps, () => false)
     ])
 } as Directives);
 
@@ -150,7 +136,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new ActionParser(
       new RepetitionParser(
         new SequenceParser([
-          preset.id,
+          id,
           new ReferenceParser("directives"),
           new LiteralParser(":"),
           new ReferenceParser("options")
@@ -192,7 +178,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new ActionParser(
       new SequenceParser([
         new ReferenceParser("sequence"),
-        new RepetitionParser(preset.actionRef, 0, 1)
+        new RepetitionParser(actionRef, 0, 1)
       ]),
       ({ $options, $match }) => {
         const [sequence, action] = $match.value as [Parser, Array<number>];
@@ -240,10 +226,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         return new ActionParser(
           new SequenceParser([
             new RepetitionParser(
-              new SequenceParser([
-                new PredicateParser(directive, false),
-                preset.any
-              ]),
+              new SequenceParser([new PredicateParser(directive, false), any]),
               0,
               Infinity
             ),
@@ -277,7 +260,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         new RepetitionParser(
           new SequenceParser([
             new LiteralParser("<"),
-            preset.id,
+            id,
             new LiteralParser(">")
           ]),
           0,
@@ -325,9 +308,9 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
             new LiteralParser("*", true),
             new SequenceParser([
               new LiteralParser("{"),
-              preset.int,
+              int,
               new RepetitionParser(
-                new SequenceParser([new LiteralParser(","), preset.int]),
+                new SequenceParser([new LiteralParser(","), int]),
                 0,
                 1
               ),
@@ -361,18 +344,18 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     "primary",
     new OptionsParser([
       new ActionParser(
-        preset.string,
+        stringLit,
         ({ $match }) => new LiteralParser($match.value)
       ),
       new ActionParser(
-        preset.doubleString,
-        ({ $match }) => new LiteralParser($match.value)
+        stringLitDouble,
+        ({ $match }) => new LiteralParser($match.value, true)
       ),
       new ActionParser(
-        preset.charClass,
+        charClass,
         ({ $match }) => new RegExpParser($match.value)
       ),
-      new ActionParser(preset.int, ({ $match, $options }) => {
+      new ActionParser(int, ({ $match, $options }) => {
         const arg = ($options.context as MetaContext).args[
           $match.value
         ] as Exclude<PegTemplateArg, SemanticAction>;
@@ -382,7 +365,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
       }),
       new ActionParser(
         new SequenceParser([
-          preset.id,
+          id,
           new PredicateParser(
             new SequenceParser([
               new ReferenceParser("directives"),
@@ -401,25 +384,12 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         ]),
         ({ parser }) => parser
       ),
-      new ActionParser(new LiteralParser("."), () => preset.any),
+      new ActionParser(new LiteralParser("."), () => any),
       new ActionParser(new LiteralParser("$"), () => new EndEdgeParser()),
-      new ActionParser(new LiteralParser("ε"), () => preset.eps)
+      new ActionParser(new LiteralParser("ε"), () => eps)
     ])
   ],
-  [
-    "directives",
-    new RepetitionParser(
-      new TokenParser(
-        new ActionParser(
-          new SequenceParser([new LiteralParser("@"), preset.id]),
-          ({ $match }) => $match.value[0]
-        ),
-        "directive"
-      ),
-      0,
-      Infinity
-    )
-  ]
+  ["directives", new RepetitionParser(directive, 0, Infinity)]
 ]);
 
 // Default peg tag :

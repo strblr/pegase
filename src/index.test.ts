@@ -1,29 +1,48 @@
-import { LiteralParser, PredicateParser, RegExpParser } from ".";
+import { peg } from ".";
 
 function show(entity: any) {
-  console.log(JSON.stringify(entity, null, 2));
+  console.log(
+    JSON.stringify(
+      entity,
+      (_, val) => {
+        if (val instanceof Map) return [...val.entries()];
+        if (val instanceof RegExp) return val.toString();
+        if (val instanceof Function) return val.toString();
+        if (val === Infinity) return "Infinity";
+        return val;
+      },
+      2
+    )
+  );
 }
-
-test("First test", () => {
-  const a = new LiteralParser("a", true);
-  const b = new LiteralParser("b");
-  const c = new RegExpParser(/(?<capt>c)/);
-  const p = new PredicateParser(a, false);
-  show(p.parse("   b c "));
-});
-
 /*
-test("Modulos in grammars should work", () => {
-  const grammar = peg`("1" % ',' @count) % '|' $`;
+test("First test", () => {
+  try {
+    const p = peg`'a' % ','`;
+    show(p);
+    show(p.parse("a ,  a,a,  a  ,a"));
+  } catch (result) {
+    show(result);
+  }
+});*/
 
-  const finalCount = [3, 5, 1, 2];
-  expect(grammar.parse(" 1, 2, 1 | 1").match).toBe(null);
+test("Modulos in grammars should work", () => {
+  try {
+    const p = peg`("1")`;
+
+    const finalCount = [3, 5, 1, 2];
+    show(p.parse(" 1, 2, 1 | 1"));
+  } catch (result) {
+    show(result);
+  }
+  /*expect(grammar.parse(" 1, 2, 1 | 1").match).toBe(null);
   expect(grammar.parse("  1 ,1,1 |1,1,  1,1|1 |1,1   ").match).not.toBe(null);
   expect(
     grammar.parse("1 ,1,1 |1,1, 1  ,   1,1|1 |   1,1 ").match.children
-  ).toEqual(finalCount);
+  ).toEqual(finalCount);*/
 });
 
+/*
 test("Predicates should work correctly", () => {
   const { A } = peg`
     A: &B "1" $

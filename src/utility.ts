@@ -1,7 +1,6 @@
 import {
   ActionParser,
   Directives,
-  FailureInternals,
   FailureType,
   GrammarParser,
   Internals,
@@ -27,7 +26,9 @@ export function skip(options: ParseOptions, internals: Internals) {
 
 // mergeFailures
 
-export function mergeFailures(internals: FailureInternals) {
+export function mergeFailures(
+  internals: Pick<Internals, "failures" | "committedFailures">
+) {
   return [
     ...internals.committedFailures,
     ...(internals.failures.length === 0

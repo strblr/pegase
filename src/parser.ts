@@ -9,7 +9,8 @@ import {
   ParseOptions,
   Result,
   SemanticAction,
-  skip
+  skip,
+  TraceEvent
 } from ".";
 
 /** The parser inheritance structure
@@ -180,6 +181,7 @@ export class ReferenceParser extends Parser {
   }
 
   exec(options: ParseOptions, internals: Internals) {
+    options.tracer?.(TraceEvent.Entered, this.label);
     const parser = (options.grammar as GrammarParser | undefined)?.rules.get(
       this.label
     );
@@ -188,7 +190,11 @@ export class ReferenceParser extends Parser {
         `Couldn't resolve rule "${this.label}". You need to define it or merge it from another grammar.`
       );
     const match = parser.exec(options, internals);
-    if (match === null) return null;
+    if (match === null) {
+      options.tracer?.(TraceEvent.Failed, this.label);
+      return null;
+    }
+    options.tracer?.(TraceEvent.Matched, this.label);
     return {
       ...match,
       captures: nullObject({ [this.label]: match.value })
@@ -277,13 +283,13 @@ export class TokenParser extends Parser {
   exec(options: ParseOptions, internals: Internals) {
     const from = skip(options, internals);
     if (from === null) return null;
-    const failureInternals = {
+    const subInternals = {
       failures: [],
       committedFailures: []
     };
     const match = this.parser.exec(
       { ...options, from, skip: false },
-      { ...internals, ...failureInternals }
+      { ...internals, ...subInternals }
     );
     if (match) return match;
     internals.failures.push({
@@ -294,7 +300,7 @@ export class TokenParser extends Parser {
         {
           type: ExpectationType.Token,
           alias: this.alias,
-          failures: mergeFailures(failureInternals)
+          failures: mergeFailures(subInternals)
         }
       ]
     });
@@ -355,13 +361,13 @@ export class PredicateParser extends Parser {
   }
 
   exec(options: ParseOptions, internals: Internals) {
-    const failureInternals = {
+    const subInternals = {
       failures: [],
       committedFailures: []
     };
     const match = this.parser.exec(options, {
       ...internals,
-      ...failureInternals
+      ...subInternals
     });
     const success = () => ({
       from: options.from,
@@ -370,8 +376,8 @@ export class PredicateParser extends Parser {
       captures: nullObject()
     });
     if (this.polarity) {
-      internals.failures.push(...failureInternals.failures);
-      internals.committedFailures.push(...failureInternals.committedFailures);
+      internals.failures.push(...subInternals.failures);
+      internals.committedFailures.push(...subInternals.committedFailures);
       if (!match) return null;
       return success();
     }
