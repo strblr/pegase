@@ -28,7 +28,7 @@ export function createPeg() {
   function peg<Value = any, Context = any>(
     chunks: TemplateStringsArray,
     ...args: Array<PegTemplateArg<Context>>
-  ) {
+  ): Parser<Value, Context> {
     const raw = chunks.reduce((acc, chunk, index) => {
       const arg = args[index - 1];
       let ref: string;
@@ -49,7 +49,7 @@ export function createPeg() {
       context: { directives: peg.directives, args }
     });
     if (!result.success) throw result;
-    return result.value as Parser<Value, Context>;
+    return result.value;
   }
 
   peg.directives = nullObject(defaultDirectives) as Directives;

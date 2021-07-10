@@ -1,12 +1,15 @@
-import { RegExpParser } from ".";
+import { LiteralParser, PredicateParser, RegExpParser } from ".";
 
 function show(entity: any) {
   console.log(JSON.stringify(entity, null, 2));
 }
 
 test("First test", () => {
-  const p = new RegExpParser(/a+/);
-  show(p.parse("   b aaaa a "));
+  const a = new LiteralParser("a", true);
+  const b = new LiteralParser("b");
+  const c = new RegExpParser(/(?<capt>c)/);
+  const p = new PredicateParser(a, false);
+  show(p.parse("   b c "));
 });
 
 /*
