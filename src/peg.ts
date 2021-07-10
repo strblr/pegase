@@ -181,7 +181,10 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         new ReferenceParser("action"),
         new OptionsParser([new LiteralParser("|"), new LiteralParser("/")])
       ),
-      ({ $match }) => new OptionsParser($match.value)
+      ({ $match }) =>
+        $match.value.length === 1
+          ? $match.value[0]
+          : new OptionsParser($match.value)
     )
   ],
   [
@@ -208,7 +211,10 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     "sequence",
     new ActionParser(
       new RepetitionParser(new ReferenceParser("modulo"), 1, Infinity),
-      ({ $match }) => new SequenceParser($match.value)
+      ({ $match }) =>
+        $match.value.length === 1
+          ? $match.value[0]
+          : new SequenceParser($match.value)
     )
   ],
   [
