@@ -43,7 +43,7 @@ export function createPeg() {
         throw new Error(
           `Invalid tag argument. It should be a function (semantic action), a string, a RegExp or a Parser instance.`
         );
-      return `${acc}${ref}${chunk}`;
+      return acc + ref + chunk;
     });
     const result = metagrammar.parse(raw, {
       context: { directives: peg.directives, args }
@@ -65,7 +65,7 @@ export function createPeg() {
 export const preset = {
   eps: new LiteralParser(""),
   any: new RegExpParser(/./),
-  id: new RegExpParser(/[$_a-zA-Z][$_a-zA-Z0-9]*/),
+  id: new RegExpParser(/[_a-zA-Z][_a-zA-Z0-9]*/),
   int: new ActionParser(new RegExpParser(/\d+/), ({ $raw }) => parseInt($raw)),
   actionRef: new ActionParser(new RegExpParser(/~\d+/), ({ $raw }) =>
     parseInt($raw.substring(1))
@@ -93,10 +93,10 @@ export const defaultDirectives: Directives = nullObject({
   noskip: parser => new TweakParser(parser, { skip: false }),
   case: parser => new TweakParser(parser, { ignoreCase: false }),
   nocase: parser => new TweakParser(parser, { ignoreCase: true }),
-  index: parser => new ActionParser(parser, ({ $from }) => $from),
+  index: parser => new ActionParser(parser, ({ $match }) => $match.from),
   count: parser =>
-    new ActionParser(parser, ({ $value }) =>
-      Array.isArray($value) ? $value.length : -1
+    new ActionParser(parser, ({ $match }) =>
+      Array.isArray($match.value) ? $match.value.length : -1
     ),
   test: parser =>
     new OptionsParser([
@@ -142,7 +142,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         ]),
         new EndEdgeParser()
       ]),
-      ({ $value: [parser] }) => parser
+      ({ $match }) => $match.value[0]
     )
   ],
   [
@@ -207,8 +207,8 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "sequence",
     new ActionParser(
-      new RepetitionParser(new ReferenceParser("sequence"), 1, Infinity),
-      ({ $value }) => new SequenceParser($value)
+      new RepetitionParser(new ReferenceParser("modulo"), 1, Infinity),
+      ({ $match }) => new SequenceParser($match.value)
     )
   ],
   [

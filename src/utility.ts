@@ -17,9 +17,9 @@ export function extendFlags(regExp: RegExp, flags: string) {
   return new RegExp(regExp, [...new Set([...regExp.flags, ...flags])].join(""));
 }
 
-// preskip
+// skip
 
-export function preskip(options: ParseOptions, internals: Internals) {
+export function skip(options: ParseOptions, internals: Internals) {
   if (!options.skip) return options.from;
   const match = options.skipper.exec({ ...options, skip: false }, internals);
   return match && match.to;

@@ -1,16 +1,15 @@
 import {
   ExpectationType,
   extendFlags,
-  FailureInternals,
   FailureType,
   Internals,
   Match,
   mergeFailures,
   nullObject,
   ParseOptions,
-  preskip,
   Result,
-  SemanticAction
+  SemanticAction,
+  skip
 } from ".";
 
 /** The parser inheritance structure
@@ -86,7 +85,7 @@ export class LiteralParser extends Parser {
   }
 
   exec(options: ParseOptions, internals: Internals) {
-    const from = preskip(options, internals);
+    const from = skip(options, internals);
     if (from === null) return null;
     const to = from + this.literal.length;
     const raw = options.input.substring(from, to);
@@ -125,7 +124,7 @@ export class RegExpParser extends Parser {
   }
 
   exec(options: ParseOptions, internals: Internals) {
-    const from = preskip(options, internals);
+    const from = skip(options, internals);
     if (from === null) return null;
     const regExp = options.ignoreCase ? this.withoutCase : this.withCase;
     regExp.lastIndex = from;
@@ -151,7 +150,7 @@ export class RegExpParser extends Parser {
 
 export class EndEdgeParser extends Parser {
   exec(options: ParseOptions, internals: Internals) {
-    const from = preskip(options, internals);
+    const from = skip(options, internals);
     if (from === null) return null;
     if (from === options.input.length)
       return {
@@ -181,9 +180,9 @@ export class ReferenceParser extends Parser {
   }
 
   exec(options: ParseOptions, internals: Internals) {
-    const parser: Parser | undefined = (options.grammar as
-      | GrammarParser
-      | undefined)?.rules.get(this.label);
+    const parser = (options.grammar as GrammarParser | undefined)?.rules.get(
+      this.label
+    );
     if (!parser)
       throw new Error(
         `Couldn't resolve rule "${this.label}". You need to define it or merge it from another grammar.`
@@ -276,9 +275,9 @@ export class TokenParser extends Parser {
   }
 
   exec(options: ParseOptions, internals: Internals) {
-    const from = preskip(options, internals);
+    const from = skip(options, internals);
     if (from === null) return null;
-    const failureInternals: FailureInternals = {
+    const failureInternals = {
       failures: [],
       committedFailures: []
     };
@@ -356,7 +355,7 @@ export class PredicateParser extends Parser {
   }
 
   exec(options: ParseOptions, internals: Internals) {
-    const failureInternals: FailureInternals = {
+    const failureInternals = {
       failures: [],
       committedFailures: []
     };
