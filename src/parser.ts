@@ -1,11 +1,11 @@
 import {
-  collapseFailures,
   ExpectationType,
   extendFlags,
-  Failure,
+  FailureInternals,
   FailureType,
   Internals,
   Match,
+  mergeFailures,
   nullObject,
   ParseOptions,
   preskip,
@@ -67,10 +67,7 @@ export abstract class Parser<Value = any, Context = any> {
           }
         : {
             success: false,
-            failures: [
-              ...internals.committedFailures,
-              ...collapseFailures(internals.failures)
-            ]
+            failures: mergeFailures(internals)
           })
     };
   }
@@ -281,10 +278,13 @@ export class TokenParser extends Parser {
   exec(options: ParseOptions, internals: Internals) {
     const from = preskip(options, internals);
     if (from === null) return null;
-    const failures: Array<Failure> = [];
+    const failureInternals: FailureInternals = {
+      failures: [],
+      committedFailures: []
+    };
     const match = this.parser.exec(
       { ...options, from, skip: false },
-      { ...internals, failures }
+      { ...internals, ...failureInternals }
     );
     if (match) return match;
     internals.failures.push({
@@ -295,7 +295,7 @@ export class TokenParser extends Parser {
         {
           type: ExpectationType.Token,
           alias: this.alias,
-          failure: collapseFailures(failures)[0]
+          failures: mergeFailures(failureInternals)
         }
       ]
     });
@@ -356,8 +356,14 @@ export class PredicateParser extends Parser {
   }
 
   exec(options: ParseOptions, internals: Internals) {
-    const failures: Array<Failure> = [];
-    const match = this.parser.exec(options, { ...internals, failures });
+    const failureInternals: FailureInternals = {
+      failures: [],
+      committedFailures: []
+    };
+    const match = this.parser.exec(options, {
+      ...internals,
+      ...failureInternals
+    });
     const success = () => ({
       from: options.from,
       to: options.from,
@@ -365,7 +371,8 @@ export class PredicateParser extends Parser {
       captures: nullObject()
     });
     if (this.polarity) {
-      internals.failures.push(...failures);
+      internals.failures.push(...failureInternals.failures);
+      internals.committedFailures.push(...failureInternals.committedFailures);
       if (!match) return null;
       return success();
     }
@@ -442,10 +449,8 @@ export class ActionParser extends Parser {
         $options: options,
         $match: match,
         $commit() {
-          internals.committedFailures.push(
-            ...collapseFailures(internals.failures)
-          );
-          internals.failures.length = 0;
+          internals.committedFailures = mergeFailures(internals);
+          internals.failures = [];
         },
         $warn(message: string) {
           internals.warnings.push({ from: match.from, to: match.to, message });

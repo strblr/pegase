@@ -39,8 +39,11 @@ export type ParseOptions<Context = any> = {
   context: Context;
 };
 
-export type Internals = {
+export type Internals = FailureInternals & {
   warnings: Array<Warning>;
+};
+
+export type FailureInternals = {
   failures: Array<Failure>;
   committedFailures: Array<Failure>;
 };
@@ -90,7 +93,7 @@ export type EndEdgeExpectation = {
 export type TokenExpectation = {
   type: ExpectationType.Token;
   alias?: string;
-  failure: Failure;
+  failures: Array<Failure>;
 };
 
 export type MismatchExpectation = {

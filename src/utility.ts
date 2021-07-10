@@ -1,7 +1,7 @@
 import {
   ActionParser,
   Directives,
-  Failure,
+  FailureInternals,
   FailureType,
   GrammarParser,
   Internals,
@@ -27,17 +27,21 @@ export function preskip(options: ParseOptions, internals: Internals) {
 
 // mergeFailures
 
-export function collapseFailures(failures: Array<Failure>) {
-  if (failures.length === 0) return [];
+export function mergeFailures(internals: FailureInternals) {
   return [
-    failures.reduce((failure, current) => {
-      if (current.to > failure.to) return current;
-      if (current.to < failure.to) return failure;
-      if (current.type === FailureType.Semantic) return current;
-      if (failure.type === FailureType.Semantic) return failure;
-      failure.expected.push(...current.expected);
-      return failure;
-    })
+    ...internals.committedFailures,
+    ...(internals.failures.length === 0
+      ? []
+      : [
+          internals.failures.reduce((failure, current) => {
+            if (current.to > failure.to) return current;
+            if (current.to < failure.to) return failure;
+            if (current.type === FailureType.Semantic) return current;
+            if (failure.type === FailureType.Semantic) return failure;
+            failure.expected.push(...current.expected);
+            return failure;
+          })
+        ])
   ];
 }
 
@@ -76,9 +80,12 @@ export function buildModulo(item: Parser, separator: Parser) {
 
 // merge (grammars)
 
-export function merge(...parsers: Array<Parser>) {
+export function merge<Value, Context>(
+  parser: Parser<Value, Context>,
+  ...parsers: Array<Parser<any, Context>>
+): Parser<Value, Context> {
   return new GrammarParser(
-    parsers.reduce<Array<[string, Parser]>>((acc, parser) => {
+    [parser, ...parsers].reduce<Array<[string, Parser]>>((acc, parser) => {
       if (!(parser instanceof GrammarParser))
         throw new Error("You can only merge grammar parsers");
       return [...acc, ...parser.rules.entries()];
