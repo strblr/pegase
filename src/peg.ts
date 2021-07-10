@@ -93,9 +93,10 @@ export const defaultDirectives: Directives = nullObject({
 
 /** The peg metagrammar
  *
- * parser: (grammar | options) $
+ * pegase: parser $
+ * parser: grammar | options
  * grammar: ($identifier directives ':' options)+
- * options: action % ('|' | '/')   => action (('|' | '/') action)*
+ * options: action % ('|' | '/')
  * action: sequence $actionArg?
  * sequence: modulo+
  * modulo: forward % '%'
@@ -119,17 +120,18 @@ export const defaultDirectives: Directives = nullObject({
 
 const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
-    "parser",
+    "pegase",
     new ActionParser(
-      new SequenceParser([
-        new OptionsParser([
-          new ReferenceParser("grammar"),
-          new ReferenceParser("options")
-        ]),
-        new EndEdgeParser()
-      ]),
+      new SequenceParser([new ReferenceParser("parser"), new EndEdgeParser()]),
       ({ $match }) => $match.value[0]
     )
+  ],
+  [
+    "parser",
+    new OptionsParser([
+      new ReferenceParser("grammar"),
+      new ReferenceParser("options")
+    ])
   ],
   [
     "grammar",
