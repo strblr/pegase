@@ -1,4 +1,4 @@
-import { peg } from ".";
+import { peg, SemanticArg } from ".";
 
 function show(entity: any) {
   console.log(
@@ -15,31 +15,33 @@ function show(entity: any) {
     )
   );
 }
-/*
-test("First test", () => {
-  try {
-    const p = peg`'a' % ','`;
-    show(p);
-    show(p.parse("a ,  a,a,  a  ,a"));
-  } catch (result) {
-    show(result);
-  }
-});*/
 
 test("Modulos in grammars should work", () => {
-  try {
-    const p = peg`("1")`;
+  const p = peg`("1" % ',') @count % '|'`;
+  expect(p.parse(" 2, 1, 1 | 1").success).toBe(false);
+  expect(p.parse("  1 ,1,1 |1,1,  1,1|1 |1,1   ").success).toBe(true);
+  expect(p.parse("1 ,1,1 |1,1, 1  ,   1,1|1 |   1,1 ").value).toEqual([
+    3,
+    5,
+    1,
+    2
+  ]);
+});
 
-    const finalCount = [3, 5, 1, 2];
-    show(p.parse(" 1, 2, 1 | 1"));
-  } catch (result) {
-    show(result);
-  }
-  /*expect(grammar.parse(" 1, 2, 1 | 1").match).toBe(null);
-  expect(grammar.parse("  1 ,1,1 |1,1,  1,1|1 |1,1   ").match).not.toBe(null);
-  expect(
-    grammar.parse("1 ,1,1 |1,1, 1  ,   1,1|1 |   1,1 ").match.children
-  ).toEqual(finalCount);*/
+test("Prefix math expressions should be correctly converted to postfix", () => {
+  const p = peg`
+    expr:
+      operator <e1>expr <e2>expr ${({ operator, e1, e2 }) =>
+        [e1, e2, operator].join(" ")}
+    | number
+    
+    operator:
+      "+" | "-" | "*" | "/"
+      
+    number @raw @token:
+      [0-9]+
+  `;
+  expect(p.parse("+ - 1 25 * / 369 4 5").value).toBe("1 25 - 369 4 / 5 * +");
 });
 
 /*
@@ -75,21 +77,10 @@ test("Case directives should be respected", () => {
   expect(g2.test.value("tEsT")).toBe(true);
   expect(g2.test.value("tEsTT")).toBe(false);
 });
-
-test("Prefix math expressions should be correctly converted to postfix", () => {
-  const { expr } = peg`
-    expr:
-      operator expr expr ${([op, a, b]) => [a, b, op].join(" ")}
-    | number @token @raw 
-    
-    operator: "+" | "-" | "*" | "/"
-    number: [0-9]+
-  `;
-  expect(expr.value("+ - 1 2 * / 3 4 5")).toBe("1 2 - 3 4 / 5 * +");
-});
+*/
 
 test("Math expressions should be correctly calculated", () => {
-  function doop(left, op, right) {
+  function doop(left: number, op: string, right: number) {
     switch (op) {
       case "+":
         return left + right;
@@ -102,69 +93,70 @@ test("Math expressions should be correctly calculated", () => {
     }
   }
 
-  const fold = children =>
-    children.reduce((acc, op, index) =>
-      index % 2 ? doop(acc, op, children[index + 1]) : acc
+  const fold = ({ $match }: SemanticArg) =>
+    ($match.value as Array<any>).reduce((acc, op, index) =>
+      index % 2 ? doop(acc, op, $match.value[index + 1]) : acc
     );
 
-  const { calc } = peg`
-    calc: expr $
+  const calc = peg`
+    calc: expr $ ${({ expr }) => expr}
     expr: term % ("+" | "-") ${fold}
     term: fact % ("*" | "/") ${fold}
-    fact: num | '(' expr ')'
+    fact: num | '(' expr ')' ${({ expr }) => expr}
     num @token:
-      '-'? [0-9]+ ('.' [0-9]*)? ${[parseFloat]}
+      '-'? [0-9]+ ('.' [0-9]*)? ${({ $raw }) => parseFloat($raw)}
   `;
 
-  expect(calc.value("2 + 3")).toBe(5);
-  expect(calc.value("2 * 3")).toBe(6);
-  expect(calc.value("2 * -3")).toBe(-6);
-  expect(calc.value("89")).toBe(89);
-  expect(calc.value("2.53")).toBe(2.53);
-  expect(calc.value("-1.2")).toBe(-1.2);
-  expect(() => calc.value("")).toThrow();
-  expect(() => calc.value("1 +")).toThrow();
-  expect(() => calc.children("(1 +")).toThrow();
-  expect(calc.value("   12        -  8   ")).toBe(4);
-  expect(calc.value("142        -9   ")).toBe(133);
-  expect(calc.value("72+  15")).toBe(87);
-  expect(calc.value(" 12*  4")).toBe(48);
-  expect(calc.value(" 50/10 ")).toBe(5);
-  expect(calc.value("2.53")).toBe(2.53);
-  expect(calc.value("4*2.5 + 8.5+1.5 / 3.0")).toBe(19);
-  expect(calc.value("5.0005 + 0.0095")).toBe(5.01);
-  expect(calc.value("67+2")).toBe(69);
-  expect(calc.value(" 2-7")).toBe(-5);
-  expect(calc.value("5*7")).toBe(35);
-  expect(calc.value("8/4")).toBe(2);
-  expect(calc.value("2 -4 +6 -1 -1- 0 +8")).toBe(10);
-  expect(calc.value("1 -1   + 2   - 2   +  4 - 4 +    6")).toBe(6);
-  expect(calc.value(" 2*3 - 4*5 + 6/3 ")).toBe(-12);
-  expect(calc.value("2*3*4/8 -   5/2*4 +  6 + 0/3   ")).toBe(-1);
-  expect(calc.value("10/4")).toBe(2.5);
-  expect(calc.value("5/3")).toBeCloseTo(1.66666);
-  expect(calc.value("3 + 8/5 -1 -2*5")).toBeCloseTo(-6.4);
-  expect(() => calc.value("  6  + c")).toThrow();
-  expect(() => calc.value("  7 & 2")).toThrow();
-  expect(() => calc.value(" %  ")).toThrow();
-  expect(() => calc.value(" 5 + + 6")).toThrow();
-  expect(calc.value("5/0")).toBe(Infinity);
-  expect(calc.value("(2)")).toBe(2);
-  expect(calc.value("(5 + 2*3 - 1 + 7 * 8)")).toBe(66);
-  expect(calc.value("(67 + 2 * 3 - 67 + 2/1 - 7)")).toBe(1);
-  expect(calc.value("(2) + (17*2-30) * (5)+2 - (8/2)*4")).toBe(8);
-  expect(calc.value("(5*7/5) + (23) - 5 * (98-4)/(6*7-42)")).toBe(-Infinity);
-  expect(calc.value("(((((5)))))")).toBe(5);
-  expect(calc.value("(( ((2)) + 4))*((5))")).toBe(30);
-  expect(calc.value("(( ((2)) + 4))*((5)  -1) ")).toBe(24);
-  expect(() => calc.value("2 + (5 * 2")).toThrow();
-  expect(() => calc.value("(((((4))))")).toThrow();
-  expect(() => calc.value("((((4)))))")).toThrow();
-  expect(() => calc.value("((2)) * ((3")).toThrow();
+  expect(calc.parse("2 + 3").value).toBe(5);
+  expect(calc.parse("2 * 3").value).toBe(6);
+  expect(calc.parse("2 * -3").value).toBe(-6);
+  expect(calc.parse("89").value).toBe(89);
+  expect(calc.parse("2.53").value).toBe(2.53);
+  expect(calc.parse("-1.2").value).toBe(-1.2);
+  expect(calc.parse("").success).toBe(false);
+  expect(calc.parse("1 +").success).toBe(false);
+  expect(calc.parse("(1 +").success).toBe(false);
+  expect(calc.parse("   12        -  8   ").value).toBe(4);
+  expect(calc.parse("142        -9   ").value).toBe(133);
+  expect(calc.parse("72+  15").value).toBe(87);
+  expect(calc.parse(" 12*  4").value).toBe(48);
+  expect(calc.parse(" 50/10 ").value).toBe(5);
+  expect(calc.parse("2.53").value).toBe(2.53);
+  expect(calc.parse("4*2.5 + 8.5+1.5 / 3.0").value).toBe(19);
+  expect(calc.parse("5.0005 + 0.0095").value).toBe(5.01);
+  expect(calc.parse("67+2").value).toBe(69);
+  expect(calc.parse(" 2-7").value).toBe(-5);
+  expect(calc.parse("5*7").value).toBe(35);
+  expect(calc.parse("8/4").value).toBe(2);
+  expect(calc.parse("2 -4 +6 -1 -1- 0 +8").value).toBe(10);
+  expect(calc.parse("1 -1   + 2   - 2   +  4 - 4 +    6").value).toBe(6);
+  expect(calc.parse(" 2*3 - 4*5 + 6/3 ").value).toBe(-12);
+  expect(calc.parse("2*3*4/8 -   5/2*4 +  6 + 0/3   ").value).toBe(-1);
+  expect(calc.parse("10/4").value).toBe(2.5);
+  expect(calc.parse("5/3").value).toBeCloseTo(1.66666);
+  expect(calc.parse("3 + 8/5 -1 -2*5").value).toBeCloseTo(-6.4);
+  /*expect(() => calc.parse("  6  + c")).toThrow();
+  expect(() => calc.parse("  7 & 2")).toThrow();
+  expect(() => calc.parse(" %  ")).toThrow();
+  expect(() => calc.parse(" 5 + + 6")).toThrow();*/
+  expect(calc.parse("5/0").value).toBe(Infinity);
+  expect(calc.parse("(2)").value).toBe(2);
+  expect(calc.parse("(5 + 2*3 - 1 + 7 * 8)").value).toBe(66);
+  expect(calc.parse("(67 + 2 * 3 - 67 + 2/1 - 7)").value).toBe(1);
+  expect(calc.parse("(2) + (17*2-30) * (5)+2 - (8/2)*4").value).toBe(8);
+  expect(calc.parse("(5*7/5) + (23) - 5 * (98-4)/(6*7-42)").value).toBe(
+    -Infinity
+  );
+  expect(calc.parse("(((((5)))))").value).toBe(5);
+  expect(calc.parse("(( ((2)) + 4))*((5))").value).toBe(30);
+  expect(calc.parse("(( ((2)) + 4))*((5)  -1) ").value).toBe(24);
+  /*expect(() => calc.parse("2 + (5 * 2")).toThrow();
+  expect(() => calc.parse("(((((4))))")).toThrow();
+  expect(() => calc.parse("((((4)))))")).toThrow();
+  expect(() => calc.parse("((2)) * ((3")).toThrow();*/
   expect(
-    calc.value(
+    calc.parse(
       " ( (( ( (485.56) -  318.95) *( 486.17/465.96 -  324.49/-122.8 )+ -422.8) * 167.73+-446.4 *-88.31) -271.61/ ( (( 496.31 / ((  -169.3*  453.70) ) )/-52.22 )* (( (-134.9* (-444.1-(( 278.79 * (  -384.5)) ) / (-270.6/  396.89-(  -391.5/150.39-  -422.9 )* -489.2 ) )+-38.02 )) )) )"
-    )
+    ).value
   ).toBeCloseTo(71470.126502);
 });
-*/

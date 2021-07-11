@@ -8,14 +8,16 @@ export type PegTemplateArg<Context = any> =
   | Parser<any, Context>
   | SemanticAction<Context>;
 
-export type SemanticAction<Context = any> = (args: {
+export type SemanticAction<Context = any> = (arg: SemanticArg<Context>) => any;
+
+export type SemanticArg<Context = any> = {
   $raw: string;
   $options: ParseOptions<Context>;
   $match: Match;
   $commit(): void;
   $warn(message: string): void;
   [capture: string]: any;
-}) => any;
+};
 
 export type MetaContext = {
   directives: Directives;
@@ -135,6 +137,8 @@ export type SuccessResult<Value = any> = Match<Value> & {
 
 export type FailResult = {
   success: false;
+  value: undefined;
+  captures: {};
   warnings: Array<Warning>;
   failures: Array<Failure>;
 };

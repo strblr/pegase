@@ -57,19 +57,20 @@ export abstract class Parser<Value = any, Context = any> {
       committedFailures: []
     };
     const match = this.exec(fullOptions, internals);
-    return {
-      warnings: internals.warnings,
-      ...(match
-        ? {
-            ...match,
-            success: true,
-            raw: fullOptions.input.substring(match.from, match.to)
-          }
-        : {
-            success: false,
-            failures: mergeFailures(internals)
-          })
-    };
+    return match
+      ? {
+          ...match,
+          success: true,
+          raw: fullOptions.input.substring(match.from, match.to),
+          warnings: internals.warnings
+        }
+      : {
+          success: false,
+          value: undefined,
+          captures: nullObject(),
+          warnings: internals.warnings,
+          failures: mergeFailures(internals)
+        };
   }
 }
 
