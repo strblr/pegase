@@ -50,9 +50,6 @@ export const stringLitDouble = new TokenParser(
 );
 
 export const directive = new TokenParser(
-  new ActionParser(
-    new SequenceParser([new LiteralParser("@"), id]),
-    ({ $match }) => $match.value[0]
-  ),
+  new SequenceParser([new LiteralParser("@"), id]),
   "directive"
 );

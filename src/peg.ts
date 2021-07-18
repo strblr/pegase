@@ -80,10 +80,10 @@ export const defaultDirectives: Directives = nullObject({
   case: parser => new TweakParser(parser, { ignoreCase: false }),
   nocase: parser => new TweakParser(parser, { ignoreCase: true }),
   index: parser => new ActionParser(parser, ({ $match }) => $match.from),
+  children: parser => new ActionParser(parser, ({ $match }) => $match.children),
+  captures: parser => new ActionParser(parser, ({ $match }) => $match.captures),
   count: parser =>
-    new ActionParser(parser, ({ $match }) =>
-      Array.isArray($match.value) ? $match.value.length : -1
-    ),
+    new ActionParser(parser, ({ $match }) => $match.children.length),
   test: parser =>
     new OptionsParser([
       new ActionParser(parser, () => true),
@@ -121,10 +121,7 @@ export const defaultDirectives: Directives = nullObject({
 const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "pegase",
-    new ActionParser(
-      new SequenceParser([new ReferenceParser("parser"), new EndEdgeParser()]),
-      ({ $match }) => $match.value[0]
-    )
+    new SequenceParser([new ReferenceParser("parser"), new EndEdgeParser()])
   ],
   [
     "parser",
@@ -137,18 +134,21 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     "grammar",
     new ActionParser(
       new RepetitionParser(
-        new SequenceParser([
-          id,
-          new ReferenceParser("directives"),
-          new LiteralParser(":"),
-          new ReferenceParser("options")
-        ]),
+        new ActionParser(
+          new SequenceParser([
+            id,
+            new ReferenceParser("directives"),
+            new LiteralParser(":"),
+            new ReferenceParser("options")
+          ]),
+          ({ $match }) => $match.children
+        ),
         1,
         Infinity
       ),
       ({ $options, $match }) =>
         new GrammarParser(
-          $match.value.map(
+          $match.children.map(
             ([label, directives, parser]: [string, Array<string>, Parser]) => [
               label,
               pipeDirectives(
@@ -170,9 +170,9 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         new OptionsParser([new LiteralParser("|"), new LiteralParser("/")])
       ),
       ({ $match }) =>
-        $match.value.length === 1
-          ? $match.value[0]
-          : new OptionsParser($match.value)
+        $match.children.length === 1
+          ? $match.children[0]
+          : new OptionsParser($match.children)
     )
   ],
   [
@@ -183,14 +183,15 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         new RepetitionParser(actionRef, 0, 1)
       ]),
       ({ $options, $match }) => {
-        const [sequence, action] = $match.value as [Parser, Array<number>];
-        return action.length === 0
+        const [sequence, action] = $match.children as [
+          Parser,
+          number | undefined
+        ];
+        return action === undefined
           ? sequence
           : new ActionParser(
               sequence,
-              ($options.context as MetaContext).args[
-                action[0]
-              ] as SemanticAction
+              ($options.context as MetaContext).args[action] as SemanticAction
             );
       }
     )
@@ -200,9 +201,9 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new ActionParser(
       new RepetitionParser(new ReferenceParser("modulo"), 1, Infinity),
       ({ $match }) =>
-        $match.value.length === 1
-          ? $match.value[0]
-          : new SequenceParser($match.value)
+        $match.children.length === 1
+          ? $match.children[0]
+          : new SequenceParser($match.children)
     )
   ],
   [
@@ -210,7 +211,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new ActionParser(
       buildModulo(new ReferenceParser("forward"), new LiteralParser("%")),
       ({ $match }) =>
-        ($match.value as Array<Parser>).reduce((acc, sep) =>
+        ($match.children as Array<Parser>).reduce((acc, sep) =>
           buildModulo(acc, sep)
         )
     )
@@ -222,9 +223,8 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         new RepetitionParser(new LiteralParser(">>", true), 0, 1),
         new ReferenceParser("directive")
       ]),
-      ({ $match }) => {
-        const [operator, directive] = $match.value as [[] | [">"], Parser];
-        if (operator.length === 0) return directive;
+      ({ directive, $match }) => {
+        if ($match.children.length === 1) return directive;
         return new ActionParser(
           new SequenceParser([
             new RepetitionParser(
@@ -234,7 +234,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
             ),
             directive
           ]),
-          ({ $match }) => $match.value[1]
+          ({ $match }) => $match.children[$match.children.length - 1]
         );
       }
     )
@@ -270,11 +270,10 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         ),
         new ReferenceParser("predicate")
       ]),
-      ({ $match }) => {
-        const [rep, predicate] = $match.value as [[] | [[string]], Parser];
-        if (rep.length === 0) return predicate;
-        return new CaptureParser(predicate, rep[0][0]);
-      }
+      ({ predicate, $match }) =>
+        $match.children.length === 1
+          ? predicate
+          : new CaptureParser(predicate, $match.children[0])
     )
   ],
   [
@@ -291,11 +290,10 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         ),
         new ReferenceParser("repetition")
       ]),
-      ({ $match }) => {
-        const [polarity, repetition] = $match.value as [[] | [string], Parser];
-        if (polarity.length === 0) return repetition;
-        return new PredicateParser(repetition, polarity[0] === "&");
-      }
+      ({ repetition, $match }) =>
+        $match.children.length === 1
+          ? repetition
+          : new PredicateParser(repetition, $match.children[0] === "&")
     )
   ],
   [
@@ -323,44 +321,38 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
           1
         )
       ]),
-      ({ $match }) => {
-        const [primary, quant] = $match.value as [
-          Parser,
-          [] | ["?" | "+" | "*" | [number, [] | [[number]]]]
+      ({ primary, $match }) => {
+        if ($match.children.length === 1) return primary;
+        const [, ...quantifier] = $match.children as [
+          any,
+          ...(["?" | "+" | "*" | number] | [number, number])
         ];
-        if (quant.length === 0) return primary;
-        const op = quant[0];
         const [min, max] =
-          op === "?"
+          quantifier[0] === "?"
             ? [0, 1]
-            : op === "+"
+            : quantifier[0] === "+"
             ? [1, Infinity]
-            : op === "*"
+            : quantifier[0] === "*"
             ? [0, Infinity]
-            : op.flat(2);
-        return new RepetitionParser(primary, min, max ?? min);
+            : [quantifier[0], quantifier[1] ?? quantifier[0]];
+        return new RepetitionParser(primary, min, max);
       }
     )
   ],
   [
     "primary",
     new OptionsParser([
-      new ActionParser(
-        stringLit,
-        ({ $match }) => new LiteralParser($match.value)
-      ),
+      new ActionParser(stringLit, ({ $value }) => new LiteralParser($value)),
       new ActionParser(
         stringLitDouble,
-        ({ $match }) => new LiteralParser($match.value, true)
+        ({ $value }) => new LiteralParser($value, true)
       ),
-      new ActionParser(
-        charClass,
-        ({ $match }) => new RegExpParser($match.value)
-      ),
-      new ActionParser(int, ({ $match, $options }) => {
-        const arg = ($options.context as MetaContext).args[
-          $match.value
-        ] as Exclude<PegTemplateArg, SemanticAction>;
+      new ActionParser(charClass, ({ $value }) => new RegExpParser($value)),
+      new ActionParser(int, ({ $value, $options }) => {
+        const arg = ($options.context as MetaContext).args[$value] as Exclude<
+          PegTemplateArg,
+          SemanticAction
+        >;
         if (typeof arg === "string") return new LiteralParser(arg);
         if (arg instanceof RegExp) return new RegExpParser(arg);
         return arg;
@@ -376,7 +368,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
             false
           )
         ]),
-        ({ $match }) => new ReferenceParser($match.value[0])
+        ({ $value }) => new ReferenceParser($value)
       ),
       new ActionParser(
         new SequenceParser([
@@ -391,7 +383,13 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
       new ActionParser(new LiteralParser("ε"), () => eps)
     ])
   ],
-  ["directives", new RepetitionParser(directive, 0, Infinity)]
+  [
+    "directives",
+    new ActionParser(
+      new RepetitionParser(directive, 0, Infinity),
+      ({ $match }) => $match.children
+    )
+  ]
 ]);
 
 // Default peg tag :

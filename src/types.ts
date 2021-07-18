@@ -11,11 +11,13 @@ export type PegTemplateArg<Context = any> =
 export type SemanticAction<Context = any> = (arg: SemanticArg<Context>) => any;
 
 export type SemanticArg<Context = any> = {
+  $value: any;
   $raw: string;
   $options: ParseOptions<Context>;
   $match: Match;
   $commit(): void;
   $warn(message: string): void;
+  $propagate(children?: Array<any>): void;
   [capture: string]: any;
 };
 
@@ -51,7 +53,7 @@ export enum TraceEvent {
 export type Internals = {
   warnings: Array<Warning>;
   failures: Array<Failure>;
-  committedFailures: Array<Failure>;
+  committed: Array<Failure>;
 };
 
 export type Warning = Range & {
@@ -115,8 +117,8 @@ export enum ExpectationType {
   Mismatch = "MISMATCH"
 }
 
-export type Match<Value = any> = Range & {
-  value: Value;
+export type Match = Range & {
+  children: Array<any>;
   captures: Record<string, any>;
 };
 
@@ -129,8 +131,9 @@ export type Range = {
 
 export type Result<Value = any> = SuccessResult<Value> | FailResult;
 
-export type SuccessResult<Value = any> = Match<Value> & {
+export type SuccessResult<Value = any> = Match & {
   success: true;
+  value: Value;
   raw: string;
   warnings: Array<Warning>;
 };
@@ -138,6 +141,7 @@ export type SuccessResult<Value = any> = Match<Value> & {
 export type FailResult = {
   success: false;
   value: undefined;
+  children: [];
   captures: {};
   warnings: Array<Warning>;
   failures: Array<Failure>;

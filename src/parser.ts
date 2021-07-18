@@ -2,6 +2,7 @@ import {
   ExpectationType,
   extendFlags,
   FailureType,
+  inferValue,
   Internals,
   Match,
   mergeFailures,
@@ -36,7 +37,13 @@ export abstract class Parser<Value = any, Context = any> {
   abstract exec(
     options: ParseOptions<Context>,
     internals: Internals
-  ): Match<Value> | null;
+  ): Match | null;
+
+  value(input: string, options?: Partial<ParseOptions<Context>>) {
+    const result = this.parse(input, options);
+    if (!result.success) throw result;
+    return result.value;
+  }
 
   parse(
     input: string,
@@ -54,19 +61,21 @@ export abstract class Parser<Value = any, Context = any> {
     const internals = {
       warnings: [],
       failures: [],
-      committedFailures: []
+      committed: []
     };
     const match = this.exec(fullOptions, internals);
     return match
       ? {
           ...match,
           success: true,
+          value: inferValue(match.children),
           raw: fullOptions.input.substring(match.from, match.to),
           warnings: internals.warnings
         }
       : {
           success: false,
           value: undefined,
+          children: [],
           captures: nullObject(),
           warnings: internals.warnings,
           failures: mergeFailures(internals)
@@ -98,7 +107,7 @@ export class LiteralParser extends Parser {
       return {
         from,
         to,
-        value: this.emit ? raw : undefined,
+        children: this.emit ? [raw] : [],
         captures: nullObject()
       };
     internals.failures.push({
@@ -135,7 +144,7 @@ export class RegExpParser extends Parser {
       return {
         from,
         to: from + result[0].length,
-        value: result[0],
+        children: [result[0]],
         captures: nullObject(result.groups ?? {})
       };
     internals.failures.push({
@@ -158,7 +167,7 @@ export class EndEdgeParser extends Parser {
       return {
         from,
         to: from,
-        value: undefined,
+        children: [],
         captures: nullObject()
       };
     internals.failures.push({
@@ -198,7 +207,7 @@ export class ReferenceParser extends Parser {
     options.tracer?.(TraceEvent.Matched, this.label);
     return {
       ...match,
-      captures: nullObject({ [this.label]: match.value })
+      captures: nullObject({ [this.label]: inferValue(match.children) })
     };
   }
 }
@@ -244,9 +253,7 @@ export class SequenceParser extends Parser {
     return {
       from: matches[0].from,
       to: from,
-      value: matches
-        .map(match => match.value)
-        .filter(value => value !== undefined),
+      children: matches.map(match => match.children).flat(),
       captures: nullObject(...matches.map(match => match.captures))
     };
   }
@@ -284,10 +291,7 @@ export class TokenParser extends Parser {
   exec(options: ParseOptions, internals: Internals) {
     const from = skip(options, internals);
     if (from === null) return null;
-    const subInternals = {
-      failures: [],
-      committedFailures: []
-    };
+    const subInternals = { failures: [], committed: [] };
     const match = this.parser.exec(
       { ...options, from, skip: false },
       { ...internals, ...subInternals }
@@ -331,9 +335,7 @@ export class RepetitionParser extends Parser {
       ...(matches.length === 0
         ? { from: options.from, to: options.from }
         : { from: matches[0].from, to: matches[matches.length - 1].to }),
-      value: matches
-        .map(match => match.value)
-        .filter(value => value !== undefined),
+      children: matches.map(match => match.children).flat(),
       captures: nullObject(...matches.map(match => match.captures))
     });
     while (true) {
@@ -362,10 +364,7 @@ export class PredicateParser extends Parser {
   }
 
   exec(options: ParseOptions, internals: Internals) {
-    const subInternals = {
-      failures: [],
-      committedFailures: []
-    };
+    const subInternals = { failures: [], committed: [] };
     const match = this.parser.exec(options, {
       ...internals,
       ...subInternals
@@ -373,12 +372,12 @@ export class PredicateParser extends Parser {
     const success = () => ({
       from: options.from,
       to: options.from,
-      value: undefined,
+      children: [],
       captures: nullObject()
     });
     if (this.polarity) {
       internals.failures.push(...subInternals.failures);
-      internals.committedFailures.push(...subInternals.committedFailures);
+      internals.committed.push(...subInternals.committed);
       if (!match) return null;
       return success();
     }
@@ -427,8 +426,9 @@ export class CaptureParser extends Parser {
     if (match === null) return null;
     return {
       ...match,
-      value: undefined,
-      captures: nullObject(match.captures, { [this.name]: match.value })
+      captures: nullObject(match.captures, {
+        [this.name]: inferValue(match.children)
+      })
     };
   }
 }
@@ -449,20 +449,28 @@ export class ActionParser extends Parser {
     const match = this.parser.exec(options, internals);
     if (match === null) return null;
     try {
+      let propagate = undefined;
       const value = this.action({
         ...match.captures,
+        $value: inferValue(match.children),
         $raw: options.input.substring(match.from, match.to),
         $options: options,
         $match: match,
         $commit() {
-          internals.committedFailures = mergeFailures(internals);
+          internals.committed = mergeFailures(internals);
           internals.failures = [];
         },
         $warn(message: string) {
           internals.warnings.push({ from: match.from, to: match.to, message });
+        },
+        $propagate(children: Array<any> = match.children) {
+          propagate = children;
         }
       });
-      return { ...match, value };
+      return {
+        ...match,
+        children: propagate ?? (value === undefined ? [] : [value])
+      };
     } catch (e) {
       if (!(e instanceof Error)) throw e;
       internals.failures.push({

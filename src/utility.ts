@@ -1,5 +1,4 @@
 import {
-  ActionParser,
   Directives,
   FailureType,
   GrammarParser,
@@ -27,10 +26,10 @@ export function skip(options: ParseOptions, internals: Internals) {
 // mergeFailures
 
 export function mergeFailures(
-  internals: Pick<Internals, "failures" | "committedFailures">
+  internals: Pick<Internals, "failures" | "committed">
 ) {
   return [
-    ...internals.committedFailures,
+    ...internals.committed,
     ...(internals.failures.length === 0
       ? []
       : [
@@ -63,20 +62,19 @@ export function pipeDirectives(
   }, parser);
 }
 
+// inferValue
+
+export function inferValue(children: Array<any>) {
+  return children.length === 1 ? children[0] : undefined;
+}
+
 // buildModulo
 
 export function buildModulo(item: Parser, separator: Parser) {
-  return new ActionParser(
-    new SequenceParser([
-      item,
-      new RepetitionParser(new SequenceParser([separator, item]), 0, Infinity)
-    ]),
-    ({ $match }) => {
-      const value = $match.value as Array<any>;
-      if (value.length === 1) return (value[0] as Array<any>).flat();
-      return [value[0], ...(value[1] as Array<any>).flat()];
-    }
-  );
+  return new SequenceParser([
+    item,
+    new RepetitionParser(new SequenceParser([separator, item]), 0, Infinity)
+  ]);
 }
 
 // merge (grammars)
