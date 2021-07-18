@@ -1,4 +1,4 @@
-import { peg, SemanticArg } from ".";
+import { peg, reduceModulo } from ".";
 
 function show(entity: any) {
   console.log(
@@ -93,18 +93,13 @@ test("Math expressions should be correctly calculated", () => {
     }
   }
 
-  const fold = ({ $match }: SemanticArg) =>
-    ($match.children as Array<any>).reduce((acc, op, index) =>
-      index % 2 ? doop(acc, op, $match.children[index + 1]) : acc
-    );
-
   const calc = peg<number>`
     calc: expr $
-    expr: term % ("+" | "-") ${fold}
-    term: fact % ("*" | "/") ${fold}
+    expr: term % ("+" | "-") ${reduceModulo(doop)}
+    term: fact % ("*" | "/") ${reduceModulo(doop)}
     fact: num | '(' expr ')'
-    num @token:
-      '-'? [0-9]+ ('.' [0-9]*)? ${({ $raw }) => parseFloat($raw)}
+    num @number @token:
+      '-'? [0-9]+ ('.' [0-9]*)?
   `;
 
   expect(calc.value("2 + 3")).toBe(5);

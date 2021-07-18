@@ -6,6 +6,7 @@ import {
   ParseOptions,
   Parser,
   RepetitionParser,
+  SemanticArg,
   SequenceParser
 } from ".";
 
@@ -75,6 +76,17 @@ export function buildModulo(item: Parser, separator: Parser) {
     item,
     new RepetitionParser(new SequenceParser([separator, item]), 0, Infinity)
   ]);
+}
+
+// reduceModulo
+
+export function reduceModulo(
+  reducer: (left: any, separator: any, right: any) => any
+) {
+  return ({ $match }: SemanticArg) =>
+    $match.children.reduce((acc, op, index) =>
+      index % 2 ? reducer(acc, op, $match.children[index + 1]) : acc
+    );
 }
 
 // merge (grammars)

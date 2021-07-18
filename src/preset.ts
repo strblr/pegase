@@ -16,13 +16,13 @@ export const id = new TokenParser(
 );
 
 export const int = new TokenParser(
-  new ActionParser(new RegExpParser(/\d+/), ({ $raw }) => parseInt($raw)),
+  new ActionParser(new RegExpParser(/\d+/), ({ $raw }) => Number($raw)),
   "integer"
 );
 
 export const actionRef = new TokenParser(
   new ActionParser(new RegExpParser(/~\d+/), ({ $raw }) =>
-    parseInt($raw.substring(1))
+    Number($raw.substring(1))
   ),
   "semantic action"
 );

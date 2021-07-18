@@ -86,6 +86,7 @@ export const defaultDirectives: Directives = nullObject({
   captures: parser => new ActionParser(parser, ({ $match }) => $match.captures),
   count: parser =>
     new ActionParser(parser, ({ $match }) => $match.children.length),
+  number: parser => new ActionParser(parser, ({ $raw }) => Number($raw)),
   test: parser =>
     new OptionsParser([
       new ActionParser(parser, () => true),
