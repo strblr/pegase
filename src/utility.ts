@@ -91,12 +91,11 @@ export function reduceModulo(
 
 // merge (grammars)
 
-export function merge<Value, Context>(
-  parser: Parser<Value, Context>,
-  ...parsers: Array<Parser<any, Context>>
-): Parser<Value, Context> {
+export function merge<Parsers extends ReadonlyArray<Parser>>(
+  ...parsers: Parsers
+): Parsers[0] {
   return new GrammarParser(
-    [parser, ...parsers].reduce<Array<[string, Parser]>>((acc, parser) => {
+    parsers.reduce<Array<[string, Parser]>>((acc, parser) => {
       if (!(parser instanceof GrammarParser))
         throw new Error("You can only merge grammar parsers");
       return [...acc, ...parser.rules.entries()];
