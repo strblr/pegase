@@ -29,55 +29,29 @@ test("Modulos in grammars should work", () => {
 });
 
 test("Prefix math expressions should be correctly converted to postfix", () => {
-  const p = peg`
+  const g = peg`
     expr:
     | number
-    | operator <e1>expr <e2>expr ${({ operator, e1, e2 }) =>
-      [e1, e2, operator].join(" ")}
-    
+    | operator <first>expr expr ${({ operator, first, expr }) =>
+      [first, expr, operator].join(" ")}
+   
     operator:
       "+" | "-" | "*" | "/"
       
     number @raw @token:
       [0-9]+
   `;
-  expect(p.value("+ - 1 25 * / 369 4 5")).toBe("1 25 - 369 4 / 5 * +");
+  expect(g.value("+ - 1 25 * / 369 4 5")).toBe("1 25 - 369 4 / 5 * +");
 });
 
-/*
-test("Predicates should work correctly", () => {
-  const { A } = peg`
-    A: &B "1" $
-    B: "1" "2" ("3" | "4")
-  `;
-  expect(() => A.value("  1 2 4 ")).toThrow();
+test("The cut operator should work correctly", () => {
+  const g1 = peg`'a' "b" | 'a' "c"`;
+  const g2 = peg`'a' ^ "b" | 'a' "c"`;
+  expect(g1.value("ab")).toBe("b");
+  expect(g2.value("ab")).toBe("b");
+  expect(g1.value("ac")).toBe("c");
+  expect(g2.value("ac")).toBe(undefined);
 });
-
-test("Case directives should be respected", () => {
-  const g1 = peg` 'test' $ `;
-  const g2 = peg` ('test' @nocase) $ `;
-
-  expect(g1.test.value("test")).toBe(true);
-  expect(g1.test.value("TEST")).toBe(false);
-  expect(g1.test.value("tEsT")).toBe(false);
-  expect(g1.test.value("tEsTT")).toBe(false);
-
-  expect(g1.nocase.test.value("test")).toBe(true);
-  expect(g1.nocase.test.value("TEST")).toBe(true);
-  expect(g1.nocase.test.value("tEsT")).toBe(true);
-  expect(g1.nocase.test.value("tEsTT")).toBe(false);
-
-  expect(g1.case.nocase.test.value("test")).toBe(true);
-  expect(g1.case.nocase.test.value("TEST")).toBe(false);
-  expect(g1.case.nocase.test.value("tEsT")).toBe(false);
-  expect(g1.case.nocase.test.value("tEsTT")).toBe(false);
-
-  expect(g2.test.value("test")).toBe(true);
-  expect(g2.test.value("TEST")).toBe(true);
-  expect(g2.test.value("tEsT")).toBe(true);
-  expect(g2.test.value("tEsTT")).toBe(false);
-});
-*/
 
 test("Math expressions should be correctly calculated", () => {
   function doop(left: number, op: string, right: number) {
@@ -130,10 +104,10 @@ test("Math expressions should be correctly calculated", () => {
   expect(calc.value("10/4")).toBe(2.5);
   expect(calc.value("5/3")).toBeCloseTo(1.66666);
   expect(calc.value("3 + 8/5 -1 -2*5")).toBeCloseTo(-6.4);
-  /*expect(() => calc.value("  6  + c")).toThrow();
-  expect(() => calc.value("  7 & 2")).toThrow();
-  expect(() => calc.value(" %  ")).toThrow();
-  expect(() => calc.value(" 5 + + 6")).toThrow();*/
+  expect(calc.value("  6  + c")).toBe(undefined);
+  expect(calc.value("  7 & 2")).toBe(undefined);
+  expect(calc.value(" %  ")).toBe(undefined);
+  expect(calc.value(" 5 + + 6")).toBe(undefined);
   expect(calc.value("5/0")).toBe(Infinity);
   expect(calc.value("(2)")).toBe(2);
   expect(calc.value("(5 + 2*3 - 1 + 7 * 8)")).toBe(66);
@@ -143,10 +117,10 @@ test("Math expressions should be correctly calculated", () => {
   expect(calc.value("(((((5)))))")).toBe(5);
   expect(calc.value("(( ((2)) + 4))*((5))")).toBe(30);
   expect(calc.value("(( ((2)) + 4))*((5)  -1) ")).toBe(24);
-  /*expect(() => calc.value("2 + (5 * 2")).toThrow();
-  expect(() => calc.value("(((((4))))")).toThrow();
-  expect(() => calc.value("((((4)))))")).toThrow();
-  expect(() => calc.value("((2)) * ((3")).toThrow();*/
+  expect(calc.value("2 + (5 * 2")).toBe(undefined);
+  expect(calc.value("(((((4))))")).toBe(undefined);
+  expect(calc.value("((((4)))))")).toBe(undefined);
+  expect(calc.value("((2)) * ((3")).toBe(undefined);
   expect(
     calc.value(
       " ( (( ( (485.56) -  318.95) *( 486.17/465.96 -  324.49/-122.8 )+ -422.8) * 167.73+-446.4 *-88.31) -271.61/ ( (( 496.31 / ((  -169.3*  453.70) ) )/-52.22 )* (( (-134.9* (-444.1-(( 278.79 * (  -384.5)) ) / (-270.6/  396.89-(  -391.5/150.39-  -422.9 )* -489.2 ) )+-38.02 )) )) )"
