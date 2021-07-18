@@ -40,9 +40,7 @@ export abstract class Parser<Value = any, Context = any> {
   ): Match | null;
 
   value(input: string, options?: Partial<ParseOptions<Context>>) {
-    const result = this.parse(input, options);
-    if (!result.success) throw result;
-    return result.value;
+    return this.parse(input, options).value;
   }
 
   parse(
