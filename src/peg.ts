@@ -5,6 +5,7 @@ import {
   buildModulo,
   CaptureParser,
   charClass,
+  CutParser,
   directive,
   Directives,
   EndEdgeParser,
@@ -115,7 +116,7 @@ export const defaultDirectives: Directives = nullObject({
  * | $primaryArg
  * | $identifier !(directives ':')
  * | '(' parser ')'
- * | '.' | '$' | 'ε'
+ * | '.' | '$' | 'ε' | '^'
  *
  * directives: $directive*
  */
@@ -389,7 +390,8 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
       ),
       new ActionParser(new LiteralParser("."), () => any),
       new ActionParser(new LiteralParser("$"), () => new EndEdgeParser()),
-      new ActionParser(new LiteralParser("ε"), () => eps)
+      new ActionParser(new LiteralParser("ε"), () => eps),
+      new ActionParser(new LiteralParser("^"), () => new CutParser())
     ])
   ],
   [

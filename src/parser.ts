@@ -57,6 +57,7 @@ export abstract class Parser<Value = any, Context = any> {
       ...options
     };
     const internals = {
+      cut: { active: false },
       warnings: [],
       failures: [],
       committed: []
@@ -223,6 +224,20 @@ export class ReferenceParser extends Parser {
   }
 }
 
+// CutParser
+
+export class CutParser extends Parser {
+  exec(options: ParseOptions, internals: Internals) {
+    internals.cut.active = true;
+    return {
+      from: options.from,
+      to: options.from,
+      children: [],
+      captures: nullObject()
+    };
+  }
+}
+
 // OptionsParser
 
 export class OptionsParser extends Parser {
@@ -234,9 +249,11 @@ export class OptionsParser extends Parser {
   }
 
   exec(options: ParseOptions, internals: Internals) {
+    const cut = { active: false };
     for (const parser of this.parsers) {
-      const match = parser.exec(options, internals);
+      const match = parser.exec(options, { ...internals, cut });
       if (match) return match;
+      if (cut.active) break;
     }
     return null;
   }

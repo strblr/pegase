@@ -73,6 +73,7 @@ export type TraceCommon<Context = any> = {
 };
 
 export type Internals = {
+  cut: { active: boolean };
   warnings: Array<Warning>;
   failures: Array<Failure>;
   committed: Array<Failure>;
