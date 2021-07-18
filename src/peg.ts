@@ -17,6 +17,7 @@ import {
   nullObject,
   OptionsParser,
   Parser,
+  pegSkipper,
   PegTemplateArg,
   pipeDirectives,
   PredicateParser,
@@ -55,6 +56,7 @@ export function createPeg() {
       return acc + ref + chunk;
     });
     const result = metagrammar.parse(raw, {
+      skipper: pegSkipper,
       context: { directives: peg.directives, args }
     });
     if (!result.success) throw result;

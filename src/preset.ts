@@ -53,3 +53,7 @@ export const directive = new TokenParser(
   new SequenceParser([new LiteralParser("@"), id]),
   "directive"
 );
+
+export const pegSkipper = new RegExpParser(
+  /(?:\s|#[^#\r\n]*(?:#|\r\n|\r|\n))*/
+);
