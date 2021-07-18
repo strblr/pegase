@@ -19,7 +19,7 @@ import {
  * Parser
  * | LiteralParser
  * | RegExpParser
- * | EndEdgeParser
+ * | EndAnchorParser
  * | ReferenceParser
  * | OptionsParser
  * | SequenceParser
@@ -156,9 +156,9 @@ export class RegExpParser extends Parser {
   }
 }
 
-// EndEdgeParser
+// EndAnchorParser
 
-export class EndEdgeParser extends Parser {
+export class EndAnchorParser extends Parser {
   exec(options: ParseOptions, internals: Internals) {
     const from = skip(options, internals);
     if (from === null) return null;

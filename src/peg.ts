@@ -8,7 +8,7 @@ import {
   CutParser,
   directive,
   Directives,
-  EndEdgeParser,
+  EndAnchorParser,
   eps,
   GrammarParser,
   id,
@@ -124,7 +124,7 @@ export const defaultDirectives: Directives = nullObject({
 const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "pegase",
-    new SequenceParser([new ReferenceParser("parser"), new EndEdgeParser()])
+    new SequenceParser([new ReferenceParser("parser"), new EndAnchorParser()])
   ],
   [
     "parser",
@@ -389,7 +389,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         ({ parser }) => parser
       ),
       new ActionParser(new LiteralParser("."), () => any),
-      new ActionParser(new LiteralParser("$"), () => new EndEdgeParser()),
+      new ActionParser(new LiteralParser("$"), () => new EndAnchorParser()),
       new ActionParser(new LiteralParser("ε"), () => eps),
       new ActionParser(new LiteralParser("^"), () => new CutParser())
     ])
