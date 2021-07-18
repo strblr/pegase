@@ -19,7 +19,6 @@ import {
  * Parser
  * | LiteralParser
  * | RegExpParser
- * | EndAnchorParser
  * | ReferenceParser
  * | OptionsParser
  * | SequenceParser
@@ -153,29 +152,6 @@ export class RegExpParser extends Parser {
       expected: [{ type: ExpectationType.RegExp, regExp: this.regExp }]
     });
     return result;
-  }
-}
-
-// EndAnchorParser
-
-export class EndAnchorParser extends Parser {
-  exec(options: ParseOptions, internals: Internals) {
-    const from = skip(options, internals);
-    if (from === null) return null;
-    if (from === options.input.length)
-      return {
-        from,
-        to: from,
-        children: [],
-        captures: nullObject()
-      };
-    internals.failures.push({
-      from,
-      to: from,
-      type: FailureType.Expectation,
-      expected: [{ type: ExpectationType.EndEdge }]
-    });
-    return null;
   }
 }
 

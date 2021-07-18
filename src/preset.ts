@@ -1,14 +1,20 @@
 import {
   ActionParser,
   LiteralParser,
+  PredicateParser,
   RegExpParser,
   SequenceParser,
   TokenParser
-} from "./parser";
+} from ".";
 
 export const eps = new LiteralParser("");
 
 export const any = new RegExpParser(/./);
+
+export const endAnchor = new TokenParser(
+  new PredicateParser(any, false),
+  "end of input"
+);
 
 export const id = new TokenParser(
   new RegExpParser(/[_a-zA-Z][_a-zA-Z0-9]*/),
