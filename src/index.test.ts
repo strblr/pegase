@@ -17,7 +17,7 @@ function show(entity: any) {
 }
 
 test("Modulos in grammars should work", () => {
-  const p = peg`("1" % ',') @count % '|'`;
+  const p = peg`("1" % ',' @count) % '|'`;
   expect(p.parse(" 2, 1, 1 | 1").success).toBe(false);
   expect(p.parse("  1 ,1,1 |1,1,  1,1|1 |1,1   ").success).toBe(true);
   expect(p.parse("1 ,1,1 |1,1, 1  ,   1,1|1 |   1,1 ").children).toEqual([

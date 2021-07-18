@@ -101,11 +101,11 @@ export const defaultDirectives: Directives = nullObject({
  * parser: grammar | options
  * grammar: ($identifier directives ':' options)+
  * options: ('|' | '/')? action % ('|' | '/')
- * action: sequence $actionArg?
+ * action: directive $actionArg?
+ * directive: sequence directives
  * sequence: modulo+
  * modulo: forward % '%'
- * forward: '>>'? directive
- * directive: capture directives
+ * forward: '...'? capture
  * capture: ('<' $identifier '>')? predicate
  * predicate: ('&' | '!')? repetition
  * repetition: primary ('?' | '+' | '*' | '{' $integer (',' $integer)? '}')?
@@ -120,6 +120,22 @@ export const defaultDirectives: Directives = nullObject({
  *
  * directives: $directive*
  */
+
+const a = `
+  
+  # Forward ?
+  
+  ...'a' 'b'   should be (...'a') 'b'   thus sequence > forward
+  ...'a' % 'b' should be (...'a') % 'b' thus modulo > forward
+  ...!'a'      should be ...(!'a')      thus forward > predicate
+  ...<name>'a' should be ...(<name>'a') thus forward > capture
+  <name>...'a' should NOT BE POSSIBLE
+  
+  # Capture ?
+  
+  <name>'a' @raw should be <name>('a' @raw) thus capture > directive
+  <name>'a' % 'b' 
+`;
 
 const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   ["pegase", new SequenceParser([new ReferenceParser("parser"), endAnchor])],
@@ -186,20 +202,33 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     "action",
     new ActionParser(
       new SequenceParser([
-        new ReferenceParser("sequence"),
+        new ReferenceParser("directive"),
         new RepetitionParser(actionRef, 0, 1)
       ]),
-      ({ $options, $match }) => {
-        const [sequence, action] = $match.children as [
-          Parser,
-          number | undefined
-        ];
+      ({ directive, $options, $match }) => {
+        const action: number | undefined = $match.children[1];
         return action === undefined
-          ? sequence
+          ? directive
           : new ActionParser(
-              sequence,
+              directive,
               ($options.context as MetaContext).args[action] as SemanticAction
             );
+      }
+    )
+  ],
+  [
+    "directive",
+    new ActionParser(
+      new SequenceParser([
+        new ReferenceParser("sequence"),
+        new ReferenceParser("directives")
+      ]),
+      ({ sequence, directives, $options }) => {
+        return pipeDirectives(
+          ($options.context as MetaContext).directives,
+          sequence,
+          directives
+        );
       }
     )
   ],
@@ -227,37 +256,21 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     "forward",
     new ActionParser(
       new SequenceParser([
-        new RepetitionParser(new LiteralParser(">>", true), 0, 1),
-        new ReferenceParser("directive")
+        new RepetitionParser(new LiteralParser("...", true), 0, 1),
+        new ReferenceParser("capture")
       ]),
-      ({ directive, $match }) => {
-        if ($match.children.length === 1) return directive;
+      ({ capture, $match }) => {
+        if ($match.children.length === 1) return capture;
         return new ActionParser(
           new SequenceParser([
             new RepetitionParser(
-              new SequenceParser([new PredicateParser(directive, false), any]),
+              new SequenceParser([new PredicateParser(capture, false), any]),
               0,
               Infinity
             ),
-            directive
+            capture
           ]),
           ({ $match }) => $match.children[$match.children.length - 1]
-        );
-      }
-    )
-  ],
-  [
-    "directive",
-    new ActionParser(
-      new SequenceParser([
-        new ReferenceParser("capture"),
-        new ReferenceParser("directives")
-      ]),
-      ({ capture, directives, $options }) => {
-        return pipeDirectives(
-          ($options.context as MetaContext).directives,
-          capture,
-          directives
         );
       }
     )
