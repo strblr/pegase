@@ -26,10 +26,9 @@ export type MetaContext = {
   args: Array<PegTemplateArg>;
 };
 
-export type Directives = Record<
-  string,
-  (parser: Parser, rule?: string) => Parser
->;
+export type Directives = Record<string, Directive>;
+
+export type Directive = (parser: Parser, rule?: string) => Parser;
 
 // Related to parsing processing
 
