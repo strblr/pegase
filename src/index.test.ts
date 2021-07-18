@@ -31,9 +31,9 @@ test("Modulos in grammars should work", () => {
 test("Prefix math expressions should be correctly converted to postfix", () => {
   const p = peg`
     expr:
-      operator <e1>expr <e2>expr ${({ operator, e1, e2 }) =>
-        [e1, e2, operator].join(" ")}
     | number
+    | operator <e1>expr <e2>expr ${({ operator, e1, e2 }) =>
+      [e1, e2, operator].join(" ")}
     
     operator:
       "+" | "-" | "*" | "/"
