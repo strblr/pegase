@@ -11,7 +11,7 @@ import {
   Result,
   SemanticAction,
   skip,
-  TraceEvent
+  TraceEventType
 } from ".";
 
 /** The parser inheritance structure
@@ -189,7 +189,11 @@ export class ReferenceParser extends Parser {
   }
 
   exec(options: ParseOptions, internals: Internals) {
-    options.tracer?.(TraceEvent.Entered, this.label);
+    options.tracer?.({
+      event: TraceEventType.Enter,
+      label: this.label,
+      options
+    });
     const parser = (options.grammar as GrammarParser | undefined)?.rules.get(
       this.label
     );
@@ -199,10 +203,19 @@ export class ReferenceParser extends Parser {
       );
     const match = parser.exec(options, internals);
     if (match === null) {
-      options.tracer?.(TraceEvent.Failed, this.label);
+      options.tracer?.({
+        event: TraceEventType.Fail,
+        label: this.label,
+        options
+      });
       return null;
     }
-    options.tracer?.(TraceEvent.Matched, this.label);
+    options.tracer?.({
+      event: TraceEventType.Match,
+      label: this.label,
+      options,
+      match
+    });
     return {
       ...match,
       captures: nullObject({ [this.label]: inferValue(match.children) })

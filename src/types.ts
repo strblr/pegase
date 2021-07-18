@@ -40,14 +40,37 @@ export type ParseOptions<Context = any> = {
   skip: boolean;
   ignoreCase: boolean;
   context: Context;
-  tracer?(event: TraceEvent, label: string): void;
+  tracer?(event: TraceEvent<Context>): void;
 };
 
-export enum TraceEvent {
-  Entered = "ENTERED",
-  Matched = "MATCHED",
-  Failed = "FAILED"
+export type TraceEvent<Context = any> =
+  | EnterEvent<Context>
+  | MatchEvent<Context>
+  | FailEvent<Context>;
+
+export type EnterEvent<Context = any> = TraceCommon<Context> & {
+  event: TraceEventType.Enter;
+};
+
+export type MatchEvent<Context = any> = TraceCommon<Context> & {
+  event: TraceEventType.Match;
+  match: Match;
+};
+
+export type FailEvent<Context = any> = TraceCommon<Context> & {
+  event: TraceEventType.Fail;
+};
+
+export enum TraceEventType {
+  Enter = "ENTER",
+  Match = "MATCH",
+  Fail = "FAIL"
 }
+
+export type TraceCommon<Context = any> = {
+  label: string;
+  options: ParseOptions<Context>;
+};
 
 export type Internals = {
   warnings: Array<Warning>;
