@@ -121,22 +121,6 @@ export const defaultDirectives: Directives = nullObject({
  * directives: $directive*
  */
 
-const a = `
-  
-  # Forward ?
-  
-  ...'a' 'b'   should be (...'a') 'b'   thus sequence > forward
-  ...'a' % 'b' should be (...'a') % 'b' thus modulo > forward
-  ...!'a'      should be ...(!'a')      thus forward > predicate
-  ...<name>'a' should be ...(<name>'a') thus forward > capture
-  <name>...'a' should NOT BE POSSIBLE
-  
-  # Capture ?
-  
-  <name>'a' @raw should be <name>('a' @raw) thus capture > directive
-  <name>'a' % 'b' 
-`;
-
 const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   ["pegase", new SequenceParser([new ReferenceParser("parser"), endAnchor])],
   [
@@ -261,17 +245,17 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
       ]),
       ({ capture, $match }) => {
         if ($match.children.length === 1) return capture;
-        return new ActionParser(
-          new SequenceParser([
+        return new SequenceParser([
+          new ActionParser(
             new RepetitionParser(
               new SequenceParser([new PredicateParser(capture, false), any]),
               0,
               Infinity
             ),
-            capture
-          ]),
-          ({ $match }) => $match.children[$match.children.length - 1]
-        );
+            () => undefined
+          ),
+          capture
+        ]);
       }
     )
   ],
