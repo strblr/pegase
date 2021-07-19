@@ -95,34 +95,66 @@ export const defaultDirectives: Directives = nullObject({
     ])
 } as Directives);
 
-/** The peg metagrammar
+/** The peg meta-grammar
  *
- * pegase: parser $
- * parser: grammar | options
- * grammar: ($identifier directives ':' options)+
- * options: ('|' | '/')? action % ('|' | '/')
- * action: directive $actionArg?
- * directive: sequence directives
- * sequence: modulo+
- * modulo: forward % '%'
- * forward: '...'? capture
- * capture: ('<' $identifier '>')? predicate
- * predicate: ('&' | '!')? repetition
- * repetition: primary ('?' | '+' | '*' | '{' $integer (',' $integer)? '}')?
+ * peg:
+ *   parser $
+ *
+ * parser:
+ *   grammar | options
+ *
+ * grammar:
+ *   ($identifier alias? directives ':' options)+
+ *
+ * options:
+ *   ('|' | '/')? action % ('|' | '/')
+ *
+ * action:
+ *   directive $actionArg?
+ *
+ * directive:
+ *   sequence directives
+ *
+ * sequence:
+ *   modulo+
+ *
+ * modulo:
+ *   forward % '%'
+ *
+ * forward:
+ *   '...'? capture
+ *
+ * capture:
+ *   ('<' $identifier '>')? predicate
+ *
+ * predicate:
+ *   ('&' | '!')? repetition
+ *
+ * repetition:
+ *   primary ('?' | '+' | '*' | '{' $integer (',' $integer)? '}')?
+ *
  * primary:
- *   $singleQuoteString
+ * | $singleQuoteString
  * | $doubleQuoteString
  * | $characterClass
  * | $primaryArg
- * | $identifier !(directives ':')
+ * | $identifier !(alias? directives ':')
  * | '(' parser ')'
- * | '.' | '$' | 'ε' | '^'
+ * | '.'
+ * | '$'
+ * | 'ε'
+ * | '^'
  *
- * directives: $directive*
+ * alias:
+ * | $singleQuoteString
+ * | $doubleQuoteString
+ *
+ * directives:
+ *   $directive*
  */
 
 const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
-  ["pegase", new SequenceParser([new ReferenceParser("parser"), endAnchor])],
+  ["peg", new SequenceParser([new ReferenceParser("parser"), endAnchor])],
   [
     "parser",
     new OptionsParser([
