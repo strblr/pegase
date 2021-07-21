@@ -6,7 +6,7 @@ import {
   ParseOptions,
   Parser,
   RepetitionParser,
-  SemanticArg,
+  SemanticInfo,
   SequenceParser
 } from ".";
 
@@ -83,7 +83,7 @@ export function buildModulo(item: Parser, separator: Parser) {
 export function reduceModulo(
   reducer: (left: any, separator: any, right: any) => any
 ) {
-  return ({ $match }: SemanticArg) =>
+  return ({ $match }: SemanticInfo) =>
     $match.children.reduce((acc, op, index) =>
       index % 2 ? reducer(acc, op, $match.children[index + 1]) : acc
     );

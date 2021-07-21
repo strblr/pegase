@@ -116,7 +116,10 @@ export const defaultDirectives: Directives = nullObject({
  *   sequence directives
  *
  * sequence:
- *   modulo+
+ *   minus+
+ *
+ * minus:
+ *   modulo % '-'
  *
  * modulo:
  *   forward % '%'
@@ -251,11 +254,22 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "sequence",
     new ActionParser(
-      new RepetitionParser(new ReferenceParser("modulo"), 1, Infinity),
+      new RepetitionParser(new ReferenceParser("minus"), 1, Infinity),
       ({ $match }) =>
         $match.children.length === 1
           ? $match.children[0]
           : new SequenceParser($match.children)
+    )
+  ],
+  [
+    "minus",
+    new ActionParser(
+      buildModulo(new ReferenceParser("modulo"), new LiteralParser("-")),
+      ({ $match }) =>
+        ($match.children as Array<Parser>).reduce(
+          (acc, not) =>
+            new SequenceParser([new PredicateParser(not, false), acc])
+        )
     )
   ],
   [

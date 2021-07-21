@@ -8,9 +8,9 @@ export type PegTemplateArg<Context = any> =
   | Parser<any, Context>
   | SemanticAction<Context>;
 
-export type SemanticAction<Context = any> = (arg: SemanticArg<Context>) => any;
+export type SemanticAction<Context = any> = (arg: SemanticInfo<Context>) => any;
 
-export type SemanticArg<Context = any> = {
+export type SemanticInfo<Context = any> = {
   $value: any;
   $raw: string;
   $options: ParseOptions<Context>;
