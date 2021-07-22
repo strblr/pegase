@@ -468,7 +468,7 @@ export class ActionParser extends Parser {
           internals.warnings.push({ from: match.from, to: match.to, message });
         },
         $propagate(children: Array<any> = match.children) {
-          propagate = children;
+          propagate = children.filter(child => child !== undefined);
         }
       });
       return {
@@ -488,4 +488,10 @@ export class ActionParser extends Parser {
   }
 }
 
+// Skippers
+
 export const defaultSkipper = new RegExpParser(/\s*/);
+
+export const pegSkipper = new RegExpParser(
+  /(?:\s|#[^#\r\n]*(?:#|\r\n|\r|\n))*/
+);

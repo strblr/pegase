@@ -2,13 +2,24 @@ import { Parser } from ".";
 
 // Related to parser generation
 
-export type PegTemplateArg<Context = any> =
-  | string
-  | RegExp
-  | Parser<any, Context>
-  | SemanticAction<Context>;
+export type MetaContext = {
+  plugins: Array<Plugin>;
+  args: Array<any>;
+};
 
-export type SemanticAction<Context = any> = (arg: SemanticInfo<Context>) => any;
+export type Plugin = {
+  name?: string;
+  castArgument?(arg: any): Parser | void;
+  directives?: Directives;
+};
+
+export type Directives = Record<string, Directive>;
+
+export type Directive = (parser: Parser, ...args: Array<any>) => Parser;
+
+export type SemanticAction<Context = any> = (
+  info: SemanticInfo<Context>
+) => any;
 
 export type SemanticInfo<Context = any> = {
   $value: any;
@@ -17,18 +28,11 @@ export type SemanticInfo<Context = any> = {
   $match: Match;
   $commit(): void;
   $warn(message: string): void;
+  $fail(message: string): void;
+  $expected(expected: string | Expectation | Array<string | Expectation>): void;
   $propagate(children?: Array<any>): void;
   [capture: string]: any;
 };
-
-export type MetaContext = {
-  directives: Directives;
-  args: Array<PegTemplateArg>;
-};
-
-export type Directives = Record<string, Directive>;
-
-export type Directive = (parser: Parser, rule?: string) => Parser;
 
 // Related to parsing processing
 
@@ -104,7 +108,8 @@ export type Expectation =
   | LiteralExpectation
   | RegExpExpectation
   | TokenExpectation
-  | MismatchExpectation;
+  | MismatchExpectation
+  | OtherExpectation;
 
 export type LiteralExpectation = {
   type: ExpectationType.Literal;
@@ -127,11 +132,17 @@ export type MismatchExpectation = {
   match: Match;
 };
 
+export type OtherExpectation = {
+  type: ExpectationType.Other;
+  description: string;
+};
+
 export enum ExpectationType {
   Literal = "LITERAL",
   RegExp = "REGEXP",
   Token = "TOKEN",
-  Mismatch = "MISMATCH"
+  Mismatch = "MISMATCH",
+  Other = "OTHER"
 }
 
 export type Match = Range & {

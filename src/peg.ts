@@ -6,8 +6,8 @@ import {
   CaptureParser,
   charClass,
   CutParser,
+  defaultPlugin,
   directive,
-  Directives,
   endAnchor,
   eps,
   GrammarParser,
@@ -15,87 +15,64 @@ import {
   int,
   LiteralParser,
   MetaContext,
-  nullObject,
   OptionsParser,
   Parser,
   pegSkipper,
-  PegTemplateArg,
   pipeDirectives,
+  Plugin,
   PredicateParser,
   ReferenceParser,
   RegExpParser,
   RepetitionParser,
   SemanticAction,
   SequenceParser,
-  stringLit,
-  stringLitDouble,
-  TokenParser,
-  TweakParser
+  TokenParser
 } from ".";
 
 // The parser creator factory
 
 export function createPeg() {
+  // This is basically a hack to replace "any" but without an "implicit any" error
+  // on function parameter destructuration (don't know why, but hey)
+  type Any =
+    | null
+    | undefined
+    | string
+    | number
+    | boolean
+    | symbol
+    | bigint
+    | object
+    | ((...args: Array<any>) => any);
+
   function peg<Value = any, Context = any>(
     chunks: TemplateStringsArray,
-    ...args: Array<PegTemplateArg<Context>>
+    ...args: Array<Any>
   ): Parser<Value, Context> {
-    const raw = chunks.reduce((acc, chunk, index) => {
-      const arg = args[index - 1];
-      let ref: string;
-      if (
-        typeof arg === "string" ||
-        arg instanceof RegExp ||
-        arg instanceof Parser
-      )
-        ref = `${index - 1}`;
-      else if (typeof arg === "function") ref = `~${index - 1}`;
-      else
-        throw new Error(
-          `Invalid tag argument. It should be a function (semantic action), a string, a RegExp or a Parser instance.`
-        );
-      return acc + ref + chunk;
-    });
-    const result = metagrammar.parse(raw, {
-      skipper: pegSkipper,
-      context: { directives: peg.directives, args }
-    });
+    const result = metagrammar.parse(
+      chunks.reduce((acc, chunk, index) => acc + `~${index - 1}` + chunk),
+      { skipper: pegSkipper, context: { plugins: peg.plugins, args } }
+    );
     if (!result.success) throw result;
     return result.value;
   }
 
-  peg.directives = nullObject(defaultDirectives) as Directives;
+  peg.plugins = [defaultPlugin];
 
-  peg.extendDirectives = (addons: Directives) =>
-    Object.assign(peg.directives, addons);
+  peg.addPlugin = (...plugins: Array<Plugin>) => {
+    peg.plugins = [...plugins.slice().reverse(), ...peg.plugins];
+  };
+
+  peg.removePlugin = (...plugins: Array<Plugin>) => {
+    peg.plugins = peg.plugins.filter(plugin => !plugins.includes(plugin));
+  };
 
   return peg;
 }
 
-// The default directive definitions
-
-export const defaultDirectives: Directives = nullObject({
-  raw: parser => new ActionParser(parser, ({ $raw }) => $raw),
-  omit: parser => new ActionParser(parser, () => undefined),
-  token: (parser, rule) => new TokenParser(parser, rule),
-  skip: parser => new TweakParser(parser, { skip: true }),
-  noskip: parser => new TweakParser(parser, { skip: false }),
-  case: parser => new TweakParser(parser, { ignoreCase: false }),
-  nocase: parser => new TweakParser(parser, { ignoreCase: true }),
-  index: parser => new ActionParser(parser, ({ $match }) => $match.from),
-  children: parser => new ActionParser(parser, ({ $match }) => $match.children),
-  captures: parser => new ActionParser(parser, ({ $match }) => $match.captures),
-  count: parser =>
-    new ActionParser(parser, ({ $match }) => $match.children.length),
-  number: parser => new ActionParser(parser, ({ $raw }) => Number($raw)),
-  test: parser =>
-    new OptionsParser([
-      new ActionParser(parser, () => true),
-      new ActionParser(eps, () => false)
-    ])
-} as Directives);
-
 /** The peg meta-grammar
+ *
+ * # Main rules :
  *
  * peg:
  *   parser $
@@ -104,13 +81,13 @@ export const defaultDirectives: Directives = nullObject({
  *   grammar | options
  *
  * grammar:
- *   ($identifier alias? directives ':' options)+
+ *   (identifier directives ':' options)+
  *
  * options:
  *   ('|' | '/')? action % ('|' | '/')
  *
  * action:
- *   directive $actionArg?
+ *   directive actionArgument?
  *
  * directive:
  *   sequence directives
@@ -128,35 +105,78 @@ export const defaultDirectives: Directives = nullObject({
  *   '...'? capture
  *
  * capture:
- *   ('<' $identifier '>')? predicate
+ *   ('<' identifier '>')? predicate
  *
  * predicate:
  *   ('&' | '!')? repetition
  *
  * repetition:
- *   primary ('?' | '+' | '*' | '{' $integer (',' $integer)? '}')?
+ *   primary ('?' | '+' | '*' | repetitionRange)?
  *
  * primary:
- * | $singleQuoteString
- * | $doubleQuoteString
- * | $characterClass
- * | $primaryArg
- * | $identifier !(alias? directives ':')
- * | '(' parser ')'
  * | '.'
  * | '$'
  * | 'ε'
  * | '^'
+ * | '(' parser ')'
+ * | identifier !(directives ':')
+ * | numberLiteral
+ * | stringLiteral
+ * | characterClass
+ * | castableTagArgument
  *
- * alias:
- * | $singleQuoteString
- * | $doubleQuoteString
  *
- * directives:
- *   $directive*
+ * # Secondary bricks :
+ *
+ * identifier:  => string
+ *   $identifier
+ *
+ * numberLiteral:  => number
+ *   $number
+ *
+ * stringLiteral:  => [string, boolean]
+ *   $singleQuoteString | $doubleQuoteString
+ *
+ * characterClass:  => RegExp
+ *   $characterClass
+ *
+ * tagArgument:  => any
+ *   $tagArgument
+ *
+ * castableTagArgument:  => Parser
+ *   $castableTagArgument
+ *
+ * actionTagArgument:  => Function
+ *   $actionTagArgument
+ *
+ * numberTagArgument:  => number
+ *   $numberTagArgument
+ *
+ * repetitionRange:  => [number, number]
+ *   '{' repetitionCount (',' repetitionCount)? '}'
+ *
+ * repetitionCount:  => number
+ *   numberLiteral | numberTagArgument
+ *
+ * directives:  => [string, any[]][]
+ *   directive*
+ *
+ * directive:  => [string, any[]]
+ *   $directive directiveArguments?
+ *
+ * directiveArguments:  => any[]
+ *   '(' directiveArgument (',' directiveArgument)* ')'
+ *
+ * directiveArgument:  => [any]
+ * | identifier
+ * | numberLiteral
+ * | stringLiteral
+ * | characterClass
+ * | tagArgument
  */
 
 const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
+  // Main rules :
   ["peg", new SequenceParser([new ReferenceParser("parser"), endAnchor])],
   [
     "parser",
@@ -392,10 +412,29 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "primary",
     new OptionsParser([
-      new ActionParser(stringLit, ({ $value }) => new LiteralParser($value)),
       new ActionParser(
-        stringLitDouble,
-        ({ $value }) => new LiteralParser($value, true)
+        new ReferenceParser("templateArgument"),
+        ({ $value, $expected }) => {
+          if (typeof $value === "number")
+            return new LiteralParser($value.toString());
+          if (typeof $value === "string") return new LiteralParser($value);
+          if ($value instanceof RegExp) return new RegExpParser($value);
+          if ($value instanceof Parser) return $value;
+          $expected([
+            "number argument",
+            "string argument",
+            "regexp argument",
+            "parser argument"
+          ]);
+        }
+      ),
+      new ActionParser(
+        new ReferenceParser("numberLiteral"),
+        ({ $value }) => new LiteralParser($value.toString())
+      ),
+      new ActionParser(
+        new ReferenceParser("stringLiteral"),
+        ({ $value: [value, emit] }) => new LiteralParser(value, emit)
       ),
       new ActionParser(charClass, ({ $value }) => new RegExpParser($value)),
       new ActionParser(int, ({ $value, $options }) => {
@@ -434,11 +473,193 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
       new ActionParser(new LiteralParser("^"), () => new CutParser())
     ])
   ],
+  // Secondary bricks :
+
+  [
+    "identifier",
+    new TokenParser(new RegExpParser(/[_a-zA-Z][_a-zA-Z0-9]*/), "identifier")
+  ],
+  [
+    "numberLiteral",
+    new TokenParser(
+      new ActionParser(new RegExpParser(/[0-9]+.?[0-9]*/), ({ $raw }) =>
+        Number($raw)
+      ),
+      "number literal"
+    )
+  ],
+  [
+    "stringLiteral",
+    new TokenParser(
+      new OptionsParser([
+        new ActionParser(new RegExpParser(/'(?:[^\\']|\\.)*'/), ({ $raw }) => [
+          JSON.parse(`"${$raw.substring(1, $raw.length - 1)}"`),
+          false
+        ]),
+        new ActionParser(new RegExpParser(/"(?:[^\\"]|\\.)*"/), ({ $raw }) => [
+          JSON.parse($raw),
+          true
+        ])
+      ]),
+      "string literal"
+    )
+  ],
+  [
+    "characterClass",
+    new TokenParser(
+      new ActionParser(
+        new RegExpParser(/\[(?:[^\\\]]|\\.)*]/),
+        ({ $raw }) => new RegExp($raw)
+      ),
+      "character class"
+    )
+  ],
+  [
+    "tagArgument",
+    new TokenParser(
+      new ActionParser(
+        new RegExpParser(/~\d+/),
+        ({ $raw, $options }) => $options.context.args[$raw.substring(1)]
+      ),
+      "tag argument"
+    )
+  ],
+  [
+    "castableTagArgument",
+    new TokenParser(
+      new ActionParser(
+        new ReferenceParser("tagArgument"),
+        ({ $value, $options }) => {
+          const caster = ($options.context as MetaContext).plugins.find(
+            plugin => plugin.castArgument?.($value) !== undefined
+          );
+          if (!caster)
+            throw new Error(
+              "The tag argument is not castable to Parser, you can add support for it via plugins"
+            );
+          return caster.castArgument!($value)!;
+        }
+      ),
+      "castable tag argument"
+    )
+  ],
+  [
+    "actionTagArgument",
+    new TokenParser(
+      new ActionParser(new ReferenceParser("tagArgument"), ({ $value }) => {
+        if (typeof $value !== "function")
+          throw new Error(
+            "The tag argument is not a semantic action (function)"
+          );
+        return $value;
+      }),
+      "action tag argument"
+    )
+  ],
+  [
+    "numberTagArgument",
+    new TokenParser(
+      new ActionParser(new ReferenceParser("tagArgument"), ({ $value }) => {
+        if (typeof $value !== "number")
+          throw new Error("The tag argument is not a number");
+        return $value;
+      }),
+      "number tag argument"
+    )
+  ],
+  [
+    "repetitionRange",
+    new ActionParser(
+      new SequenceParser([
+        new LiteralParser("{"),
+        new ReferenceParser("repetitionCount"),
+        new RepetitionParser(
+          new SequenceParser([
+            new LiteralParser(","),
+            new ReferenceParser("repetitionCount")
+          ]),
+          0,
+          1
+        ),
+        new LiteralParser("}")
+      ]),
+      ({
+        $match: {
+          children: [min, max]
+        }
+      }) => [min, max ?? min]
+    )
+  ],
+  [
+    "repetitionCount",
+    new OptionsParser([
+      new ReferenceParser("numberLiteral"),
+      new ReferenceParser("numberTagArgument")
+    ])
+  ],
   [
     "directives",
     new ActionParser(
-      new RepetitionParser(directive, 0, Infinity),
+      new RepetitionParser(new ReferenceParser("directive"), 0, Infinity),
       ({ $match }) => $match.children
+    )
+  ],
+  [
+    "directive",
+    new ActionParser(
+      new SequenceParser([
+        new TokenParser(
+          new SequenceParser([
+            new LiteralParser("@"),
+            new ReferenceParser("identifier")
+          ]),
+          "directive"
+        ),
+        new RepetitionParser(new ReferenceParser("directiveArguments"), 0, 1)
+      ]),
+      ({
+        $match: {
+          children: [directive, args]
+        }
+      }) => [directive, args ?? []]
+    )
+  ],
+  [
+    "directiveArguments",
+    new ActionParser(
+      new SequenceParser([
+        new LiteralParser("("),
+        new ReferenceParser("directiveArgument"),
+        new RepetitionParser(
+          new SequenceParser([
+            new LiteralParser(","),
+            new ReferenceParser("directiveArgument")
+          ]),
+          0,
+          Infinity
+        ),
+        new LiteralParser(")")
+      ]),
+      ({ $match }) => $match.children.flat()
+    )
+  ],
+  [
+    "directiveArgument",
+    new ActionParser(
+      new OptionsParser([
+        new ActionParser(
+          new ReferenceParser("identifier"),
+          ({ $value }) => new ReferenceParser($value)
+        ),
+        new ReferenceParser("numberLiteral"),
+        new ActionParser(
+          new ReferenceParser("stringLiteral"),
+          ({ $value: [value] }) => value
+        ),
+        new ReferenceParser("characterClass"),
+        new ReferenceParser("tagArgument")
+      ]),
+      ({ $value }) => [$value]
     )
   ]
 ]);

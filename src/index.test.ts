@@ -34,11 +34,11 @@ test("Prefix math expressions should be correctly converted to postfix", () => {
     | number
     | operator <first>expr expr ${({ operator, first, expr }) =>
       [first, expr, operator].join(" ")}
-   
+
     operator:
       "+" | "-" | "*" | "/"
       
-    number @raw @token:
+    number @raw @repeat(12, 13):
       [0-9]+
   `;
   expect(g.value("+ - 1 25 * / 369 4 5")).toBe("1 25 - 369 4 / 5 * +");
