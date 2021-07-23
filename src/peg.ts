@@ -465,13 +465,11 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         ({ identifier, $options }) =>
           new ReferenceParser(
             identifier,
-            ($options.context as MetaContext).plugins
-              .filter(plugin =>
-                (plugin.grammar as GrammarParser | undefined)?.rules.get(
-                  identifier
-                )
+            ($options.context as MetaContext).plugins.find(plugin =>
+              (plugin.grammar as GrammarParser | undefined)?.rules?.get(
+                identifier
               )
-              .map(plugin => plugin.grammar!)
+            )?.grammar
           )
       ),
       "reference"

@@ -161,29 +161,34 @@ export class RegExpParser extends Parser {
 export class ReferenceParser extends Parser {
   readonly type = "REFERENCE_PARSER";
   readonly label: string;
-  readonly external: Array<Parser>;
+  readonly fallback?: Parser;
 
-  constructor(label: string, external: Array<Parser> = []) {
+  constructor(label: string, fallback?: Parser) {
     super();
     this.label = label;
-    this.external = external;
+    this.fallback = fallback;
   }
 
   exec(options: ParseOptions, internals: Internals) {
-    const grammar = [options.grammar, ...this.external].find(grammar =>
-      (grammar as GrammarParser | undefined)?.rules.get(this.label)
+    let parser = (options.grammar as GrammarParser | undefined)?.rules?.get(
+      this.label
     );
-    if (grammar) options = { ...options, grammar };
-    else
-      throw new Error(
-        `Couldn't resolve rule "${this.label}", you can add it by merging grammars or via peg.addPlugin`
-      );
+    if (!parser)
+      if (
+        (parser = (this.fallback as GrammarParser | undefined)?.rules?.get(
+          this.label
+        ))
+      )
+        options = { ...options, grammar: this.fallback };
+      else
+        throw new Error(
+          `Couldn't resolve rule "${this.label}", you can add it by merging grammars or via peg.addPlugin`
+        );
     options.tracer?.({
       type: TraceEventType.Enter,
       label: this.label,
       options
     });
-    const parser = (grammar as GrammarParser).rules.get(this.label)!;
     const match = parser.exec(options, internals);
     if (match === null) {
       options.tracer?.({
