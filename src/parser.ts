@@ -411,16 +411,22 @@ export class PredicateParser extends Parser {
 export class TweakParser extends Parser {
   readonly type = "TWEAK_PARSER";
   readonly parser: Parser;
-  readonly options: Partial<ParseOptions>;
+  readonly options: (options: ParseOptions) => Partial<ParseOptions>;
 
-  constructor(parser: Parser, options: Partial<ParseOptions>) {
+  constructor(
+    parser: Parser,
+    options: (options: ParseOptions) => Partial<ParseOptions>
+  ) {
     super();
     this.parser = parser;
     this.options = options;
   }
 
   exec(options: ParseOptions, internals: Internals) {
-    return this.parser.exec({ ...options, ...this.options }, internals);
+    return this.parser.exec(
+      { ...options, ...this.options(options) },
+      internals
+    );
   }
 }
 

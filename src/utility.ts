@@ -124,10 +124,13 @@ export const defaultPlugin: Plugin = {
     number: parser => new ActionParser(parser, ({ $raw }) => Number($raw)),
     token: (parser, alias?: string) => new TokenParser(parser, alias),
     skip: (parser, skipper?: Parser) =>
-      new TweakParser(parser, { skip: true, ...(skipper && { skipper }) }),
-    noskip: parser => new TweakParser(parser, { skip: false }),
-    case: parser => new TweakParser(parser, { ignoreCase: false }),
-    nocase: parser => new TweakParser(parser, { ignoreCase: true }),
+      new TweakParser(parser, () => ({
+        skip: true,
+        ...(skipper && { skipper })
+      })),
+    noskip: parser => new TweakParser(parser, () => ({ skip: false })),
+    case: parser => new TweakParser(parser, () => ({ ignoreCase: false })),
+    nocase: parser => new TweakParser(parser, () => ({ ignoreCase: true })),
     index: parser => new ActionParser(parser, ({ $match }) => $match.from),
     test: parser =>
       new OptionsParser([
