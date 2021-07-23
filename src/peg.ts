@@ -22,7 +22,7 @@ import {
 
 // The parser creator factory
 
-export function createPeg() {
+export function createTag() {
   // This is basically a hack to replace "any" but without an "implicit any" error
   // on function parameter destructuration (don't know why, but hey)
   type Any =
@@ -655,4 +655,4 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
 
 // Default peg tag :
 
-export const peg = createPeg();
+export const peg = createTag();
