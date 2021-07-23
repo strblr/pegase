@@ -9,8 +9,9 @@ export type MetaContext = {
 
 export type Plugin = {
   name?: string;
-  castParser?(arg: any): Parser | void;
+  castParser?(arg: any): Parser | undefined;
   directives?: Directives;
+  grammar?: Parser;
 };
 
 export type Directives = Record<string, Directive>;

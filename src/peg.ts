@@ -110,7 +110,7 @@ export function createPeg() {
  * | 'ε'
  * | '^'
  * | '(' parser ')'
- * | identifier !(directives ':')
+ * | !(identifier directives ':') reference
  * | numberLiteral
  * | stringLiteral
  * | characterClass
@@ -120,6 +120,9 @@ export function createPeg() {
  * # Secondary bricks :
  *
  * identifier:  => string
+ *   $identifier
+ *
+ * reference:  => Parser
  *   $identifier
  *
  * numberLiteral:  => number
@@ -159,7 +162,7 @@ export function createPeg() {
  *   '(' directiveArgument % ',' ')'
  *
  * directiveArgument:  => [any]
- * | identifier
+ * | reference
  * | numberLiteral
  * | stringLiteral
  * | characterClass
@@ -422,19 +425,17 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         new ReferenceParser("parser"),
         new LiteralParser(")")
       ]),
-      new ActionParser(
-        new SequenceParser([
-          new ReferenceParser("identifier"),
-          new PredicateParser(
-            new SequenceParser([
-              new ReferenceParser("directives"),
-              new LiteralParser(":")
-            ]),
-            false
-          )
-        ]),
-        ({ identifier }) => new ReferenceParser(identifier)
-      ),
+      new SequenceParser([
+        new PredicateParser(
+          new SequenceParser([
+            new ReferenceParser("identifier"),
+            new ReferenceParser("directives"),
+            new LiteralParser(":")
+          ]),
+          false
+        ),
+        new ReferenceParser("reference")
+      ]),
       new ActionParser(
         new ReferenceParser("numberLiteral"),
         ({ numberLiteral }) => new LiteralParser(String(numberLiteral))
@@ -455,6 +456,26 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "identifier",
     new TokenParser(new RegExpParser(/[_a-zA-Z][_a-zA-Z0-9]*/), "identifier")
+  ],
+  [
+    "reference",
+    new TokenParser(
+      new ActionParser(
+        new ReferenceParser("identifier"),
+        ({ identifier, $options }) =>
+          new ReferenceParser(
+            identifier,
+            ($options.context as MetaContext).plugins
+              .filter(plugin =>
+                (plugin.grammar as GrammarParser | undefined)?.rules.get(
+                  identifier
+                )
+              )
+              .map(plugin => plugin.grammar!)
+          )
+      ),
+      "reference"
+    )
   ],
   [
     "numberLiteral",
@@ -506,15 +527,16 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new TokenParser(
       new ActionParser(
         new ReferenceParser("tagArgument"),
-        ({ $value, $options }) => {
-          const caster = ($options.context as MetaContext).plugins.find(
-            plugin => plugin.castParser?.($value) !== undefined
+        ({ tagArgument, $options }) => {
+          let parser: Parser | undefined;
+          ($options.context as MetaContext).plugins.some(
+            plugin => (parser = plugin.castParser?.(tagArgument))
           );
-          if (!caster)
+          if (!parser)
             throw new Error(
               "The tag argument is not castable to Parser, you can add support for it via peg.addPlugin"
             );
-          return caster.castParser!($value)!;
+          return parser;
         }
       ),
       "castable tag argument"
@@ -617,14 +639,11 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     "directiveArgument",
     new ActionParser(
       new OptionsParser([
-        new ActionParser(
-          new ReferenceParser("identifier"),
-          ({ $value }) => new ReferenceParser($value)
-        ),
+        new ReferenceParser("reference"),
         new ReferenceParser("numberLiteral"),
         new ActionParser(
           new ReferenceParser("stringLiteral"),
-          ({ $value: [value] }) => value
+          ({ stringLiteral: [value] }) => value
         ),
         new ReferenceParser("characterClass"),
         new ReferenceParser("tagArgument")

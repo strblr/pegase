@@ -161,25 +161,29 @@ export class RegExpParser extends Parser {
 export class ReferenceParser extends Parser {
   readonly type = "REFERENCE_PARSER";
   readonly label: string;
+  readonly external: Array<Parser>;
 
-  constructor(label: string) {
+  constructor(label: string, external: Array<Parser> = []) {
     super();
     this.label = label;
+    this.external = external;
   }
 
   exec(options: ParseOptions, internals: Internals) {
+    const grammar = [options.grammar, ...this.external].find(grammar =>
+      (grammar as GrammarParser | undefined)?.rules.get(this.label)
+    );
+    if (grammar) options = { ...options, grammar };
+    else
+      throw new Error(
+        `Couldn't resolve rule "${this.label}", you can add it by merging grammars or via peg.addPlugin`
+      );
     options.tracer?.({
       type: TraceEventType.Enter,
       label: this.label,
       options
     });
-    const parser = (options.grammar as GrammarParser | undefined)?.rules.get(
-      this.label
-    );
-    if (!parser)
-      throw new Error(
-        `Couldn't resolve rule "${this.label}". You need to define it or merge it from another grammar.`
-      );
+    const parser = (grammar as GrammarParser).rules.get(this.label)!;
     const match = parser.exec(options, internals);
     if (match === null) {
       options.tracer?.({
@@ -273,16 +277,16 @@ export class SequenceParser extends Parser {
 export class GrammarParser extends Parser {
   readonly type = "GRAMMAR_PARSER";
   readonly rules: Map<string, Parser>;
-  readonly parser: Parser;
+  private readonly entry: Parser;
 
   constructor(rules: Array<[string, Parser]>) {
     super();
     this.rules = new Map(rules);
-    this.parser = new ReferenceParser(rules[0][0]);
+    this.entry = rules[0][1];
   }
 
   exec(options: ParseOptions, internals: Internals): Match | null {
-    return this.parser.exec({ ...options, grammar: this }, internals);
+    return this.entry.exec({ ...options, grammar: this }, internals);
   }
 }
 

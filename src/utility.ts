@@ -85,27 +85,19 @@ export function buildModulo(item: Parser, separator: Parser) {
   ]);
 }
 
-// merge (grammars)
+// merge
 
-export function merge<Parsers extends ReadonlyArray<Parser>>(
-  ...parsers: Parsers
-): Parsers[0] {
+export function merge<Value = any, Context = any>(
+  grammar: Parser<Value, Context>,
+  ...grammars: Array<Parser>
+): Parser<Value, Context> {
   return new GrammarParser(
-    parsers.reduce<Array<[string, Parser]>>((acc, parser) => {
+    [grammar, ...grammars].reduce<Array<[string, Parser]>>((acc, parser) => {
       if (!(parser instanceof GrammarParser))
         throw new Error("You can only merge grammar parsers");
       return [...acc, ...parser.rules.entries()];
     }, [])
   );
-}
-
-// nullObject
-
-export function nullObject(
-  ...sources: Array<Record<string, any>>
-): Record<string, any> {
-  const object = Object.create(null);
-  return sources.length === 0 ? object : Object.assign(object, ...sources);
 }
 
 // defaultPlugin
