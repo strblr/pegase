@@ -139,7 +139,7 @@ export enum ExpectationType {
 
 export type Match = Range & {
   children: Array<any>;
-  captures: Record<string, any>;
+  captures: Map<string, any>;
 };
 
 export type Range = {
@@ -162,7 +162,7 @@ export type FailResult = {
   success: false;
   value: undefined;
   children: [];
-  captures: {};
+  captures: Map<string, any>;
   warnings: Array<Warning>;
   failures: Array<Failure>;
 };

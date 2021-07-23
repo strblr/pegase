@@ -6,7 +6,6 @@ import {
   Internals,
   Match,
   mergeFailures,
-  nullObject,
   ParseOptions,
   Result,
   SemanticAction,
@@ -62,22 +61,22 @@ export abstract class Parser<Value = any, Context = any> {
       committed: []
     };
     const match = this.exec(fullOptions, internals);
-    return match
-      ? {
-          ...match,
-          success: true,
-          value: inferValue(match.children),
-          raw: fullOptions.input.substring(match.from, match.to),
-          warnings: internals.warnings
-        }
-      : {
-          success: false,
-          value: undefined,
-          children: [],
-          captures: nullObject(),
-          warnings: internals.warnings,
-          failures: mergeFailures(internals)
-        };
+    if (match)
+      return {
+        success: true,
+        value: inferValue(match.children),
+        raw: fullOptions.input.substring(match.from, match.to),
+        warnings: internals.warnings,
+        ...match
+      };
+    return {
+      success: false,
+      value: undefined,
+      warnings: internals.warnings,
+      failures: mergeFailures(internals),
+      children: [],
+      captures: new Map()
+    };
   }
 }
 
@@ -107,7 +106,7 @@ export class LiteralParser extends Parser {
         from,
         to,
         children: this.emit ? [raw] : [],
-        captures: nullObject()
+        captures: new Map()
       };
     internals.failures.push({
       from,
@@ -145,7 +144,7 @@ export class RegExpParser extends Parser {
         from,
         to: from + result[0].length,
         children: [result[0]],
-        captures: nullObject(result.groups ?? {})
+        captures: new Map(result.groups ? Object.entries(result.groups) : [])
       };
     internals.failures.push({
       from,
@@ -198,7 +197,7 @@ export class ReferenceParser extends Parser {
     });
     return {
       ...match,
-      captures: nullObject({ [this.label]: inferValue(match.children) })
+      captures: new Map().set(this.label, inferValue(match.children))
     };
   }
 }
@@ -213,7 +212,7 @@ export class CutParser extends Parser {
       from: options.from,
       to: options.from,
       children: [],
-      captures: nullObject()
+      captures: new Map()
     };
   }
 }
@@ -264,7 +263,7 @@ export class SequenceParser extends Parser {
       from: matches[0].from,
       to: from,
       children: matches.map(match => match.children).flat(),
-      captures: nullObject(...matches.map(match => match.captures))
+      captures: new Map(matches.map(match => [...match.captures]).flat())
     };
   }
 }
@@ -349,7 +348,7 @@ export class RepetitionParser extends Parser {
         ? { from: options.from, to: options.from }
         : { from: matches[0].from, to: matches[matches.length - 1].to }),
       children: matches.map(match => match.children).flat(),
-      captures: nullObject(...matches.map(match => match.captures))
+      captures: new Map(matches.map(match => [...match.captures]).flat())
     });
     while (true) {
       if (counter === this.max) return success();
@@ -387,7 +386,7 @@ export class PredicateParser extends Parser {
       from: options.from,
       to: options.from,
       children: [],
-      captures: nullObject()
+      captures: new Map()
     });
     if (this.polarity) {
       internals.failures.push(...subInternals.failures);
@@ -448,9 +447,10 @@ export class CaptureParser extends Parser {
     if (match === null) return null;
     return {
       ...match,
-      captures: nullObject(match.captures, {
-        [this.name]: inferValue(match.children)
-      })
+      captures: new Map(match.captures).set(
+        this.name,
+        inferValue(match.children)
+      )
     };
   }
 }
@@ -475,7 +475,7 @@ export class ActionParser extends Parser {
       let failed = false,
         propagate = undefined;
       const value = this.action({
-        ...match.captures,
+        ...Object.fromEntries(match.captures),
         $value: inferValue(match.children),
         $raw: options.input.substring(match.from, match.to),
         $options: options,
