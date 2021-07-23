@@ -84,6 +84,7 @@ export abstract class Parser<Value = any, Context = any> {
 // LiteralParser
 
 export class LiteralParser extends Parser {
+  readonly type = "LITERAL_PARSER";
   readonly literal: string;
   readonly emit: boolean;
 
@@ -121,6 +122,7 @@ export class LiteralParser extends Parser {
 // RegExpParser
 
 export class RegExpParser extends Parser {
+  readonly type = "REGEXP_PARSER";
   readonly regExp: RegExp;
   private readonly withCase: RegExp;
   private readonly withoutCase: RegExp;
@@ -158,6 +160,7 @@ export class RegExpParser extends Parser {
 // ReferenceParser
 
 export class ReferenceParser extends Parser {
+  readonly type = "REFERENCE_PARSER";
   readonly label: string;
 
   constructor(label: string) {
@@ -167,7 +170,7 @@ export class ReferenceParser extends Parser {
 
   exec(options: ParseOptions, internals: Internals) {
     options.tracer?.({
-      event: TraceEventType.Enter,
+      type: TraceEventType.Enter,
       label: this.label,
       options
     });
@@ -181,14 +184,14 @@ export class ReferenceParser extends Parser {
     const match = parser.exec(options, internals);
     if (match === null) {
       options.tracer?.({
-        event: TraceEventType.Fail,
+        type: TraceEventType.Fail,
         label: this.label,
         options
       });
       return null;
     }
     options.tracer?.({
-      event: TraceEventType.Match,
+      type: TraceEventType.Match,
       label: this.label,
       options,
       match
@@ -203,6 +206,7 @@ export class ReferenceParser extends Parser {
 // CutParser
 
 export class CutParser extends Parser {
+  readonly type = "CUT_PARSER";
   exec(options: ParseOptions, internals: Internals) {
     internals.cut.active = true;
     return {
@@ -217,6 +221,7 @@ export class CutParser extends Parser {
 // OptionsParser
 
 export class OptionsParser extends Parser {
+  readonly type = "OPTIONS_PARSER";
   readonly parsers: Array<Parser>;
 
   constructor(parsers: Array<Parser>) {
@@ -238,6 +243,7 @@ export class OptionsParser extends Parser {
 // SequenceParser
 
 export class SequenceParser extends Parser {
+  readonly type = "SEQUENCE_PARSER";
   readonly parsers: Array<Parser>;
 
   constructor(parsers: Array<Parser>) {
@@ -266,13 +272,14 @@ export class SequenceParser extends Parser {
 // GrammarParser
 
 export class GrammarParser extends Parser {
-  readonly parser: Parser;
+  readonly type = "GRAMMAR_PARSER";
   readonly rules: Map<string, Parser>;
+  readonly parser: Parser;
 
   constructor(rules: Array<[string, Parser]>) {
     super();
-    this.parser = rules[0][1];
     this.rules = new Map(rules);
+    this.parser = new ReferenceParser(rules[0][0]);
   }
 
   exec(options: ParseOptions, internals: Internals): Match | null {
@@ -283,6 +290,7 @@ export class GrammarParser extends Parser {
 // TokenParser
 
 export class TokenParser extends Parser {
+  readonly type = "TOKEN_PARSER";
   readonly parser: Parser;
   readonly alias?: string;
 
@@ -320,6 +328,7 @@ export class TokenParser extends Parser {
 // RepetitionParser
 
 export class RepetitionParser extends Parser {
+  readonly type = "REPETITION_PARSER";
   readonly parser: Parser;
   readonly min: number;
   readonly max: number;
@@ -358,6 +367,7 @@ export class RepetitionParser extends Parser {
 // PredicateParser
 
 export class PredicateParser extends Parser {
+  readonly type = "PREDICATE_PARSER";
   readonly parser: Parser;
   readonly polarity: boolean;
 
@@ -399,6 +409,7 @@ export class PredicateParser extends Parser {
 // TweakParser
 
 export class TweakParser extends Parser {
+  readonly type = "TWEAK_PARSER";
   readonly parser: Parser;
   readonly options: Partial<ParseOptions>;
 
@@ -416,6 +427,7 @@ export class TweakParser extends Parser {
 // CaptureParser
 
 export class CaptureParser extends Parser {
+  readonly type = "CAPTURE_PARSER";
   readonly parser: Parser;
   readonly name: string;
 
@@ -440,6 +452,7 @@ export class CaptureParser extends Parser {
 // ActionParser
 
 export class ActionParser extends Parser {
+  readonly type = "ACTION_PARSER";
   readonly parser: Parser;
   readonly action: SemanticAction;
 
@@ -453,7 +466,8 @@ export class ActionParser extends Parser {
     const match = this.parser.exec(options, internals);
     if (match === null) return null;
     try {
-      let propagate = undefined;
+      let failed = false,
+        propagate = undefined;
       const value = this.action({
         ...match.captures,
         $value: inferValue(match.children),
@@ -461,16 +475,28 @@ export class ActionParser extends Parser {
         $options: options,
         $match: match,
         $commit() {
+          // BUG, won't be accessible from TokenParser for example
           internals.committed = mergeFailures(internals);
           internals.failures = [];
         },
         $warn(message: string) {
           internals.warnings.push({ from: match.from, to: match.to, message });
         },
+        $expected(expected) {
+          failed = true;
+          if (!Array.isArray(expected)) expected = [expected];
+          internals.failures.push({
+            from: match.from,
+            to: match.to,
+            type: FailureType.Expectation,
+            expected
+          });
+        },
         $propagate(children: Array<any> = match.children) {
           propagate = children.filter(child => child !== undefined);
         }
       });
+      if (failed) return null;
       return {
         ...match,
         children: propagate ?? (value === undefined ? [] : [value])

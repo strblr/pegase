@@ -9,7 +9,7 @@ export type MetaContext = {
 
 export type Plugin = {
   name?: string;
-  castArgument?(arg: any): Parser | void;
+  castParser?(arg: any): Parser | void;
   directives?: Directives;
 };
 
@@ -28,8 +28,7 @@ export type SemanticInfo<Context = any> = {
   $match: Match;
   $commit(): void;
   $warn(message: string): void;
-  $fail(message: string): void;
-  $expected(expected: string | Expectation | Array<string | Expectation>): void;
+  $expected(expected: Expectation | Array<Expectation>): void;
   $propagate(children?: Array<any>): void;
   [capture: string]: any;
 };
@@ -53,16 +52,16 @@ export type TraceEvent<Context = any> =
   | FailEvent<Context>;
 
 export type EnterEvent<Context = any> = TraceCommon<Context> & {
-  event: TraceEventType.Enter;
+  type: TraceEventType.Enter;
 };
 
 export type MatchEvent<Context = any> = TraceCommon<Context> & {
-  event: TraceEventType.Match;
+  type: TraceEventType.Match;
   match: Match;
 };
 
 export type FailEvent<Context = any> = TraceCommon<Context> & {
-  event: TraceEventType.Fail;
+  type: TraceEventType.Fail;
 };
 
 export enum TraceEventType {
@@ -108,8 +107,7 @@ export type Expectation =
   | LiteralExpectation
   | RegExpExpectation
   | TokenExpectation
-  | MismatchExpectation
-  | OtherExpectation;
+  | MismatchExpectation;
 
 export type LiteralExpectation = {
   type: ExpectationType.Literal;
@@ -132,17 +130,11 @@ export type MismatchExpectation = {
   match: Match;
 };
 
-export type OtherExpectation = {
-  type: ExpectationType.Other;
-  description: string;
-};
-
 export enum ExpectationType {
   Literal = "LITERAL",
   RegExp = "REGEXP",
   Token = "TOKEN",
-  Mismatch = "MISMATCH",
-  Other = "OTHER"
+  Mismatch = "MISMATCH"
 }
 
 export type Match = Range & {

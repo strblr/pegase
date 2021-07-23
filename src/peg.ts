@@ -1,18 +1,10 @@
 import {
   ActionParser,
-  actionRef,
-  any,
   buildModulo,
   CaptureParser,
-  charClass,
   CutParser,
   defaultPlugin,
-  directive,
-  endAnchor,
-  eps,
   GrammarParser,
-  id,
-  int,
   LiteralParser,
   MetaContext,
   OptionsParser,
@@ -24,7 +16,6 @@ import {
   ReferenceParser,
   RegExpParser,
   RepetitionParser,
-  SemanticAction,
   SequenceParser,
   TokenParser
 } from ".";
@@ -70,50 +61,50 @@ export function createPeg() {
   return peg;
 }
 
-/** The peg meta-grammar
+/** The peg metagrammar
  *
  * # Main rules :
  *
- * peg:
+ * peg:  => Parser
  *   parser $
  *
- * parser:
- *   grammar | options
+ * parser:  => Parser
+ *   grammarParser | optionsParser
  *
- * grammar:
- *   (identifier directives ':' options)+
+ * grammarParser:  => Parser
+ *   (identifier directives ':' optionsParser)+
  *
- * options:
- *   ('|' | '/')? action % ('|' | '/')
+ * optionsParser:  => Parser
+ *   ('|' | '/')? actionParser % ('|' | '/')
  *
- * action:
- *   directive actionArgument?
+ * actionParser:  => Parser
+ *   directiveParser actionTagArgument?
  *
- * directive:
- *   sequence directives
+ * directiveParser:  => Parser
+ *   sequenceParser directives
  *
- * sequence:
- *   minus+
+ * sequenceParser:  => Parser
+ *   minusParser+
  *
- * minus:
- *   modulo % '-'
+ * minusParser:  => Parser
+ *   moduloParser % '-'
  *
- * modulo:
- *   forward % '%'
+ * moduloParser:  => Parser
+ *   forwardParser % '%'
  *
- * forward:
- *   '...'? capture
+ * forwardParser:  => Parser
+ *   '...'? captureParser
  *
- * capture:
- *   ('<' identifier '>')? predicate
+ * captureParser:  => Parser
+ *   ('<' identifier '>')? predicateParser
  *
- * predicate:
- *   ('&' | '!')? repetition
+ * predicateParser:  => Parser
+ *   ('&' | '!')? repetitionParser
  *
- * repetition:
- *   primary ('?' | '+' | '*' | repetitionRange)?
+ * repetitionParser:  => Parser
+ *   primaryParser ('?' | '+' | '*' | repetitionRange)?
  *
- * primary:
+ * primaryParser:  => Parser
  * | '.'
  * | '$'
  * | 'ε'
@@ -165,7 +156,7 @@ export function createPeg() {
  *   $directive directiveArguments?
  *
  * directiveArguments:  => any[]
- *   '(' directiveArgument (',' directiveArgument)* ')'
+ *   '(' directiveArgument % ',' ')'
  *
  * directiveArgument:  => [any]
  * | identifier
@@ -177,24 +168,33 @@ export function createPeg() {
 
 const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   // Main rules :
-  ["peg", new SequenceParser([new ReferenceParser("parser"), endAnchor])],
   [
-    "parser",
-    new OptionsParser([
-      new ReferenceParser("grammar"),
-      new ReferenceParser("options")
+    "peg",
+    new SequenceParser([
+      new ReferenceParser("parser"),
+      new TokenParser(
+        new PredicateParser(new RegExpParser(/./), false),
+        "end of input"
+      )
     ])
   ],
   [
-    "grammar",
+    "parser",
+    new OptionsParser([
+      new ReferenceParser("grammarParser"),
+      new ReferenceParser("optionsParser")
+    ])
+  ],
+  [
+    "grammarParser",
     new ActionParser(
       new RepetitionParser(
         new ActionParser(
           new SequenceParser([
-            id,
+            new ReferenceParser("identifier"),
             new ReferenceParser("directives"),
             new LiteralParser(":"),
-            new ReferenceParser("options")
+            new ReferenceParser("optionsParser")
           ]),
           ({ $match }) => $match.children
         ),
@@ -204,13 +204,16 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
       ({ $options, $match }) =>
         new GrammarParser(
           $match.children.map(
-            ([label, directives, parser]: [string, Array<string>, Parser]) => [
+            ([label, directives, parser]: [
+              string,
+              Array<[string, Array<any>]>,
+              Parser
+            ]) => [
               label,
               pipeDirectives(
-                ($options.context as MetaContext).directives,
+                ($options.context as MetaContext).plugins,
                 parser,
-                directives,
-                label
+                directives
               )
             ]
           )
@@ -218,7 +221,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     )
   ],
   [
-    "options",
+    "optionsParser",
     new ActionParser(
       new SequenceParser([
         new RepetitionParser(
@@ -227,7 +230,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
           1
         ),
         buildModulo(
-          new ReferenceParser("action"),
+          new ReferenceParser("actionParser"),
           new OptionsParser([new LiteralParser("|"), new LiteralParser("/")])
         )
       ]),
@@ -238,43 +241,39 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     )
   ],
   [
-    "action",
+    "actionParser",
     new ActionParser(
       new SequenceParser([
-        new ReferenceParser("directive"),
-        new RepetitionParser(actionRef, 0, 1)
+        new ReferenceParser("directiveParser"),
+        new RepetitionParser(new ReferenceParser("actionTagArgument"), 0, 1)
       ]),
-      ({ directive, $options, $match }) => {
-        const action: number | undefined = $match.children[1];
-        return action === undefined
-          ? directive
-          : new ActionParser(
-              directive,
-              ($options.context as MetaContext).args[action] as SemanticAction
-            );
+      ({ directiveParser, actionTagArgument }) => {
+        return !actionTagArgument
+          ? directiveParser
+          : new ActionParser(directiveParser, actionTagArgument);
       }
     )
   ],
   [
-    "directive",
+    "directiveParser",
     new ActionParser(
       new SequenceParser([
-        new ReferenceParser("sequence"),
+        new ReferenceParser("sequenceParser"),
         new ReferenceParser("directives")
       ]),
-      ({ sequence, directives, $options }) => {
+      ({ sequenceParser, directives, $options }) => {
         return pipeDirectives(
-          ($options.context as MetaContext).directives,
-          sequence,
+          ($options.context as MetaContext).plugins,
+          sequenceParser,
           directives
         );
       }
     )
   ],
   [
-    "sequence",
+    "sequenceParser",
     new ActionParser(
-      new RepetitionParser(new ReferenceParser("minus"), 1, Infinity),
+      new RepetitionParser(new ReferenceParser("minusParser"), 1, Infinity),
       ({ $match }) =>
         $match.children.length === 1
           ? $match.children[0]
@@ -282,9 +281,9 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     )
   ],
   [
-    "minus",
+    "minusParser",
     new ActionParser(
-      buildModulo(new ReferenceParser("modulo"), new LiteralParser("-")),
+      buildModulo(new ReferenceParser("moduloParser"), new LiteralParser("-")),
       ({ $match }) =>
         ($match.children as Array<Parser>).reduce(
           (acc, not) =>
@@ -293,9 +292,9 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     )
   ],
   [
-    "modulo",
+    "moduloParser",
     new ActionParser(
-      buildModulo(new ReferenceParser("forward"), new LiteralParser("%")),
+      buildModulo(new ReferenceParser("forwardParser"), new LiteralParser("%")),
       ({ $match }) =>
         ($match.children as Array<Parser>).reduce((acc, sep) =>
           buildModulo(acc, sep)
@@ -303,51 +302,54 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     )
   ],
   [
-    "forward",
+    "forwardParser",
     new ActionParser(
       new SequenceParser([
         new RepetitionParser(new LiteralParser("...", true), 0, 1),
-        new ReferenceParser("capture")
+        new ReferenceParser("captureParser")
       ]),
-      ({ capture, $match }) => {
-        if ($match.children.length === 1) return capture;
+      ({ captureParser, $match }) => {
+        if ($match.children.length === 1) return captureParser;
         return new SequenceParser([
           new ActionParser(
             new RepetitionParser(
-              new SequenceParser([new PredicateParser(capture, false), any]),
+              new SequenceParser([
+                new PredicateParser(captureParser, false),
+                new RegExpParser(/./)
+              ]),
               0,
               Infinity
             ),
             () => undefined
           ),
-          capture
+          captureParser
         ]);
       }
     )
   ],
   [
-    "capture",
+    "captureParser",
     new ActionParser(
       new SequenceParser([
         new RepetitionParser(
           new SequenceParser([
             new LiteralParser("<"),
-            id,
+            new ReferenceParser("identifier"),
             new LiteralParser(">")
           ]),
           0,
           1
         ),
-        new ReferenceParser("predicate")
+        new ReferenceParser("predicateParser")
       ]),
-      ({ predicate, $match }) =>
+      ({ predicateParser, $match }) =>
         $match.children.length === 1
-          ? predicate
-          : new CaptureParser(predicate, $match.children[0])
+          ? predicateParser
+          : new CaptureParser(predicateParser, $match.children[0])
     )
   ],
   [
-    "predicate",
+    "predicateParser",
     new ActionParser(
       new SequenceParser([
         new RepetitionParser(
@@ -358,97 +360,71 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
           0,
           1
         ),
-        new ReferenceParser("repetition")
+        new ReferenceParser("repetitionParser")
       ]),
-      ({ repetition, $match }) =>
+      ({ repetitionParser, $match }) =>
         $match.children.length === 1
-          ? repetition
-          : new PredicateParser(repetition, $match.children[0] === "&")
+          ? repetitionParser
+          : new PredicateParser(repetitionParser, $match.children[0] === "&")
     )
   ],
   [
-    "repetition",
+    "repetitionParser",
     new ActionParser(
       new SequenceParser([
-        new ReferenceParser("primary"),
+        new ReferenceParser("primaryParser"),
         new RepetitionParser(
           new OptionsParser([
             new LiteralParser("?", true),
             new LiteralParser("+", true),
             new LiteralParser("*", true),
-            new SequenceParser([
-              new LiteralParser("{"),
-              int,
-              new RepetitionParser(
-                new SequenceParser([new LiteralParser(","), int]),
-                0,
-                1
-              ),
-              new LiteralParser("}")
-            ])
+            new ReferenceParser("repetitionRange")
           ]),
           0,
           1
         )
       ]),
-      ({ primary, $match }) => {
-        if ($match.children.length === 1) return primary;
-        const [, ...quantifier] = $match.children as [
-          any,
-          ...(["?" | "+" | "*" | number] | [number, number])
-        ];
+      ({ primaryParser, $match }) => {
+        if ($match.children.length === 1) return primaryParser;
+        const quantifier = $match.children[1] as
+          | "?"
+          | "+"
+          | "*"
+          | [number, number];
         const [min, max] =
-          quantifier[0] === "?"
+          quantifier === "?"
             ? [0, 1]
-            : quantifier[0] === "+"
+            : quantifier === "+"
             ? [1, Infinity]
-            : quantifier[0] === "*"
+            : quantifier === "*"
             ? [0, Infinity]
-            : [quantifier[0], quantifier[1] ?? quantifier[0]];
-        return new RepetitionParser(primary, min, max);
+            : quantifier;
+        return new RepetitionParser(primaryParser, min, max);
       }
     )
   ],
   [
-    "primary",
+    "primaryParser",
     new OptionsParser([
+      new ActionParser(new LiteralParser("."), () => new RegExpParser(/./)),
       new ActionParser(
-        new ReferenceParser("templateArgument"),
-        ({ $value, $expected }) => {
-          if (typeof $value === "number")
-            return new LiteralParser($value.toString());
-          if (typeof $value === "string") return new LiteralParser($value);
-          if ($value instanceof RegExp) return new RegExpParser($value);
-          if ($value instanceof Parser) return $value;
-          $expected([
-            "number argument",
-            "string argument",
-            "regexp argument",
-            "parser argument"
-          ]);
-        }
+        new LiteralParser("$"),
+        () =>
+          new TokenParser(
+            new PredicateParser(new RegExpParser(/./), false),
+            "end of input"
+          )
       ),
-      new ActionParser(
-        new ReferenceParser("numberLiteral"),
-        ({ $value }) => new LiteralParser($value.toString())
-      ),
-      new ActionParser(
-        new ReferenceParser("stringLiteral"),
-        ({ $value: [value, emit] }) => new LiteralParser(value, emit)
-      ),
-      new ActionParser(charClass, ({ $value }) => new RegExpParser($value)),
-      new ActionParser(int, ({ $value, $options }) => {
-        const arg = ($options.context as MetaContext).args[$value] as Exclude<
-          PegTemplateArg,
-          SemanticAction
-        >;
-        if (typeof arg === "string") return new LiteralParser(arg);
-        if (arg instanceof RegExp) return new RegExpParser(arg);
-        return arg;
-      }),
+      new ActionParser(new LiteralParser("ε"), () => new LiteralParser("")),
+      new ActionParser(new LiteralParser("^"), () => new CutParser()),
+      new SequenceParser([
+        new LiteralParser("("),
+        new ReferenceParser("parser"),
+        new LiteralParser(")")
+      ]),
       new ActionParser(
         new SequenceParser([
-          id,
+          new ReferenceParser("identifier"),
           new PredicateParser(
             new SequenceParser([
               new ReferenceParser("directives"),
@@ -457,20 +433,21 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
             false
           )
         ]),
-        ({ $value }) => new ReferenceParser($value)
+        ({ identifier }) => new ReferenceParser(identifier)
       ),
       new ActionParser(
-        new SequenceParser([
-          new LiteralParser("("),
-          new ReferenceParser("parser"),
-          new LiteralParser(")")
-        ]),
-        ({ parser }) => parser
+        new ReferenceParser("numberLiteral"),
+        ({ numberLiteral }) => new LiteralParser(String(numberLiteral))
       ),
-      new ActionParser(new LiteralParser("."), () => any),
-      new ActionParser(new LiteralParser("$"), () => endAnchor),
-      new ActionParser(new LiteralParser("ε"), () => eps),
-      new ActionParser(new LiteralParser("^"), () => new CutParser())
+      new ActionParser(
+        new ReferenceParser("stringLiteral"),
+        ({ stringLiteral: [value, emit] }) => new LiteralParser(value, emit)
+      ),
+      new ActionParser(
+        new ReferenceParser("characterClass"),
+        ({ characterClass }) => new RegExpParser(characterClass)
+      ),
+      new ReferenceParser("castableTagArgument")
     ])
   ],
   // Secondary bricks :
@@ -531,13 +508,13 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         new ReferenceParser("tagArgument"),
         ({ $value, $options }) => {
           const caster = ($options.context as MetaContext).plugins.find(
-            plugin => plugin.castArgument?.($value) !== undefined
+            plugin => plugin.castParser?.($value) !== undefined
           );
           if (!caster)
             throw new Error(
-              "The tag argument is not castable to Parser, you can add support for it via plugins"
+              "The tag argument is not castable to Parser, you can add support for it via peg.addPlugin"
             );
-          return caster.castArgument!($value)!;
+          return caster.castParser!($value)!;
         }
       ),
       "castable tag argument"
@@ -548,9 +525,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new TokenParser(
       new ActionParser(new ReferenceParser("tagArgument"), ({ $value }) => {
         if (typeof $value !== "function")
-          throw new Error(
-            "The tag argument is not a semantic action (function)"
-          );
+          throw new Error("The tag argument is not a function");
         return $value;
       }),
       "action tag argument"
@@ -629,14 +604,9 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new ActionParser(
       new SequenceParser([
         new LiteralParser("("),
-        new ReferenceParser("directiveArgument"),
-        new RepetitionParser(
-          new SequenceParser([
-            new LiteralParser(","),
-            new ReferenceParser("directiveArgument")
-          ]),
-          0,
-          Infinity
+        buildModulo(
+          new ReferenceParser("directiveArgument"),
+          new LiteralParser(",")
         ),
         new LiteralParser(")")
       ]),

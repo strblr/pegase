@@ -1,7 +1,5 @@
 import {
   ActionParser,
-  Directives,
-  eps,
   FailureType,
   GrammarParser,
   Internals,
@@ -12,7 +10,6 @@ import {
   Plugin,
   RegExpParser,
   RepetitionParser,
-  SemanticInfo,
   SequenceParser,
   TokenParser,
   TweakParser
@@ -57,17 +54,19 @@ export function mergeFailures(
 // pipeDirectives
 
 export function pipeDirectives(
-  definitions: Directives,
+  plugins: Array<Plugin>,
   parser: Parser,
-  directives: Array<string>,
-  rule?: string
+  directives: Array<[string, Array<any>]>
 ) {
-  return directives.reduce((parser, directive) => {
-    if (!(directive in definitions))
+  return directives.reduce((parser, [directive, args]) => {
+    const definition = plugins.find(plugin =>
+      plugin.directives?.hasOwnProperty(directive)
+    );
+    if (!definition)
       throw new Error(
-        `Couldn't resolve directive "${directive}". You need to merge it to the default directives using peg.extendDirectives.`
+        `Couldn't resolve directive "${directive}", you can add support for it via peg.addPlugin`
       );
-    return definitions[directive](parser, rule);
+    return definition.directives![directive](parser, ...args);
   }, parser);
 }
 
@@ -84,17 +83,6 @@ export function buildModulo(item: Parser, separator: Parser) {
     item,
     new RepetitionParser(new SequenceParser([separator, item]), 0, Infinity)
   ]);
-}
-
-// reduceModulo
-
-export function reduceModulo(
-  reducer: (left: any, separator: any, right: any) => any
-) {
-  return ({ $match }: SemanticInfo) =>
-    $match.children.reduce((acc, op, index) =>
-      index % 2 ? reducer(acc, op, $match.children[index + 1]) : acc
-    );
 }
 
 // merge (grammars)
@@ -124,7 +112,7 @@ export function nullObject(
 
 export const defaultPlugin: Plugin = {
   name: "default",
-  castArgument(arg) {
+  castParser(arg) {
     if (typeof arg === "number") return new LiteralParser(String(arg));
     if (typeof arg === "string") return new LiteralParser(arg);
     if (arg instanceof RegExp) return new RegExpParser(arg);
@@ -134,13 +122,18 @@ export const defaultPlugin: Plugin = {
     omit: parser => new ActionParser(parser, () => undefined),
     raw: parser => new ActionParser(parser, ({ $raw }) => $raw),
     number: parser => new ActionParser(parser, ({ $raw }) => Number($raw)),
-    token: (parser, alias: string) => new TokenParser(parser, alias),
+    token: (parser, alias?: string) => new TokenParser(parser, alias),
     skip: (parser, skipper?: Parser) =>
       new TweakParser(parser, { skip: true, ...(skipper && { skipper }) }),
     noskip: parser => new TweakParser(parser, { skip: false }),
     case: parser => new TweakParser(parser, { ignoreCase: false }),
     nocase: parser => new TweakParser(parser, { ignoreCase: true }),
     index: parser => new ActionParser(parser, ({ $match }) => $match.from),
+    test: parser =>
+      new OptionsParser([
+        new ActionParser(parser, () => true),
+        new ActionParser(new LiteralParser(""), () => false)
+      ]),
     children: parser =>
       new ActionParser(parser, ({ $match }) => $match.children),
     captures: parser =>
@@ -149,15 +142,32 @@ export const defaultPlugin: Plugin = {
       new ActionParser(parser, ({ $match }) => $match.children.length),
     filter: (
       parser,
-      predicate: (value: any, index: number, array: Array<any>) => unknown
+      predicate: (value: any, index: number, array: Array<any>) => any
     ) =>
       new ActionParser(parser, ({ $match, $propagate }) =>
         $propagate($match.children.filter(predicate))
       ),
-    test: parser =>
-      new OptionsParser([
-        new ActionParser(parser, () => true),
-        new ActionParser(eps, () => false)
-      ])
+    reduce: (
+      parser,
+      reducer: (
+        previous: any,
+        current: any,
+        index: number,
+        array: Array<any>
+      ) => any,
+      ...initialValue: Array<any>
+    ) =>
+      new ActionParser(parser, ({ $match }) =>
+        ($match.children.reduce as any)(reducer, ...initialValue)
+      ),
+    reduceInfix: (
+      parser,
+      reducer: (left: any, separator: any, right: any) => any
+    ) =>
+      new ActionParser(parser, ({ $match }) =>
+        $match.children.reduce((acc, op, index) =>
+          index % 2 ? reducer(acc, op, $match.children[index + 1]) : acc
+        )
+      )
   }
 };

@@ -1,4 +1,4 @@
-import { peg, reduceModulo } from ".";
+import peg from ".";
 
 function show(entity: any) {
   console.log(
@@ -38,9 +38,13 @@ test("Prefix math expressions should be correctly converted to postfix", () => {
     operator:
       "+" | "-" | "*" | "/"
       
-    number @raw @repeat(12, 13):
+    number @token("number") @raw:
       [0-9]+
   `;
+
+  expect(g.value("23")).toBe("23");
+  expect(g.value("+")).toBe(undefined);
+  expect(g.value("+ 1 2")).toBe("1 2 +");
   expect(g.value("+ - 1 25 * / 369 4 5")).toBe("1 25 - 369 4 / 5 * +");
 });
 
@@ -69,8 +73,8 @@ test("Math expressions should be correctly calculated", () => {
 
   const calc = peg<number>`
     calc: expr $
-    expr: term % ("+" | "-") ${reduceModulo(doop)}
-    term: fact % ("*" | "/") ${reduceModulo(doop)}
+    expr: term % ("+" | "-") @reduceInfix(${doop})
+    term: fact % ("*" | "/") @reduceInfix(${doop})
     fact: num | '(' expr ')'
     num @number @token:
       '-'? [0-9]+ ('.' [0-9]*)?
