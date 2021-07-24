@@ -93,7 +93,7 @@ export class LiteralParser extends Parser {
     this.emit = emit;
   }
 
-  exec(options: ParseOptions, internals: Internals) {
+  exec(options: ParseOptions, internals: Internals): Match | null {
     const from = skip(options, internals);
     if (from === null) return null;
     const to = from + this.literal.length;
@@ -133,7 +133,7 @@ export class RegExpParser extends Parser {
     this.withoutCase = extendFlags(regExp, "iy");
   }
 
-  exec(options: ParseOptions, internals: Internals) {
+  exec(options: ParseOptions, internals: Internals): Match | null {
     const from = skip(options, internals);
     if (from === null) return null;
     const regExp = options.ignoreCase ? this.withoutCase : this.withCase;
@@ -169,7 +169,7 @@ export class ReferenceParser extends Parser {
     this.fallback = fallback;
   }
 
-  exec(options: ParseOptions, internals: Internals) {
+  exec(options: ParseOptions, internals: Internals): Match | null {
     let parser = (options.grammar as GrammarParser | undefined)?.rules?.get(
       this.label
     );
@@ -215,7 +215,7 @@ export class ReferenceParser extends Parser {
 
 export class CutParser extends Parser {
   readonly type = "CUT_PARSER";
-  exec(options: ParseOptions, internals: Internals) {
+  exec(options: ParseOptions, internals: Internals): Match | null {
     internals.cut.active = true;
     return {
       from: options.from,
@@ -259,7 +259,7 @@ export class SequenceParser extends Parser {
     this.parsers = parsers;
   }
 
-  exec(options: ParseOptions, internals: Internals) {
+  exec(options: ParseOptions, internals: Internals): Match | null {
     let from = options.from;
     const matches: Array<Match> = [];
     for (const parser of this.parsers) {
@@ -348,7 +348,7 @@ export class RepetitionParser extends Parser {
     this.max = max;
   }
 
-  exec(options: ParseOptions, internals: Internals) {
+  exec(options: ParseOptions, internals: Internals): Match | null {
     let from = options.from,
       counter = 0;
     const matches: Array<Match> = [];
@@ -385,7 +385,7 @@ export class PredicateParser extends Parser {
     this.polarity = polarity;
   }
 
-  exec(options: ParseOptions, internals: Internals) {
+  exec(options: ParseOptions, internals: Internals): Match | null {
     const subInternals = { failures: [], committed: [] };
     const match = this.parser.exec(options, {
       ...internals,
@@ -451,7 +451,7 @@ export class CaptureParser extends Parser {
     this.name = name;
   }
 
-  exec(options: ParseOptions, internals: Internals) {
+  exec(options: ParseOptions, internals: Internals): Match | null {
     const match = this.parser.exec(options, internals);
     if (match === null) return null;
     return {
@@ -477,7 +477,7 @@ export class ActionParser extends Parser {
     this.action = action;
   }
 
-  exec(options: ParseOptions, internals: Internals) {
+  exec(options: ParseOptions, internals: Internals): Match | null {
     const match = this.parser.exec(options, internals);
     if (match === null) return null;
     try {
