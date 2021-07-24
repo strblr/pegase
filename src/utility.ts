@@ -137,6 +137,8 @@ export const defaultPlugin: Plugin = {
     noskip: parser => new TweakParser(parser, () => ({ skip: false })),
     case: parser => new TweakParser(parser, () => ({ ignoreCase: false })),
     nocase: parser => new TweakParser(parser, () => ({ ignoreCase: true })),
+    context: (parser, context: any) =>
+      new TweakParser(parser, () => ({ context })),
     trace: (parser, tracer?: Tracer) =>
       new TweakParser(parser, () => ({ tracer })),
     notrace: parser => new TweakParser(parser, () => ({ tracer: undefined })),
@@ -148,11 +150,6 @@ export const defaultPlugin: Plugin = {
     index: parser => new ActionParser(parser, ({ $match }) => $match.from),
     is: parser =>
       new ActionParser(parser, ({ $value }) => $value !== undefined),
-    test: parser =>
-      new OptionsParser([
-        new ActionParser(parser, () => true),
-        new ActionParser(new LiteralParser(""), () => false)
-      ]),
     // Children-related
     children: parser =>
       new ActionParser(parser, ({ $match }) => $match.children),
@@ -191,7 +188,10 @@ export const defaultPlugin: Plugin = {
     some: forwardArgs(({ $match }) => $match.children.some),
     // Other
     token: (parser, alias?: string) => new TokenParser(parser, alias),
-    context: (parser, context: any) =>
-      new TweakParser(parser, () => ({ context }))
+    test: parser =>
+      new OptionsParser([
+        new ActionParser(parser, () => true),
+        new ActionParser(new LiteralParser(""), () => false)
+      ])
   }
 };
