@@ -44,24 +44,21 @@ export type ParseOptions<Context = any> = {
   skip: boolean;
   ignoreCase: boolean;
   context: Context;
-  tracer?(event: TraceEvent<Context>): void;
+  tracer?(event: TraceEvent): void;
 };
 
-export type TraceEvent<Context = any> =
-  | EnterEvent<Context>
-  | MatchEvent<Context>
-  | FailEvent<Context>;
+export type TraceEvent = EnterEvent | MatchEvent | FailEvent;
 
-export type EnterEvent<Context = any> = TraceCommon<Context> & {
+export type EnterEvent = TraceCommon & {
   type: TraceEventType.Enter;
 };
 
-export type MatchEvent<Context = any> = TraceCommon<Context> & {
+export type MatchEvent = TraceCommon & {
   type: TraceEventType.Match;
   match: Match;
 };
 
-export type FailEvent<Context = any> = TraceCommon<Context> & {
+export type FailEvent = TraceCommon & {
   type: TraceEventType.Fail;
 };
 
@@ -71,9 +68,9 @@ export enum TraceEventType {
   Fail = "FAIL"
 }
 
-export type TraceCommon<Context = any> = {
+export type TraceCommon = {
   label: string;
-  options: ParseOptions<Context>;
+  options: ParseOptions;
 };
 
 export type Internals = {
