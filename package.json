@@ -1,7 +1,7 @@
 {
   "name": "pegase",
   "version": "0.0.2",
-  "description": "An inline, intuitive and powerful PEG parser generator for Javascript",
+  "description": "An inline, intuitive, powerful and highly configurable PEG parser generator for Javascript",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {

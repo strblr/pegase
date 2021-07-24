@@ -8,6 +8,7 @@ import {
   LiteralParser,
   MetaContext,
   OptionsParser,
+  ParseOptions,
   Parser,
   pegSkipper,
   pipeDirectives,
@@ -42,11 +43,17 @@ export function createTag() {
   ): Parser<Value, Context> {
     const result = metagrammar.parse(
       chunks.reduce((acc, chunk, index) => acc + `~${index - 1}` + chunk),
-      { skipper: pegSkipper, context: { plugins: peg.plugins, args } }
+      {
+        skipper: pegSkipper,
+        context: { plugins: peg.plugins, args },
+        tracer: peg.tracer
+      }
     );
     if (!result.success) throw result;
     return result.value;
   }
+
+  peg.tracer = undefined as ParseOptions<MetaContext>["tracer"] | undefined;
 
   peg.plugins = [defaultPlugin];
 
@@ -110,7 +117,7 @@ export function createTag() {
  * | 'ε'
  * | '^'
  * | '(' parser ')'
- * | !(identifier directives ':') reference
+ * | reference !(directives ':')
  * | numberLiteral
  * | stringLiteral
  * | characterClass
@@ -123,7 +130,7 @@ export function createTag() {
  *   $identifier
  *
  * reference:  => Parser
- *   $identifier
+ *   identifier
  *
  * numberLiteral:  => number
  *   $number
@@ -426,15 +433,14 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         new LiteralParser(")")
       ]),
       new SequenceParser([
+        new ReferenceParser("reference"),
         new PredicateParser(
           new SequenceParser([
-            new ReferenceParser("identifier"),
             new ReferenceParser("directives"),
             new LiteralParser(":")
           ]),
           false
-        ),
-        new ReferenceParser("reference")
+        )
       ]),
       new ActionParser(
         new ReferenceParser("numberLiteral"),
@@ -478,7 +484,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "numberLiteral",
     new TokenParser(
-      new ActionParser(new RegExpParser(/[0-9]+.?[0-9]*/), ({ $raw }) =>
+      new ActionParser(new RegExpParser(/[0-9]+\.?[0-9]*/), ({ $raw }) =>
         Number($raw)
       ),
       "number literal"
@@ -543,22 +549,28 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "actionTagArgument",
     new TokenParser(
-      new ActionParser(new ReferenceParser("tagArgument"), ({ $value }) => {
-        if (typeof $value !== "function")
-          throw new Error("The tag argument is not a function");
-        return $value;
-      }),
+      new ActionParser(
+        new ReferenceParser("tagArgument"),
+        ({ tagArgument }) => {
+          if (typeof tagArgument !== "function")
+            throw new Error("The tag argument is not a function");
+          return tagArgument;
+        }
+      ),
       "action tag argument"
     )
   ],
   [
     "numberTagArgument",
     new TokenParser(
-      new ActionParser(new ReferenceParser("tagArgument"), ({ $value }) => {
-        if (typeof $value !== "number")
-          throw new Error("The tag argument is not a number");
-        return $value;
-      }),
+      new ActionParser(
+        new ReferenceParser("tagArgument"),
+        ({ tagArgument }) => {
+          if (typeof tagArgument !== "number")
+            throw new Error("The tag argument is not a number");
+          return tagArgument;
+        }
+      ),
       "number tag argument"
     )
   ],

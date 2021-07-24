@@ -1,6 +1,6 @@
 import peg from ".";
 
-function show(entity: any) {
+function echo(entity: any) {
   console.log(
     JSON.stringify(
       entity,
@@ -15,6 +15,52 @@ function show(entity: any) {
     )
   );
 }
+
+test("Repetition parsers should work", () => {
+  const g1 = peg`"a"?`;
+  const g2 = peg`"a" +`;
+  const g3 = peg`"a"*`;
+  const g4 = peg`"a"{3}`;
+  const g5 = peg`"a" {2, ${4}}`;
+
+  expect(g1.parse("").success).toBe(true);
+  expect(g1.parse("a").value).toBe("a");
+  expect(g1.parse("aa").children).toEqual(["a"]);
+  expect(g2.parse("").success).toBe(false);
+  expect(g2.parse("a").value).toBe("a");
+  expect(g2.parse("aa").children).toEqual(["a", "a"]);
+  expect(g2.parse("aaaa").children).toEqual(["a", "a", "a", "a"]);
+  expect(g3.parse("").success).toBe(true);
+  expect(g3.parse("a").value).toBe("a");
+  expect(g3.parse("aa").children).toEqual(["a", "a"]);
+  expect(g3.parse("aaaa").children).toEqual(["a", "a", "a", "a"]);
+  expect(g4.parse("a").success).toBe(false);
+  expect(g4.parse("aa").success).toBe(false);
+  expect(g4.parse("aaa").success).toBe(true);
+  expect(g4.parse("aaaaaa").children).toEqual(["a", "a", "a"]);
+  expect(g5.parse("a").success).toBe(false);
+  expect(g5.parse("aa").success).toBe(true);
+  expect(g5.parse("aaa").success).toBe(true);
+  expect(g5.parse("aaaaaa").children).toEqual(["a", "a", "a", "a"]);
+});
+
+test("Captures should work", () => {
+  const g1 = peg`<val>[abc]`;
+  const g2 = peg`${g1}*`;
+  const g3 = peg`...<val>("a" | "b"){1}`;
+  const g4 = peg`<val1>("a" <val2>("b" | "c") "d" @count)`;
+  const g5 = peg`a: <val>b c ${({ val, b, c }) => val + c + b} b: "b" c: "c"`;
+
+  expect(g1.parse("a").captures.get("val")).toBe("a");
+  expect(g2.parse("abc").captures.get("val")).toBe("c");
+  expect(g3.parse("#@@@°#§¬ba.aps").captures.get("val")).toBe("b");
+
+  const result = g4.parse("acd");
+  expect(result.captures.get("val1")).toBe(3);
+  expect(result.captures.get("val2")).toBe("c");
+
+  expect(g5.parse("bc").value).toBe("bcb");
+});
 
 test("Modulos in grammars should work", () => {
   const p = peg`("1" % ',' @count) % '|'`;
@@ -45,6 +91,7 @@ test("Prefix math expressions should be correctly converted to postfix", () => {
   expect(g.value("23")).toBe("23");
   expect(g.value("+")).toBe(undefined);
   expect(g.value("+ 1 2")).toBe("1 2 +");
+  expect(g.value("* + 1 2 3")).toBe("1 2 + 3 *");
   expect(g.value("+ - 1 25 * / 369 4 5")).toBe("1 25 - 369 4 / 5 * +");
 });
 
