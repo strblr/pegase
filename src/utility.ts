@@ -14,6 +14,7 @@ import {
   SemanticInfo,
   SequenceParser,
   TokenParser,
+  Tracer,
   TweakParser
 } from ".";
 
@@ -136,6 +137,9 @@ export const defaultPlugin: Plugin = {
     noskip: parser => new TweakParser(parser, () => ({ skip: false })),
     case: parser => new TweakParser(parser, () => ({ ignoreCase: false })),
     nocase: parser => new TweakParser(parser, () => ({ ignoreCase: true })),
+    trace: (parser, tracer?: Tracer) =>
+      new TweakParser(parser, () => ({ tracer })),
+    notrace: parser => new TweakParser(parser, () => ({ tracer: undefined })),
     // Value tweaks
     omit: parser => new ActionParser(parser, () => undefined),
     raw: parser => new ActionParser(parser, ({ $raw }) => $raw),
@@ -188,8 +192,6 @@ export const defaultPlugin: Plugin = {
     // Other
     token: (parser, alias?: string) => new TokenParser(parser, alias),
     context: (parser, context: any) =>
-      new TweakParser(parser, () => ({ context })),
-    captures: parser =>
-      new ActionParser(parser, ({ $match }) => $match.captures)
+      new TweakParser(parser, () => ({ context }))
   }
 };

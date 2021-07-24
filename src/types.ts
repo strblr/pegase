@@ -44,8 +44,10 @@ export type ParseOptions<Context = any> = {
   skip: boolean;
   ignoreCase: boolean;
   context: Context;
-  tracer?(event: TraceEvent): void;
+  tracer?: Tracer;
 };
+
+export type Tracer = (event: TraceEvent) => void;
 
 export type TraceEvent = EnterEvent | MatchEvent | FailEvent;
 
