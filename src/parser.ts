@@ -271,8 +271,8 @@ export class SequenceParser extends Parser {
     return {
       from: matches[0].from,
       to: from,
-      children: matches.map(match => match.children).flat(),
-      captures: new Map(matches.map(match => [...match.captures]).flat())
+      children: matches.flatMap(match => match.children),
+      captures: new Map(matches.flatMap(match => [...match.captures]))
     };
   }
 }
@@ -356,8 +356,8 @@ export class RepetitionParser extends Parser {
       ...(matches.length === 0
         ? { from: options.from, to: options.from }
         : { from: matches[0].from, to: matches[matches.length - 1].to }),
-      children: matches.map(match => match.children).flat(),
-      captures: new Map(matches.map(match => [...match.captures]).flat())
+      children: matches.flatMap(match => match.children),
+      captures: new Map(matches.flatMap(match => [...match.captures]))
     });
     while (true) {
       if (counter === this.max) return success();

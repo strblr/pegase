@@ -58,7 +58,7 @@ export function createTag() {
   peg.plugins = [defaultPlugin];
 
   peg.addPlugin = (...plugins: Array<Plugin>) => {
-    peg.plugins = [...plugins.slice().reverse(), ...peg.plugins];
+    peg.plugins = [...[...plugins].reverse(), ...peg.plugins];
   };
 
   peg.removePlugin = (...plugins: Array<Plugin>) => {
