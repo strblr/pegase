@@ -341,7 +341,7 @@ export class RepetitionParser extends Parser {
   readonly min: number;
   readonly max: number;
 
-  constructor(parser: Parser, min: number, max: number) {
+  constructor(parser: Parser, [min, max]: [number, number]) {
     super();
     this.parser = parser;
     this.min = min;

@@ -83,11 +83,11 @@ export function inferValue(children: Array<any>) {
 export function buildModulo(
   item: Parser,
   separator: Parser,
-  [min, max] = [0, Infinity]
+  repetitionRange: [number, number] = [0, Infinity]
 ) {
   return new SequenceParser([
     item,
-    new RepetitionParser(new SequenceParser([separator, item]), min, max)
+    new RepetitionParser(new SequenceParser([separator, item]), repetitionRange)
   ]);
 }
 

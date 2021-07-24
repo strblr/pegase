@@ -211,8 +211,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
           ]),
           ({ $match }) => $match.children
         ),
-        1,
-        Infinity
+        [1, Infinity]
       ),
       ({ $options, $match }) =>
         new GrammarParser(
@@ -239,8 +238,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
       new SequenceParser([
         new RepetitionParser(
           new OptionsParser([new LiteralParser("|"), new LiteralParser("/")]),
-          0,
-          1
+          [0, 1]
         ),
         buildModulo(
           new ReferenceParser("actionParser"),
@@ -258,7 +256,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new ActionParser(
       new SequenceParser([
         new ReferenceParser("directiveParser"),
-        new RepetitionParser(new ReferenceParser("actionTagArgument"), 0, 1)
+        new RepetitionParser(new ReferenceParser("actionTagArgument"), [0, 1])
       ]),
       ({ directiveParser, actionTagArgument }) => {
         return !actionTagArgument
@@ -286,7 +284,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "sequenceParser",
     new ActionParser(
-      new RepetitionParser(new ReferenceParser("minusParser"), 1, Infinity),
+      new RepetitionParser(new ReferenceParser("minusParser"), [1, Infinity]),
       ({ $match }) =>
         $match.children.length === 1
           ? $match.children[0]
@@ -327,7 +325,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     "forwardParser",
     new ActionParser(
       new SequenceParser([
-        new RepetitionParser(new LiteralParser("...", true), 0, 1),
+        new RepetitionParser(new LiteralParser("...", true), [0, 1]),
         new ReferenceParser("captureParser")
       ]),
       ({ captureParser, $match }) => {
@@ -339,8 +337,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
                 new PredicateParser(captureParser, false),
                 new RegExpParser(/./)
               ]),
-              0,
-              Infinity
+              [0, Infinity]
             ),
             () => undefined
           ),
@@ -359,8 +356,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
             new ReferenceParser("identifier"),
             new LiteralParser(">")
           ]),
-          0,
-          1
+          [0, 1]
         ),
         new ReferenceParser("predicateParser")
       ]),
@@ -379,8 +375,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
             new LiteralParser("&", true),
             new LiteralParser("!", true)
           ]),
-          0,
-          1
+          [0, 1]
         ),
         new ReferenceParser("repetitionParser")
       ]),
@@ -395,16 +390,12 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new ActionParser(
       new SequenceParser([
         new ReferenceParser("primaryParser"),
-        new RepetitionParser(new ReferenceParser("repetitionRange"), 0, 1)
+        new RepetitionParser(new ReferenceParser("repetitionRange"), [0, 1])
       ]),
       ({ primaryParser, repetitionRange }) =>
         !repetitionRange
           ? primaryParser
-          : new RepetitionParser(
-              primaryParser,
-              repetitionRange[0],
-              repetitionRange[1]
-            )
+          : new RepetitionParser(primaryParser, repetitionRange)
     )
   ],
   [
@@ -602,7 +593,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "directives",
     new ActionParser(
-      new RepetitionParser(new ReferenceParser("directive"), 0, Infinity),
+      new RepetitionParser(new ReferenceParser("directive"), [0, Infinity]),
       ({ $match }) => $match.children
     )
   ],
@@ -617,7 +608,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
           ]),
           "directive"
         ),
-        new RepetitionParser(new ReferenceParser("directiveArguments"), 0, 1)
+        new RepetitionParser(new ReferenceParser("directiveArguments"), [0, 1])
       ]),
       ({
         $match: {
