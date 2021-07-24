@@ -82,10 +82,7 @@ export function createTag() {
  *   (identifier directives ':' optionsParser)+
  *
  * optionsParser:  => Parser
- *   ('|' | '/')? actionParser % ('|' | '/')
- *
- * actionParser:  => Parser
- *   directiveParser actionTagArgument?
+ *   ('|' | '/')? directiveParser % ('|' | '/')
  *
  * directiveParser:  => Parser
  *   sequenceParser directives
@@ -166,7 +163,8 @@ export function createTag() {
  *   directive*
  *
  * directive:  => [string, any[]]
- *   $directive directiveArguments?
+ * | $directive directiveArguments?
+ * | actionTagArgument
  *
  * directiveArguments:  => any[]
  *   '(' directiveArgument % ',' ')'
@@ -241,7 +239,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
           [0, 1]
         ),
         buildModulo(
-          new ReferenceParser("actionParser"),
+          new ReferenceParser("directiveParser"),
           new OptionsParser([new LiteralParser("|"), new LiteralParser("/")])
         )
       ]),
@@ -249,20 +247,6 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         $match.children.length === 1
           ? $match.children[0]
           : new OptionsParser($match.children)
-    )
-  ],
-  [
-    "actionParser",
-    new ActionParser(
-      new SequenceParser([
-        new ReferenceParser("directiveParser"),
-        new RepetitionParser(new ReferenceParser("actionTagArgument"), [0, 1])
-      ]),
-      ({ directiveParser, actionTagArgument }) => {
-        return !actionTagArgument
-          ? directiveParser
-          : new ActionParser(directiveParser, actionTagArgument);
-      }
     )
   ],
   [
@@ -599,23 +583,31 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   ],
   [
     "directive",
-    new ActionParser(
-      new SequenceParser([
-        new TokenParser(
-          new SequenceParser([
-            new LiteralParser("@"),
-            new ReferenceParser("identifier")
-          ]),
-          "directive"
-        ),
-        new RepetitionParser(new ReferenceParser("directiveArguments"), [0, 1])
-      ]),
-      ({
-        $match: {
-          children: [directive, args]
-        }
-      }) => [directive, args ?? []]
-    )
+    new OptionsParser([
+      new ActionParser(
+        new SequenceParser([
+          new TokenParser(
+            new SequenceParser([
+              new LiteralParser("@"),
+              new ReferenceParser("identifier")
+            ]),
+            "directive"
+          ),
+          new RepetitionParser(new ReferenceParser("directiveArguments"), [
+            0,
+            1
+          ])
+        ]),
+        ({ identifier, directiveArguments }) => [
+          identifier,
+          directiveArguments ?? []
+        ]
+      ),
+      new ActionParser(
+        new ReferenceParser("actionTagArgument"),
+        ({ actionTagArgument }) => ["action", [actionTagArgument]]
+      )
+    ])
   ],
   [
     "directiveArguments",
