@@ -11,6 +11,7 @@ import {
   Plugin,
   RegExpParser,
   RepetitionParser,
+  SemanticAction,
   SemanticInfo,
   SequenceParser,
   TokenParser,
@@ -187,6 +188,8 @@ export const defaultPlugin: Plugin = {
       ),
     some: forwardArgs(({ $match }) => $match.children.some),
     // Other
+    action: (parser, action: SemanticAction) =>
+      new ActionParser(parser, action),
     token: (parser, alias?: string) => new TokenParser(parser, alias),
     test: parser =>
       new OptionsParser([
