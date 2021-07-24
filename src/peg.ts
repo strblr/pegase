@@ -109,7 +109,7 @@ export function createTag() {
  *   ('&' | '!')? repetitionParser
  *
  * repetitionParser:  => Parser
- *   primaryParser ('?' | '+' | '*' | repetitionRange)?
+ *   primaryParser repetitionRange?
  *
  * primaryParser:  => Parser
  * | '.'
@@ -154,7 +154,10 @@ export function createTag() {
  *   $numberTagArgument
  *
  * repetitionRange:  => [number, number]
- *   '{' repetitionCount (',' repetitionCount)? '}'
+ * | '?'
+ * | '+'
+ * | '*'
+ * | '{' repetitionCount (',' repetitionCount)? '}'
  *
  * repetitionCount:  => number
  *   numberLiteral | numberTagArgument
@@ -383,34 +386,16 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new ActionParser(
       new SequenceParser([
         new ReferenceParser("primaryParser"),
-        new RepetitionParser(
-          new OptionsParser([
-            new LiteralParser("?", true),
-            new LiteralParser("+", true),
-            new LiteralParser("*", true),
-            new ReferenceParser("repetitionRange")
-          ]),
-          0,
-          1
-        )
+        new RepetitionParser(new ReferenceParser("repetitionRange"), 0, 1)
       ]),
-      ({ primaryParser, $match }) => {
-        if ($match.children.length === 1) return primaryParser;
-        const quantifier = $match.children[1] as
-          | "?"
-          | "+"
-          | "*"
-          | [number, number];
-        const [min, max] =
-          quantifier === "?"
-            ? [0, 1]
-            : quantifier === "+"
-            ? [1, Infinity]
-            : quantifier === "*"
-            ? [0, Infinity]
-            : quantifier;
-        return new RepetitionParser(primaryParser, min, max);
-      }
+      ({ primaryParser, repetitionRange }) =>
+        !repetitionRange
+          ? primaryParser
+          : new RepetitionParser(
+              primaryParser,
+              repetitionRange[0],
+              repetitionRange[1]
+            )
     )
   ],
   [
@@ -576,26 +561,31 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   ],
   [
     "repetitionRange",
-    new ActionParser(
-      new SequenceParser([
-        new LiteralParser("{"),
-        new ReferenceParser("repetitionCount"),
-        new RepetitionParser(
-          new SequenceParser([
-            new LiteralParser(","),
-            new ReferenceParser("repetitionCount")
-          ]),
-          0,
-          1
-        ),
-        new LiteralParser("}")
-      ]),
-      ({
-        $match: {
-          children: [min, max]
-        }
-      }) => [min, max ?? min]
-    )
+    new OptionsParser([
+      new ActionParser(new LiteralParser("?"), () => [0, 1]),
+      new ActionParser(new LiteralParser("+"), () => [1, Infinity]),
+      new ActionParser(new LiteralParser("*"), () => [0, Infinity]),
+      new ActionParser(
+        new SequenceParser([
+          new LiteralParser("{"),
+          new ReferenceParser("repetitionCount"),
+          new RepetitionParser(
+            new SequenceParser([
+              new LiteralParser(","),
+              new ReferenceParser("repetitionCount")
+            ]),
+            0,
+            1
+          ),
+          new LiteralParser("}")
+        ]),
+        ({
+          $match: {
+            children: [min, max]
+          }
+        }) => [min, max ?? min]
+      )
+    ])
   ],
   [
     "repetitionCount",
