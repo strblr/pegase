@@ -139,6 +139,7 @@ export const defaultPlugin: Plugin = {
     // Value tweaks
     omit: parser => new ActionParser(parser, () => undefined),
     raw: parser => new ActionParser(parser, ({ $raw }) => $raw),
+    length: parser => new ActionParser(parser, ({ $raw }) => $raw.length),
     number: parser => new ActionParser(parser, ({ $raw }) => Number($raw)),
     index: parser => new ActionParser(parser, ({ $match }) => $match.from),
     is: parser =>
@@ -186,6 +187,8 @@ export const defaultPlugin: Plugin = {
     some: forwardArgs(({ $match }) => $match.children.some),
     // Other
     token: (parser, alias?: string) => new TokenParser(parser, alias),
+    context: (parser, context: any) =>
+      new TweakParser(parser, () => ({ context })),
     captures: parser =>
       new ActionParser(parser, ({ $match }) => $match.captures)
   }
