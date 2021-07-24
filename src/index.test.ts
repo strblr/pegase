@@ -54,11 +54,9 @@ test("Captures should work", () => {
   expect(g1.parse("a").captures.get("val")).toBe("a");
   expect(g2.parse("abc").captures.get("val")).toBe("c");
   expect(g3.parse("#@@@°#§¬ba.aps").captures.get("val")).toBe("b");
-
   const result = g4.parse("acd");
   expect(result.captures.get("val1")).toBe(3);
   expect(result.captures.get("val2")).toBe("c");
-
   expect(g5.parse("bc").value).toBe("bcb");
 });
 
