@@ -1,5 +1,6 @@
 import {
   ActionParser,
+  Directive,
   FailureType,
   GrammarParser,
   Internals,
@@ -10,6 +11,7 @@ import {
   Plugin,
   RegExpParser,
   RepetitionParser,
+  SemanticInfo,
   SequenceParser,
   TokenParser,
   TweakParser
@@ -78,10 +80,14 @@ export function inferValue(children: Array<any>) {
 
 // buildModulo
 
-export function buildModulo(item: Parser, separator: Parser) {
+export function buildModulo(
+  item: Parser,
+  separator: Parser,
+  [min, max] = [0, Infinity]
+) {
   return new SequenceParser([
     item,
-    new RepetitionParser(new SequenceParser([separator, item]), 0, Infinity)
+    new RepetitionParser(new SequenceParser([separator, item]), min, max)
   ]);
 }
 
@@ -100,6 +106,16 @@ export function merge<Value = any, Context = any>(
   );
 }
 
+// forwardArgs
+
+export function forwardArgs(
+  to: (info: SemanticInfo) => Function,
+  finalize: (result: any, info: SemanticInfo) => any = result => result
+): Directive {
+  return (parser, ...args) =>
+    new ActionParser(parser, info => finalize(to(info)(...args), info));
+}
+
 // defaultPlugin
 
 export const defaultPlugin: Plugin = {
@@ -111,10 +127,7 @@ export const defaultPlugin: Plugin = {
     if (arg instanceof Parser) return arg;
   },
   directives: {
-    omit: parser => new ActionParser(parser, () => undefined),
-    raw: parser => new ActionParser(parser, ({ $raw }) => $raw),
-    number: parser => new ActionParser(parser, ({ $raw }) => Number($raw)),
-    token: (parser, alias?: string) => new TokenParser(parser, alias),
+    // Option tweaks
     skip: (parser, skipper?: Parser) =>
       new TweakParser(parser, () => ({
         skip: true,
@@ -123,38 +136,40 @@ export const defaultPlugin: Plugin = {
     noskip: parser => new TweakParser(parser, () => ({ skip: false })),
     case: parser => new TweakParser(parser, () => ({ ignoreCase: false })),
     nocase: parser => new TweakParser(parser, () => ({ ignoreCase: true })),
+    // Value tweaks
+    omit: parser => new ActionParser(parser, () => undefined),
+    raw: parser => new ActionParser(parser, ({ $raw }) => $raw),
+    number: parser => new ActionParser(parser, ({ $raw }) => Number($raw)),
     index: parser => new ActionParser(parser, ({ $match }) => $match.from),
+    is: parser =>
+      new ActionParser(parser, ({ $value }) => $value !== undefined),
     test: parser =>
       new OptionsParser([
         new ActionParser(parser, () => true),
         new ActionParser(new LiteralParser(""), () => false)
       ]),
+    // Children-related
     children: parser =>
       new ActionParser(parser, ({ $match }) => $match.children),
-    captures: parser =>
-      new ActionParser(parser, ({ $match }) => $match.captures),
     count: parser =>
       new ActionParser(parser, ({ $match }) => $match.children.length),
-    filter: (
-      parser,
-      predicate: (value: any, index: number, array: Array<any>) => any
-    ) =>
-      new ActionParser(parser, ({ $match, $propagate }) =>
-        $propagate($match.children.filter(predicate))
-      ),
-    reduce: (
-      parser,
-      reducer: (
-        previous: any,
-        current: any,
-        index: number,
-        array: Array<any>
-      ) => any,
-      ...initialValue: Array<any>
-    ) =>
-      new ActionParser(parser, ({ $match }) =>
-        ($match.children.reduce as any)(reducer, ...initialValue)
-      ),
+    every: forwardArgs(({ $match }) => $match.children.every),
+    filter: forwardArgs(
+      ({ $match }) => $match.children.filter,
+      (result, { $propagate }) => $propagate(result)
+    ),
+    find: forwardArgs(({ $match }) => $match.children.find),
+    flat: forwardArgs(
+      ({ $match }) => $match.children.flat,
+      (result, { $propagate }) => $propagate(result)
+    ),
+    forEach: forwardArgs(({ $match }) => $match.children.forEach),
+    join: forwardArgs(({ $match }) => $match.children.join),
+    map: forwardArgs(
+      ({ $match }) => $match.children.map,
+      (result, { $propagate }) => $propagate(result)
+    ),
+    reduce: forwardArgs(({ $match }) => $match.children.reduce),
     reduceInfix: (
       parser,
       reducer: (left: any, separator: any, right: any) => any
@@ -163,6 +178,15 @@ export const defaultPlugin: Plugin = {
         $match.children.reduce((acc, op, index) =>
           index % 2 ? reducer(acc, op, $match.children[index + 1]) : acc
         )
-      )
+      ),
+    reverse: parser =>
+      new ActionParser(parser, ({ $match, $propagate }) =>
+        $propagate([...$match.children].reverse())
+      ),
+    some: forwardArgs(({ $match }) => $match.children.some),
+    // Other
+    token: (parser, alias?: string) => new TokenParser(parser, alias),
+    captures: parser =>
+      new ActionParser(parser, ({ $match }) => $match.captures)
   }
 };
