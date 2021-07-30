@@ -152,7 +152,7 @@ export function createTag() {
  * | '?'
  * | '+'
  * | '*'
- * | '{' repetitionCount (',' repetitionCount)? '}'
+ * | '{' repetitionCount %? ',' '}'
  *
  * repetitionCount:  => number
  *   numberLiteral | numberTagArgument
