@@ -118,6 +118,7 @@ test("The cut operator should work correctly", () => {
   const g1 = peg`'a' "b" | 'a' "c" | 'a' "d"`;
   const g2 = peg`'a' ^ "b" | 'a' "c" | 'a' "d"`;
   const g3 = peg`('a' ^ "b" | 'a' "c") | 'a' "d"`;
+
   expect(g1.value("ab")).toBe("b");
   expect(g2.value("ab")).toBe("b");
   expect(g3.value("ab")).toBe("b");
@@ -127,6 +128,33 @@ test("The cut operator should work correctly", () => {
   expect(g1.value("ad")).toBe("d");
   expect(g2.value("ad")).toBe(undefined);
   expect(g3.value("ad")).toBe("d");
+});
+
+test("Inherited attributes should be implementable using context", () => {
+  const g = peg<number>`
+    expr:
+      (num ${({ num, $options }) => {
+        $options.context.acc = num;
+      }})
+      exprRest
+        @context(${{ acc: 0 }})
+    
+    exprRest:
+    | ('-' num ${({ num, $options }) => {
+      $options.context.acc -= num;
+    }})
+      exprRest
+    | ε ${({ $options }) => $options.context.acc}
+    
+    num @number @token("number"):
+      [0-9]+
+  `;
+
+  expect(g.test("")).toBe(false);
+  expect(g.value("5")).toBe(5);
+  expect(g.value("42-6")).toBe(36);
+  expect(g.value(" 13 - 16 -1")).toBe(-4);
+  expect(g.value("61- 20 -14  -  3")).toBe(24);
 });
 
 test("Math expressions should be correctly calculated", () => {
@@ -151,8 +179,6 @@ test("Math expressions should be correctly calculated", () => {
     num @number @token("number"):
       '-'? [0-9]+ ('.' [0-9]*)?
   `;
-
-  console.log(calc.parse("(1 ))").logs());
 
   expect(calc.value("2 + 3")).toBe(5);
   expect(calc.value("2 * 3")).toBe(6);
