@@ -181,6 +181,7 @@ export type FailResult<Context = any> = ResultCommon<Context> & {
 export type ResultCommon<Context = any> = {
   options: ParseOptions<Context>;
   warnings: Array<Warning>;
+  logs(options?: Partial<LogOptions>): string;
 };
 
 export type LogOptions = {

@@ -148,9 +148,11 @@ test("Math expressions should be correctly calculated", () => {
     expr: term % ("+" | "-") @reduceInfix(${doop})
     term: fact % ("*" | "/") @reduceInfix(${doop})
     fact: num | '(' expr ')'
-    num @number @token:
+    num @number @token("number"):
       '-'? [0-9]+ ('.' [0-9]*)?
   `;
+
+  console.log(calc.parse("(1 ))").logs());
 
   expect(calc.value("2 + 3")).toBe(5);
   expect(calc.value("2 * 3")).toBe(6);

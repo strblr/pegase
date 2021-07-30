@@ -5,10 +5,12 @@ import {
   FailureType,
   inferValue,
   Internals,
+  log,
   Match,
   mergeFailures,
   ParseOptions,
   Result,
+  ResultCommon,
   SemanticAction,
   skip,
   TraceEventType,
@@ -48,10 +50,7 @@ export abstract class Parser<Value = any, Context = any> {
     return this.parse(input, options).value;
   }
 
-  parse(
-    input: string,
-    options?: Partial<ParseOptions<Context>>
-  ): Result<Value> {
+  parse(input: string, options?: Partial<ParseOptions<Context>>) {
     const fullOptions = {
       input,
       from: 0,
@@ -65,25 +64,34 @@ export abstract class Parser<Value = any, Context = any> {
     };
     const internals = createInternals();
     const match = this.exec(fullOptions, internals);
-    if (match)
-      return {
-        success: true,
-        value: inferValue(match.children),
-        raw: input.substring(match.from, match.to),
-        complete: match.to === input.length,
-        options: fullOptions,
-        warnings: internals.warnings,
-        ...match
-      };
-    return {
-      success: false,
-      value: undefined,
+    const common: ResultCommon = {
       options: fullOptions,
       warnings: internals.warnings,
-      failures: [...internals.committed, ...mergeFailures(internals.failures)],
-      children: [],
-      captures: new Map()
+      logs(options) {
+        return log(result, options);
+      }
     };
+    const result: Result<Value> = match
+      ? {
+          ...common,
+          ...match,
+          success: true,
+          value: inferValue(match.children),
+          raw: input.substring(match.from, match.to),
+          complete: match.to === input.length
+        }
+      : {
+          ...common,
+          success: false,
+          value: undefined,
+          children: [],
+          captures: new Map(),
+          failures: [
+            ...internals.committed,
+            ...mergeFailures(internals.failures)
+          ]
+        };
+    return result;
   }
 }
 
