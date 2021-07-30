@@ -1,4 +1,5 @@
 import {
+  createInternals,
   ExpectationType,
   extendFlags,
   FailureType,
@@ -61,12 +62,7 @@ export abstract class Parser<Value = any, Context = any> {
       context: undefined as any,
       ...options
     };
-    const internals = {
-      cut: { active: false },
-      warnings: [],
-      failures: [],
-      committed: []
-    };
+    const internals = createInternals();
     const match = this.exec(fullOptions, internals);
     if (match)
       return {
@@ -397,30 +393,24 @@ export class PredicateParser extends Parser {
   }
 
   exec(options: ParseOptions, internals: Internals): Match | null {
-    const subInternals = { failures: [], committed: [] };
-    const match = this.parser.exec(options, {
-      ...internals,
-      ...subInternals
-    });
+    const match = this.parser.exec(
+      options,
+      this.polarity ? internals : createInternals()
+    );
     const success = () => ({
       from: options.from,
       to: options.from,
       children: [],
       captures: new Map()
     });
-    if (this.polarity) {
-      internals.failures.push(...subInternals.failures);
-      internals.committed.push(...subInternals.committed);
-      if (!match) return null;
-      return success();
-    }
-    if (!match) return success();
-    internals.failures.push({
-      from: match.from,
-      to: match.to,
-      type: FailureType.Expectation,
-      expected: [{ type: ExpectationType.Mismatch, match }]
-    });
+    if (this.polarity === Boolean(match)) return success();
+    if (match)
+      internals.failures.push({
+        from: match.from,
+        to: match.to,
+        type: FailureType.Expectation,
+        expected: [{ type: ExpectationType.Mismatch, match }]
+      });
     return null;
   }
 }

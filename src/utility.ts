@@ -19,6 +19,17 @@ import {
   TweakParser
 } from ".";
 
+// createInternals
+
+export function createInternals(): Internals {
+  return {
+    cut: { active: false },
+    warnings: [],
+    failures: [],
+    committed: []
+  };
+}
+
 // extendFlags
 
 export function extendFlags(regExp: RegExp, flags: string) {
