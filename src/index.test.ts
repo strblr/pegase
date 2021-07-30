@@ -50,6 +50,7 @@ test("Captures should work", () => {
   const g3 = peg`...<val>("a" | "b"){1}`;
   const g4 = peg`<val1>("a" <val2>("b" | "c") "d" @count)`;
   const g5 = peg`a: <val>b c ${({ val, b, c }) => val + c + b} b: "b" c: "c"`;
+  const g6 = peg`'a' <val3>${/(?<val>(?<val1>[bc])(?<val2>[de]))/} 'f'`;
 
   expect(g1.parse("a").captures.get("val")).toBe("a");
   expect(g2.parse("abc").captures.get("val")).toBe("c");
@@ -58,13 +59,33 @@ test("Captures should work", () => {
   expect(result.captures.get("val1")).toBe(3);
   expect(result.captures.get("val2")).toBe("c");
   expect(g5.parse("bc").value).toBe("bcb");
+  const result2 = g6.parse("a ce f");
+  expect(result2.captures.get("val")).toBe("ce");
+  expect(result2.captures.get("val1")).toBe("c");
+  expect(result2.captures.get("val2")).toBe("e");
+  expect(result2.captures.get("val3")).toBe("ce");
 });
 
 test("Modulos in grammars should work", () => {
-  const p = peg`("1" % ',' @count) % '|'`;
-  expect(p.parse(" 2, 1, 1 | 1").success).toBe(false);
-  expect(p.parse("  1 ,1,1 |1,1,  1,1|1 |1,1   ").success).toBe(true);
-  expect(p.parse("1 ,1,1 |1,1, 1  ,   1,1|1 |   1,1 ").children).toEqual([
+  const g1 = peg`"1" % ','`;
+  expect(g1.parse("1").children).toEqual(["1"]);
+  expect(g1.parse("1,1").children).toEqual(["1", "1"]);
+  expect(g1.parse("1 ,1, 1 , 1").children).toEqual(["1", "1", "1", "1"]);
+
+  const g2 = peg`"1" %? ','`;
+  expect(g2.parse("1").children).toEqual(["1"]);
+  expect(g2.parse("1,1").children).toEqual(["1", "1"]);
+  expect(g2.parse("1 ,1, 1 , 1").children).toEqual(["1", "1"]);
+
+  const g3 = peg`"1" %{2} ','`;
+  expect(g3.parse("1").success).toBe(false);
+  expect(g3.parse("1,1").success).toBe(false);
+  expect(g3.parse("1 ,1, 1 , 1").children).toEqual(["1", "1", "1"]);
+
+  const g4 = peg`("1" % ',' @count) % '|'`;
+  expect(g4.parse(" 2, 1, 1 | 1").success).toBe(false);
+  expect(g4.parse("  1 ,1,1 |1,1,  1,1|1 |1,1   ").success).toBe(true);
+  expect(g4.parse("1 ,1,1 |1,1, 1  ,   1,1|1 |   1,1 ").children).toEqual([
     3,
     5,
     1,
@@ -94,12 +115,18 @@ test("Prefix math expressions should be correctly converted to postfix", () => {
 });
 
 test("The cut operator should work correctly", () => {
-  const g1 = peg`'a' "b" | 'a' "c"`;
-  const g2 = peg`'a' ^ "b" | 'a' "c"`;
+  const g1 = peg`'a' "b" | 'a' "c" | 'a' "d"`;
+  const g2 = peg`'a' ^ "b" | 'a' "c" | 'a' "d"`;
+  const g3 = peg`('a' ^ "b" | 'a' "c") | 'a' "d"`;
   expect(g1.value("ab")).toBe("b");
   expect(g2.value("ab")).toBe("b");
+  expect(g3.value("ab")).toBe("b");
   expect(g1.value("ac")).toBe("c");
   expect(g2.value("ac")).toBe(undefined);
+  expect(g3.value("ac")).toBe(undefined);
+  expect(g1.value("ad")).toBe("d");
+  expect(g2.value("ad")).toBe(undefined);
+  expect(g3.value("ad")).toBe("d");
 });
 
 test("Math expressions should be correctly calculated", () => {
