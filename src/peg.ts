@@ -313,15 +313,12 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
       ({ captureParser, $match }) => {
         if ($match.children.length === 1) return captureParser;
         return new SequenceParser([
-          new ActionParser(
-            new RepetitionParser(
-              new SequenceParser([
-                new PredicateParser(captureParser, false),
-                new RegExpParser(/./)
-              ]),
-              [0, Infinity]
-            ),
-            () => undefined
+          new RepetitionParser(
+            new SequenceParser([
+              new PredicateParser(captureParser, false),
+              new RegExpParser(/./)
+            ]),
+            [0, Infinity]
           ),
           captureParser
         ]);
@@ -428,7 +425,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
 
   [
     "identifier",
-    new TokenParser(new RegExpParser(/[_a-zA-Z][_a-zA-Z0-9]*/), "identifier")
+    new TokenParser(new RegExpParser(/([_a-zA-Z][_a-zA-Z0-9]*)/), "identifier")
   ],
   [
     "reference",

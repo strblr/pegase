@@ -45,12 +45,12 @@ test("Repetition parsers should work", () => {
 });
 
 test("Captures should work", () => {
-  const g1 = peg`<val>[abc]`;
+  const g1 = peg`<val>([abc] @raw)`;
   const g2 = peg`${g1}*`;
   const g3 = peg`...<val>("a" | "b"){1}`;
   const g4 = peg`<val1>("a" <val2>("b" | "c") "d" @count)`;
   const g5 = peg`a: <val>b c ${({ val, b, c }) => val + c + b} b: "b" c: "c"`;
-  const g6 = peg`'a' <val3>${/(?<val>(?<val1>[bc])(?<val2>[de]))/} 'f'`;
+  const g6 = peg`'a' <val3>(${/(?<val>(?<val1>[bc])(?<val2>[de]))/} @raw) 'f'`;
 
   expect(g1.parse("a").captures.get("val")).toBe("a");
   expect(g2.parse("abc").captures.get("val")).toBe("c");
@@ -97,8 +97,8 @@ test("Prefix math expressions should be correctly converted to postfix", () => {
   const g = peg`
     expr:
     | number
-    | operator <first>expr expr ${({ operator, first, expr }) =>
-      [first, expr, operator].join(" ")}
+    | operator <e1>expr <e2>expr ${({ operator, e1, e2 }) =>
+      [e1, e2, operator].join(" ")}
 
     operator:
       "+" | "-" | "*" | "/"

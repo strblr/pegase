@@ -147,7 +147,7 @@ export class RegExpParser extends Parser {
       return {
         from,
         to: from + result[0].length,
-        children: [result[0]],
+        children: result.slice(1),
         captures: new Map(result.groups ? Object.entries(result.groups) : [])
       };
     internals.failures.push({
