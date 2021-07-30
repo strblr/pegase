@@ -159,6 +159,7 @@ export type SuccessResult<Value = any> = Match & {
   success: true;
   value: Value;
   raw: string;
+  complete: boolean;
   warnings: Array<Warning>;
 };
 
