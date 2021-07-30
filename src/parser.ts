@@ -10,7 +10,8 @@ import {
   Result,
   SemanticAction,
   skip,
-  TraceEventType
+  TraceEventType,
+  Tracer
 } from ".";
 
 /** The parser inheritance structure
@@ -51,6 +52,8 @@ export abstract class Parser<Value = any, Context = any> {
       skipper: defaultSkipper,
       skip: true,
       ignoreCase: false,
+      tracer: defaultTracer,
+      trace: false,
       context: undefined as any,
       ...options
     };
@@ -184,29 +187,32 @@ export class ReferenceParser extends Parser {
         throw new Error(
           `Couldn't resolve rule "${this.label}", you can add it by merging grammars or via peg.addPlugin`
         );
-    options.tracer?.({
-      type: TraceEventType.Enter,
-      label: this.label,
-      options
-    });
-    const match = parser.exec(options, internals);
-    if (match === null) {
-      options.tracer?.({
-        type: TraceEventType.Fail,
+    options.trace &&
+      options.tracer({
+        type: TraceEventType.Enter,
         label: this.label,
         options
       });
+    const match = parser.exec(options, internals);
+    if (match === null) {
+      options.trace &&
+        options.tracer({
+          type: TraceEventType.Fail,
+          label: this.label,
+          options
+        });
       return null;
     }
-    options.tracer?.({
-      type: TraceEventType.Match,
-      label: this.label,
-      options,
-      match
-    });
+    options.trace &&
+      options.tracer({
+        type: TraceEventType.Match,
+        label: this.label,
+        options,
+        match
+      });
     return {
       ...match,
-      captures: new Map().set(this.label, inferValue(match.children))
+      captures: new Map([[this.label, inferValue(match.children)]])
     };
   }
 }
@@ -529,10 +535,30 @@ export class ActionParser extends Parser {
   }
 }
 
-// Skippers
+// Defaults
 
 export const defaultSkipper = new RegExpParser(/\s*/);
 
 export const pegSkipper = new RegExpParser(
   /(?:\s|#[^#\r\n]*(?:#|\r\n|\r|\n))*/
 );
+
+export const defaultTracer: Tracer = event => {
+  let adjective = "";
+  let complement = "";
+  switch (event.type) {
+    case TraceEventType.Enter:
+      adjective = "Entered";
+      complement = `at index ${event.options.from}`;
+      break;
+    case TraceEventType.Match:
+      adjective = "Matched";
+      complement = `from index ${event.match.from} to ${event.match.to}`;
+      break;
+    case TraceEventType.Fail:
+      adjective = "Failed";
+      complement = `at index ${event.options.from}`;
+      break;
+  }
+  console.log(adjective, `"${event.label}"`, complement);
+};

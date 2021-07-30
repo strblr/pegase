@@ -138,11 +138,14 @@ export const defaultPlugin: Plugin = {
     noskip: parser => new TweakParser(parser, () => ({ skip: false })),
     case: parser => new TweakParser(parser, () => ({ ignoreCase: false })),
     nocase: parser => new TweakParser(parser, () => ({ ignoreCase: true })),
+    trace: (parser, tracer?: Tracer) =>
+      new TweakParser(parser, () => ({
+        trace: true,
+        ...(tracer && { tracer })
+      })),
+    notrace: parser => new TweakParser(parser, () => ({ trace: false })),
     context: (parser, context: any) =>
       new TweakParser(parser, () => ({ context })),
-    trace: (parser, tracer?: Tracer) =>
-      new TweakParser(parser, () => ({ tracer })),
-    notrace: parser => new TweakParser(parser, () => ({ tracer: undefined })),
     // Value tweaks
     omit: parser => new ActionParser(parser, () => undefined),
     raw: parser => new ActionParser(parser, ({ $raw }) => $raw),

@@ -43,8 +43,9 @@ export type ParseOptions<Context = any> = {
   skipper: Parser<any, Context>;
   skip: boolean;
   ignoreCase: boolean;
+  tracer: Tracer<Context>;
+  trace: boolean;
   context: Context;
-  tracer?: Tracer<Context>;
 };
 
 export type Tracer<Context = any> = (event: TraceEvent<Context>) => void;

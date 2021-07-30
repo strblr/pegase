@@ -8,7 +8,6 @@ import {
   LiteralParser,
   MetaContext,
   OptionsParser,
-  ParseOptions,
   Parser,
   pegSkipper,
   pipeDirectives,
@@ -45,16 +44,15 @@ export function createTag() {
       chunks.reduce((acc, chunk, index) => acc + `~${index - 1}` + chunk),
       {
         skipper: pegSkipper,
-        context: { plugins: peg.plugins, args },
-        tracer: peg.tracer
+        trace: peg.trace,
+        context: { plugins: peg.plugins, args }
       }
     );
     if (!result.success) throw result;
     return result.value;
   }
 
-  peg.tracer = undefined as ParseOptions<MetaContext>["tracer"] | undefined;
-
+  peg.trace = false;
   peg.plugins = [defaultPlugin];
 
   peg.addPlugin = (...plugins: Array<Plugin>) => {
