@@ -119,14 +119,13 @@ export function merge<Value = any, Context = any>(
   );
 }
 
-// forwardArgs
+// action
 
-export function forwardArgs(
-  to: (info: SemanticInfo) => Function,
-  finalize: (result: any, info: SemanticInfo) => any = result => result
+export function action(
+  callback: (info: SemanticInfo, ...args: Array<any>) => any
 ): Directive {
   return (parser, ...args) =>
-    new ActionParser(parser, info => finalize(to(info)(...args), info));
+    new ActionParser(parser, info => callback(info, ...args));
 }
 
 // defaultPlugin
@@ -157,48 +156,46 @@ export const defaultPlugin: Plugin = {
     notrace: parser => new TweakParser(parser, () => ({ trace: false })),
     context: (parser, context: any) =>
       new TweakParser(parser, () => ({ context })),
-    // Value tweaks
-    omit: parser => new ActionParser(parser, () => undefined),
-    raw: parser => new ActionParser(parser, ({ $raw }) => $raw),
-    length: parser => new ActionParser(parser, ({ $raw }) => $raw.length),
-    number: parser => new ActionParser(parser, ({ $raw }) => Number($raw)),
-    index: parser => new ActionParser(parser, ({ $match }) => $match.from),
-    // Children-related
-    children: parser =>
-      new ActionParser(parser, ({ $match }) => $match.children),
-    count: parser =>
-      new ActionParser(parser, ({ $match }) => $match.children.length),
-    every: forwardArgs(({ $match }) => $match.children.every),
-    filter: forwardArgs(
-      ({ $match }) => $match.children.filter,
-      (result, { $propagate }) => $propagate(result)
+    // Children transforms
+    omit: action(() => undefined),
+    raw: action(({ $raw }) => $raw),
+    length: action(({ $raw }) => $raw.length),
+    number: action(({ $raw }) => Number($raw)),
+    index: action(({ $match }) => $match.from),
+    children: action(({ $match }) => $match.children),
+    count: action(({ $match }) => $match.children.length),
+    every: action(({ $match }, predicate) => $match.children.every(predicate)),
+    filter: action(({ $match, $propagate }, predicate) =>
+      $propagate($match.children.filter(predicate))
     ),
-    find: forwardArgs(({ $match }) => $match.children.find),
-    flat: forwardArgs(
-      ({ $match }) => $match.children.flat,
-      (result, { $propagate }) => $propagate(result)
+    find: action(({ $match }, predicate, defaultValue?) => {
+      const result = $match.children.find(predicate);
+      return result === undefined ? defaultValue : result;
+    }),
+    flat: action(({ $match, $propagate }, depth = 1) =>
+      $propagate($match.children.flat(depth))
     ),
-    forEach: forwardArgs(({ $match }) => $match.children.forEach),
-    join: forwardArgs(({ $match }) => $match.children.join),
-    map: forwardArgs(
-      ({ $match }) => $match.children.map,
-      (result, { $propagate }) => $propagate(result)
+    forEach: action(({ $match }, callback) =>
+      $match.children.forEach(callback)
     ),
-    reduce: forwardArgs(({ $match }) => $match.children.reduce),
-    reduceInfix: (
-      parser,
-      reducer: (left: any, separator: any, right: any) => any
-    ) =>
-      new ActionParser(parser, ({ $match }) =>
-        $match.children.reduce((acc, op, index) =>
-          index % 2 ? reducer(acc, op, $match.children[index + 1]) : acc
-        )
-      ),
-    reverse: parser =>
-      new ActionParser(parser, ({ $match, $propagate }) =>
-        $propagate([...$match.children].reverse())
-      ),
-    some: forwardArgs(({ $match }) => $match.children.some),
+    join: action(({ $match }, separator = ",") =>
+      $match.children.join(separator)
+    ),
+    map: action(({ $match, $propagate }, mapper) =>
+      $propagate($match.children.map(mapper))
+    ),
+    reduce: action(({ $match }, ...args) =>
+      ($match.children.reduce as Function)(...args)
+    ),
+    reduceInfix: action(({ $match }, reducer) =>
+      $match.children.reduce((acc, op, index) =>
+        index % 2 ? reducer(acc, op, $match.children[index + 1]) : acc
+      )
+    ),
+    reverse: action(({ $match, $propagate }) =>
+      $propagate([...$match.children].reverse())
+    ),
+    some: action(({ $match }, predicate) => $match.children.some(predicate)),
     // Other
     action: (parser, action: SemanticAction) =>
       new ActionParser(parser, action),
