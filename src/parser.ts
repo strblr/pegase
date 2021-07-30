@@ -319,11 +319,10 @@ export class TokenParser extends Parser {
   exec(options: ParseOptions, internals: Internals) {
     const from = skip(options, internals);
     if (from === null) return null;
+    options = { ...options, from, skip: false };
+    if (!this.alias) return this.parser.exec(options, internals);
     const fails = { failures: [], committed: [] };
-    const match = this.parser.exec(
-      { ...options, from, skip: false },
-      { ...internals, ...fails }
-    );
+    const match = this.parser.exec(options, { ...internals, ...fails });
     if (match) return match;
     internals.failures.push({
       from,

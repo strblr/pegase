@@ -130,7 +130,7 @@ export type RegExpExpectation = {
 
 export type TokenExpectation = {
   type: ExpectationType.Token;
-  alias?: string;
+  alias: string;
   failures: Array<Failure>;
 };
 
