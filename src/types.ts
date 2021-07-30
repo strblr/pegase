@@ -158,21 +158,33 @@ export type Range = {
 
 // Related to parsing results
 
-export type Result<Value = any> = SuccessResult<Value> | FailResult;
+export type Result<Value = any, Context = any> =
+  | SuccessResult<Value, Context>
+  | FailResult<Context>;
 
-export type SuccessResult<Value = any> = Match & {
-  success: true;
-  value: Value;
-  raw: string;
-  complete: boolean;
-  warnings: Array<Warning>;
-};
+export type SuccessResult<Value = any, Context = any> = ResultCommon<Context> &
+  Match & {
+    success: true;
+    value: Value;
+    raw: string;
+    complete: boolean;
+  };
 
-export type FailResult = {
+export type FailResult<Context = any> = ResultCommon<Context> & {
   success: false;
   value: undefined;
   children: [];
   captures: Map<string, any>;
-  warnings: Array<Warning>;
   failures: Array<Failure>;
+};
+
+export type ResultCommon<Context = any> = {
+  options: ParseOptions<Context>;
+  warnings: Array<Warning>;
+};
+
+export type LogOptions = {
+  codeFrames: true;
+  linesBefore: number;
+  linesAfter: number;
 };

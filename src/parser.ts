@@ -71,12 +71,14 @@ export abstract class Parser<Value = any, Context = any> {
         value: inferValue(match.children),
         raw: input.substring(match.from, match.to),
         complete: match.to === input.length,
+        options: fullOptions,
         warnings: internals.warnings,
         ...match
       };
     return {
       success: false,
       value: undefined,
+      options: fullOptions,
       warnings: internals.warnings,
       failures: [...internals.committed, ...mergeFailures(internals.failures)],
       children: [],
