@@ -12,7 +12,8 @@ import {
   SemanticAction,
   skip,
   TraceEventType,
-  Tracer
+  Tracer,
+  WarningType
 } from ".";
 
 /** The parser inheritance structure
@@ -495,7 +496,12 @@ export class ActionParser extends Parser {
           internals.failures.length = 0;
         },
         $warn(message: string) {
-          internals.warnings.push({ from: match.from, to: match.to, message });
+          internals.warnings.push({
+            from: match.from,
+            to: match.to,
+            type: WarningType.Message,
+            message
+          });
         },
         $expected(expected) {
           failed = true;

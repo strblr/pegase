@@ -87,8 +87,13 @@ export type Internals = {
 };
 
 export type Warning = Range & {
+  type: WarningType.Message;
   message: string;
 };
+
+export enum WarningType {
+  Message = "MESSAGE"
+}
 
 export type Failure = ExpectationFailure | SemanticFailure;
 
