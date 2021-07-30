@@ -1,6 +1,7 @@
 import {
   ActionParser,
   Directive,
+  Failure,
   FailureType,
   GrammarParser,
   Internals,
@@ -46,23 +47,17 @@ export function skip(options: ParseOptions, internals: Internals) {
 
 // mergeFailures
 
-export function mergeFailures(
-  internals: Pick<Internals, "failures" | "committed">
-) {
+export function mergeFailures(failures: Array<Failure>) {
+  if (failures.length === 0) return [];
   return [
-    ...internals.committed,
-    ...(internals.failures.length === 0
-      ? []
-      : [
-          internals.failures.reduce((failure, current) => {
-            if (current.from > failure.from) return current;
-            if (current.from < failure.from) return failure;
-            if (current.type === FailureType.Semantic) return current;
-            if (failure.type === FailureType.Semantic) return failure;
-            failure.expected.push(...current.expected);
-            return failure;
-          })
-        ])
+    failures.reduce((failure, current) => {
+      if (current.from > failure.from) return current;
+      if (current.from < failure.from) return failure;
+      if (current.type === FailureType.Semantic) return current;
+      if (failure.type === FailureType.Semantic) return failure;
+      failure.expected.push(...current.expected);
+      return failure;
+    })
   ];
 }
 

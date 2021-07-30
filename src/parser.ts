@@ -77,7 +77,7 @@ export abstract class Parser<Value = any, Context = any> {
       success: false,
       value: undefined,
       warnings: internals.warnings,
-      failures: mergeFailures(internals),
+      failures: [...internals.committed, ...mergeFailures(internals.failures)],
       children: [],
       captures: new Map()
     };
@@ -318,10 +318,10 @@ export class TokenParser extends Parser {
   exec(options: ParseOptions, internals: Internals) {
     const from = skip(options, internals);
     if (from === null) return null;
-    const subInternals = { failures: [], committed: [] };
+    const fails = { failures: [], committed: [] };
     const match = this.parser.exec(
       { ...options, from, skip: false },
-      { ...internals, ...subInternals }
+      { ...internals, ...fails }
     );
     if (match) return match;
     internals.failures.push({
@@ -332,7 +332,7 @@ export class TokenParser extends Parser {
         {
           type: ExpectationType.Token,
           alias: this.alias,
-          failures: mergeFailures(subInternals)
+          failures: [...fails.committed, ...mergeFailures(fails.failures)]
         }
       ]
     });
@@ -491,9 +491,8 @@ export class ActionParser extends Parser {
         $options: options,
         $match: match,
         $commit() {
-          // BUG, won't be accessible from TokenParser for example
-          internals.committed = mergeFailures(internals);
-          internals.failures = [];
+          internals.committed.push(...mergeFailures(internals.failures));
+          internals.failures.length = 0;
         },
         $warn(message: string) {
           internals.warnings.push({ from: match.from, to: match.to, message });
