@@ -38,6 +38,10 @@ export abstract class Parser<Value = any, Context = any> {
     internals: Internals
   ): Match | null;
 
+  test(input: string, options?: Partial<ParseOptions<Context>>) {
+    return this.parse(input, options).success;
+  }
+
   value(input: string, options?: Partial<ParseOptions<Context>>) {
     return this.parse(input, options).value;
   }

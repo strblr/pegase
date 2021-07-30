@@ -23,24 +23,24 @@ test("Repetition parsers should work", () => {
   const g4 = peg`"a"{3}`;
   const g5 = peg`"a" {2, ${4}}`;
 
-  expect(g1.parse("").success).toBe(true);
+  expect(g1.test("")).toBe(true);
   expect(g1.parse("a").value).toBe("a");
   expect(g1.parse("aa").children).toEqual(["a"]);
-  expect(g2.parse("").success).toBe(false);
+  expect(g2.test("")).toBe(false);
   expect(g2.parse("a").value).toBe("a");
   expect(g2.parse("aa").children).toEqual(["a", "a"]);
   expect(g2.parse("aaaa").children).toEqual(["a", "a", "a", "a"]);
-  expect(g3.parse("").success).toBe(true);
+  expect(g3.test("")).toBe(true);
   expect(g3.parse("a").value).toBe("a");
   expect(g3.parse("aa").children).toEqual(["a", "a"]);
   expect(g3.parse("aaaa").children).toEqual(["a", "a", "a", "a"]);
-  expect(g4.parse("a").success).toBe(false);
-  expect(g4.parse("aa").success).toBe(false);
-  expect(g4.parse("aaa").success).toBe(true);
+  expect(g4.test("a")).toBe(false);
+  expect(g4.test("aa")).toBe(false);
+  expect(g4.test("aaa")).toBe(true);
   expect(g4.parse("aaaaaa").children).toEqual(["a", "a", "a"]);
-  expect(g5.parse("a").success).toBe(false);
-  expect(g5.parse("aa").success).toBe(true);
-  expect(g5.parse("aaa").success).toBe(true);
+  expect(g5.test("a")).toBe(false);
+  expect(g5.test("aa")).toBe(true);
+  expect(g5.test("aaa")).toBe(true);
   expect(g5.parse("aaaaaa").children).toEqual(["a", "a", "a", "a"]);
 });
 
@@ -78,13 +78,13 @@ test("Modulos in grammars should work", () => {
   expect(g2.parse("1 ,1, 1 , 1").children).toEqual(["1", "1"]);
 
   const g3 = peg`"1" %{2} ','`;
-  expect(g3.parse("1").success).toBe(false);
-  expect(g3.parse("1,1").success).toBe(false);
+  expect(g3.test("1")).toBe(false);
+  expect(g3.test("1,1")).toBe(false);
   expect(g3.parse("1 ,1, 1 , 1").children).toEqual(["1", "1", "1"]);
 
   const g4 = peg`("1" % ',' @count) % '|'`;
-  expect(g4.parse(" 2, 1, 1 | 1").success).toBe(false);
-  expect(g4.parse("  1 ,1,1 |1,1,  1,1|1 |1,1   ").success).toBe(true);
+  expect(g4.test(" 2, 1, 1 | 1")).toBe(false);
+  expect(g4.test("  1 ,1,1 |1,1,  1,1|1 |1,1   ")).toBe(true);
   expect(g4.parse("1 ,1,1 |1,1, 1  ,   1,1|1 |   1,1 ").children).toEqual([
     3,
     5,
@@ -158,9 +158,9 @@ test("Math expressions should be correctly calculated", () => {
   expect(calc.value("89")).toBe(89);
   expect(calc.value("2.53")).toBe(2.53);
   expect(calc.value("-1.2")).toBe(-1.2);
-  expect(calc.parse("").success).toBe(false);
-  expect(calc.parse("1 +").success).toBe(false);
-  expect(calc.parse("(1 +").success).toBe(false);
+  expect(calc.test("")).toBe(false);
+  expect(calc.test("1 +")).toBe(false);
+  expect(calc.test("(1 +")).toBe(false);
   expect(calc.value("   12        -  8   ")).toBe(4);
   expect(calc.value("142        -9   ")).toBe(133);
   expect(calc.value("72+  15")).toBe(87);
