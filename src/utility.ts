@@ -152,8 +152,6 @@ export const defaultPlugin: Plugin = {
     length: parser => new ActionParser(parser, ({ $raw }) => $raw.length),
     number: parser => new ActionParser(parser, ({ $raw }) => Number($raw)),
     index: parser => new ActionParser(parser, ({ $match }) => $match.from),
-    is: parser =>
-      new ActionParser(parser, ({ $value }) => $value !== undefined),
     // Children-related
     children: parser =>
       new ActionParser(parser, ({ $match }) => $match.children),
