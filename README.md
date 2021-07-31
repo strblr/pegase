@@ -13,7 +13,7 @@ TypeScript.
 - _Intuitive_, meaning everything is as straightforward as it can get and you will never feel lost.
 - _Powerful_, in that it lets you express complex expressions, requirements, semantic actions, and directives in simple ways.
   [`RegExp` instances](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp)
-  can be integrated directly into grammars, with capturing groups being automatically forwarded seamlessly to Pegase.
+  can be integrated directly into grammars, with capturing groups being automatically and seamlessly forwarded to pegase.
 - _Highly configurable_ : You can create your own `Parser` subclasses, add plugins with custom directives and global rules,
   share these plugins on npm, etc.
 
@@ -45,9 +45,9 @@ const g = peg`
     fact % ("*" | "/") @infix(${calc})
     
   fact:
-    int | '(' expr ')'
+    num | '(' expr ')'
   
-  int @token("integer"):
+  num @token("integer"):
     '-'? [0-9]+ @number
 `;
 ```
