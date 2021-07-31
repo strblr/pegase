@@ -21,6 +21,9 @@ TypeScript.
 
 ---
 
+Let's take an example. You can write a parser for math expressions with very few lines of code. Adding some directives and semantic
+actions, it turns just as quickly into a _calculator_:
+
 <!-- prettier-ignore -->
 ```js
 import peg from "pegase";
@@ -63,7 +66,7 @@ false
 
 #### `g.parse("2* (4 + )/3").logs()`
 
-```text
+```
 Line 1, col 9 | Failure: Expected integer or "("
 
 > 1 | 2* (4 + )/32
