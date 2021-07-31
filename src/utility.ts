@@ -182,7 +182,7 @@ export const defaultPlugin: Plugin = {
     reduce: action(({ $match }, ...args) =>
       ($match.children.reduce as Function)(...args)
     ),
-    reduceInfix: action(({ $match }, reducer) =>
+    infix: action(({ $match }, reducer) =>
       $match.children.reduce((acc, op, index) =>
         index % 2 ? reducer(acc, op, $match.children[index + 1]) : acc
       )
