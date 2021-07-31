@@ -180,6 +180,10 @@ test("Math expressions should be correctly calculated", () => {
       '-'? [0-9]+ ('.' [0-9]*)?
   `;
 
+  console.log(
+    calc.parse("1+\n35+1+\n3*4+\n2+1+\n\t1+( ab \nfdlk\ntest\nhello").logs()
+  );
+
   expect(calc.value("2 + 3")).toBe(5);
   expect(calc.value("2 * 3")).toBe(6);
   expect(calc.value("2 * -3")).toBe(-6);

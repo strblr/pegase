@@ -9,20 +9,25 @@ import {
   WarningType
 } from ".";
 
-export function log(result: Result, options?: Partial<LogOptions>) {
-  const entries = (result.success
-    ? result.warnings
-    : [...result.warnings, ...result.failures]
-  ).sort((a, b) => a.from - b.from);
+// log
 
+export function log(result: Result, options?: Partial<LogOptions>) {
   const fullOptions: LogOptions = {
+    warnings: true,
+    failures: true,
+    tokenDetail: false,
     codeFrames: true,
-    linesBefore: 3,
-    linesAfter: 3,
+    linesBefore: 2,
+    linesAfter: 2,
     ...options
   };
 
-  const lines = result.options.input.split(/\n|\r(?!\n)/g);
+  const entries = [
+    ...(fullOptions.warnings ? result.warnings : []),
+    ...(fullOptions.failures ? result.failures : [])
+  ].sort((a, b) => a.from - b.from);
+
+  const lines = result.options.input.split(/\r\n|\r|\n/);
   const indexes = lines.reduce(
     (acc, curr) => [...acc, acc[acc.length - 1] + curr.length + 1],
     [0]
@@ -31,16 +36,17 @@ export function log(result: Result, options?: Partial<LogOptions>) {
   return entries
     .map(entry => {
       const [line, col] = lineCol(indexes, entry.from);
-      let acc = `Line ${line}, col ${col}: `;
-      acc += stringifyEntry(entry, result.options.input);
+      let acc = `Line ${line}, col ${col} | `;
+      const [type, detail] = stringifyEntry(entry, result, fullOptions);
+      acc += `${type}: ${detail}`;
       if (fullOptions.codeFrames)
-        acc += `\n${codeFrame(lines, indexes, line, col, fullOptions)}`;
+        acc += `\n\n${codeFrame(lines, indexes, line, col, fullOptions)}`;
       return acc;
     })
     .join("\n\n");
 }
 
-// Helper functions
+// lineCol
 
 export function lineCol(indexes: Array<number>, index: number) {
   let line = 0;
@@ -57,34 +63,57 @@ export function lineCol(indexes: Array<number>, index: number) {
   return [line + 1, index - indexes[line] + 1];
 }
 
-export function stringifyEntry(entry: Warning | Failure, input: string) {
+// stringifyEntry
+
+export function stringifyEntry(
+  entry: Warning | Failure,
+  result: Result,
+  options: LogOptions
+) {
   switch (entry.type) {
     case WarningType.Message:
+      return ["Warning", entry.message];
     case FailureType.Semantic:
-      return entry.message;
+      return ["Failure", entry.message];
     case FailureType.Expectation:
       const expectations = entry.expected
-        .map(expectation => stringifyExpectation(expectation, input))
-        .join(", ");
-      return `Expected ${expectations}`;
+        .map(expectation => stringifyExpectation(expectation, result, options))
+        .reduce(
+          (acc, expected, index, { length }) =>
+            `${acc}${index === length - 1 ? " or " : ", "}${expected}`
+        );
+      return ["Failure", `Expected ${expectations}`];
   }
 }
 
-export function stringifyExpectation(expectation: Expectation, input: string) {
+// stringifyExpectation
+
+export function stringifyExpectation(
+  expectation: Expectation,
+  result: Result,
+  options: LogOptions
+) {
   switch (expectation.type) {
     case ExpectationType.Literal:
       return `"${expectation.literal}"`;
     case ExpectationType.RegExp:
       return String(expectation.regExp);
     case ExpectationType.Token:
-      return expectation.alias;
+      let detail = "";
+      if (options.tokenDetail)
+        detail += ` (${expectation.failures
+          .map(failure => stringifyEntry(failure, result, options)[1])
+          .join(" | ")})`;
+      return `${expectation.alias}${detail}`;
     case ExpectationType.Mismatch:
-      return `mismatch of ${input.substring(
+      return `mismatch of ${result.options.input.substring(
         expectation.match.from,
         expectation.match.to
       )}`;
   }
 }
+
+// codeFrame
 
 export function codeFrame(
   lines: Array<string>,
@@ -93,21 +122,19 @@ export function codeFrame(
   col: number,
   options: LogOptions
 ) {
-  const start = Math.max(0, line - options.linesBefore);
-  const end = Math.min(lines.length, line + options.linesAfter + 1);
-  const maxChars = String(end).length;
-  const padding = " ".repeat(maxChars);
+  const start = Math.max(1, line - options.linesBefore);
+  const end = Math.min(lines.length, line + options.linesAfter);
+  const maxLineNum = String(end).length;
+  const padding = " ".repeat(maxLineNum);
   let acc = "";
-  for (let i = start; i < end; i++) {
-    const chunk = lines[i];
-    const currentLine = (padding + (i + 1)).slice(-maxChars);
-    const normalized = lines[i].replace(/^\t+/, tabs =>
-      "  ".repeat(tabs.length)
-    );
-    if (i !== line) acc += `  ${currentLine} | ${normalized}\n`;
+  for (let i = start; i !== end + 1; i++) {
+    const lineNum = (padding + i).slice(-maxLineNum);
+    const current = lines[i - 1];
+    const normalized = current.replace(/\t+/, tabs => "  ".repeat(tabs.length));
+    if (i !== line) acc += `  ${lineNum} | ${normalized}\n`;
     else {
-      acc += `> ${currentLine} | ${normalized}\n`;
-      const count = Math.max(0, normalized.length - chunk.length + col);
+      const count = Math.max(0, normalized.length - current.length + col - 1);
+      acc += `> ${lineNum} | ${normalized}\n`;
       acc += `  ${padding} | ${" ".repeat(count)}^\n`;
     }
   }

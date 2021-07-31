@@ -186,7 +186,10 @@ export type ResultCommon<Context = any> = {
 };
 
 export type LogOptions = {
-  codeFrames: true;
+  warnings: boolean;
+  failures: boolean;
+  tokenDetail: boolean;
+  codeFrames: boolean;
   linesBefore: number;
   linesAfter: number;
 };
