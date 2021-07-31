@@ -35,10 +35,16 @@ function calc(left, op, right) {
 }
 
 const g = peg`
-  expr: term % ("+" | "-") @infix(${calc})
-  term: fact % ("*" | "/") @infix(${calc})
-  fact: num | '(' expr ')'
-  num @token("number"):
+  expr:
+    term % ("+" | "-") @infix(${calc})
+    
+  term:
+    fact % ("*" | "/") @infix(${calc})
+    
+  fact:
+    int | '(' expr ')'
+  
+  int @token("integer"):
     '-'? [0-9]+ @number
 `;
 ```
@@ -58,7 +64,7 @@ false
 #### `g.parse("2* (4 + )/3").logs()`
 
 ```text
-Line 1, col 9 | Failure: Expected number or "("
+Line 1, col 9 | Failure: Expected integer or "("
 
 > 1 | 2* (4 + )/32
     |         ^
