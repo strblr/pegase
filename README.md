@@ -4,24 +4,26 @@
 ![npm](https://img.shields.io/npm/v/pegase)
 ![npm bundle size](https://img.shields.io/bundlephobia/minzip/pegase?label=gzip)
 
-Pegase is an inline, intuitive, powerful and highly configurable PEG parser generator for JavaScript and
-TypeScript.
+Pegase is the last PEG parser generator for JavaScript and TypeScript you will ever need to learn. Pegase is :
 
-- _Inline_, meaning parsing expressions and grammars are directly expressed as
+- **_Inline_**, meaning parsing expressions and grammars are directly expressed as
   [tagged template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates).
-  There is no generation step or other CLI-stuff.
-- _Intuitive_, meaning everything is as straightforward as it can get and you will never feel lost.
-- _Powerful_, in that it lets you express complex expressions, requirements, semantic actions, and directives in simple ways.
-  [`RegExp` instances](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp)
-  can be integrated directly into grammars, with capturing groups being automatically and seamlessly forwarded to pegase.
-- _Highly configurable_ : You can create your own `Parser` subclasses, add plugins with custom directives and global rules,
+  No extra generation step, no CLI.
+- **_Intuitive_**, meaning everything is as straightforward as it can get and you will never feel lost.
+- **_Powerful_**, in that it lets you express complex grammars and semantic actions in simple ways. You can use
+  [cut operators](http://ceur-ws.org/Vol-1269/paper232.pdf) to optimize ordered choices, split one big grammar in
+  multiple fragments, and a lot more.
+- **_Seamlessly integrable_**: Pegase works in symbiosis with JS. As an example, [`RegExp`s](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp)
+  can be used directly in grammars via tag arguments, its parsing and capturing groups are then handled for you.
+- **_Highly extensible_**: You can create your own `Parser` subclasses, create plugins with custom directives and global rules,
   share these plugins on npm, etc.
+- **_Lightweight_**. Pegase is a _zero-dependency_ package, and weights less than 7kB gzipped.
 
 ### Motivation
 
 ---
 
-Let's take an example. You can write a parser for math expressions with very few lines of code. Adding some directives and semantic
+Let's take a look at a quick example. You can write a parser for math expressions with very few lines of code. Adding some directives and semantic
 actions, it turns just as quickly into a _calculator_:
 
 <!-- prettier-ignore -->

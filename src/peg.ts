@@ -41,7 +41,7 @@ export function createTag() {
     ...args: Array<Any>
   ): Parser<Value, Context> {
     const result = metagrammar.parse(
-      chunks.reduce((acc, chunk, index) => acc + `~${index - 1}` + chunk),
+      chunks.raw.reduce((acc, chunk, index) => acc + `~${index - 1}` + chunk),
       {
         skipper: pegSkipper,
         trace: peg.trace,
@@ -116,6 +116,7 @@ export function createTag() {
  * | numberLiteral
  * | stringLiteral
  * | characterClass
+ * | escapedMeta
  * | castableTagArgument
  *
  *
@@ -135,6 +136,9 @@ export function createTag() {
  *
  * characterClass:  => RegExp
  *   $characterClass
+ *
+ * escapedMeta:  => RegExp
+ *   $escapedMeta
  *
  * tagArgument:  => any
  *   $tagArgument
@@ -172,6 +176,7 @@ export function createTag() {
  * | numberLiteral
  * | stringLiteral
  * | characterClass
+ * | escapedMeta
  * | tagArgument
  */
 
@@ -418,6 +423,10 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         new ReferenceParser("characterClass"),
         ({ characterClass }) => new RegExpParser(characterClass)
       ),
+      new ActionParser(
+        new ReferenceParser("escapedMeta"),
+        ({ escapedMeta }) => new RegExpParser(escapedMeta)
+      ),
       new ReferenceParser("castableTagArgument")
     ])
   ],
@@ -478,6 +487,16 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         ({ $raw }) => new RegExp($raw)
       ),
       "character class"
+    )
+  ],
+  [
+    "escapedMeta",
+    new TokenParser(
+      new ActionParser(
+        new RegExpParser(/\\[a-zA-Z0-9]+/),
+        ({ $raw }) => new RegExp($raw)
+      ),
+      "escaped metacharacter"
     )
   ],
   [
@@ -629,6 +648,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
           ({ stringLiteral: [value] }) => value
         ),
         new ReferenceParser("characterClass"),
+        new ReferenceParser("escapedMeta"),
         new ReferenceParser("tagArgument")
       ]),
       ({ $value }) => [$value]

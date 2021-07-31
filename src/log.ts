@@ -40,7 +40,7 @@ export function log(result: Result, options?: Partial<LogOptions>) {
       const [type, detail] = stringifyEntry(entry, result, fullOptions);
       acc += `${type}: ${detail}`;
       if (fullOptions.codeFrames)
-        acc += `\n\n${codeFrame(lines, indexes, line, col, fullOptions)}`;
+        acc += `\n\n${codeFrame(lines, line, col, fullOptions)}`;
       return acc;
     })
     .join("\n\n");
@@ -106,10 +106,10 @@ export function stringifyExpectation(
           .join(" | ")})`;
       return `${expectation.alias}${detail}`;
     case ExpectationType.Mismatch:
-      return `mismatch of ${result.options.input.substring(
+      return `mismatch of "${result.options.input.substring(
         expectation.match.from,
         expectation.match.to
-      )}`;
+      )}"`;
   }
 }
 
@@ -117,7 +117,6 @@ export function stringifyExpectation(
 
 export function codeFrame(
   lines: Array<string>,
-  indexes: Array<number>,
   line: number,
   col: number,
   options: LogOptions

@@ -1,4 +1,4 @@
-import peg from ".";
+import peg, { LiteralParser, RegExpParser } from ".";
 
 function echo(entity: any) {
   console.log(
@@ -15,6 +15,18 @@ function echo(entity: any) {
     )
   );
 }
+
+test("The peg tag should work with raw strings", () => {
+  const g1 = peg` "My name is \"pegase\"." `;
+  const g2 = peg`[\]]`;
+  const g3 = peg`\s`;
+  expect(g1).toBeInstanceOf(LiteralParser);
+  expect((g1 as LiteralParser).literal).toBe('My name is "pegase".');
+  expect(g2).toBeInstanceOf(RegExpParser);
+  expect((g2 as RegExpParser).regExp.toString()).toBe("/[\\]]/");
+  expect(g3).toBeInstanceOf(RegExpParser);
+  expect((g3 as RegExpParser).regExp.toString()).toBe("/\\s/");
+});
 
 test("Repetition parsers should work", () => {
   const g1 = peg`"a"?`;
