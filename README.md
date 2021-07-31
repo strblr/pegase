@@ -76,13 +76,13 @@ Let's see how this plays out :
 219
 ```
 
-#### `g.parse("2* (4 + )/3").success`
+#### `g.parse("2* (4 + )/32").success`
 
 ```json
 false
 ```
 
-#### `g.parse("2* (4 + )/3").logs()`
+#### `g.parse("2* (4 + )/32").logs()`
 
 ```
 Line 1, col 9 | Failure: Expected integer or "("
