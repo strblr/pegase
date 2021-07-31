@@ -34,7 +34,7 @@ function calc(left, op, right) {
   }
 }
 
-const expr = peg`
+const g = peg`
   expr: term % ("+" | "-") @infix(${calc})
   term: fact % ("*" | "/") @infix(${calc})
   fact: num | '(' expr ')'
@@ -43,19 +43,19 @@ const expr = peg`
 `;
 ```
 
-#### `expr.parse("2 + (17-2*30) *(-5)+2").value`
+#### `g.parse("2 + (17-2*30) *(-5)+2").value`
 
 ```json
 219
 ```
 
-#### `expr.parse("2* (4 + )/3").success`
+#### `g.parse("2* (4 + )/3").success`
 
 ```json
 false
 ```
 
-#### `expr.parse("2* (4 + )/3").logs()`
+#### `g.parse("2* (4 + )/3").logs()`
 
 ```text
 Line 1, col 9 | Failure: Expected number or "("
