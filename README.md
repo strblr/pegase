@@ -62,7 +62,7 @@ A few explanations here :
 - `@number` is another directive. It takes the raw match, converts it into a number and emits that number.
 - Notice how some literals are single-quoted like `')'` or double-quoted like `"+"`. Double-quote literals emit their string
   match as a value, while single-quotes are silent. Writing the operators with double quotes allows them to be accumulated
-  and reduced in `@infix`.
+  and processed in `@infix`.
 
 Let's see how this plays out :
 
