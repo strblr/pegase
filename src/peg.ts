@@ -209,7 +209,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         ),
         [1, Infinity]
       ),
-      ({ $options, $match }) =>
+      ({ $match, $context }) =>
         new GrammarParser(
           $match.children.map(
             ([label, directives, parser]: [
@@ -219,7 +219,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
             ]) => [
               label,
               pipeDirectives(
-                ($options.context as MetaContext).plugins,
+                ($context as MetaContext).plugins,
                 parser,
                 directives
               )
@@ -254,9 +254,9 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         new ReferenceParser("sequenceParser"),
         new ReferenceParser("directives")
       ]),
-      ({ sequenceParser, directives, $options }) => {
+      ({ sequenceParser, directives, $context }) => {
         return pipeDirectives(
-          ($options.context as MetaContext).plugins,
+          ($context as MetaContext).plugins,
           sequenceParser,
           directives
         );
@@ -432,10 +432,10 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new TokenParser(
       new ActionParser(
         new ReferenceParser("identifier"),
-        ({ identifier, $options }) =>
+        ({ identifier, $context }) =>
           new ReferenceParser(
             identifier,
-            ($options.context as MetaContext).plugins.find(plugin =>
+            ($context as MetaContext).plugins.find(plugin =>
               (plugin.grammar as GrammarParser | undefined)?.rules?.get(
                 identifier
               )
@@ -485,7 +485,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new TokenParser(
       new ActionParser(
         new RegExpParser(/~\d+/),
-        ({ $raw, $options }) => $options.context.args[$raw.substring(1)]
+        ({ $raw, $context }) => $context.args[$raw.substring(1)]
       ),
       "tag argument"
     )
@@ -495,9 +495,9 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new TokenParser(
       new ActionParser(
         new ReferenceParser("tagArgument"),
-        ({ tagArgument, $options }) => {
+        ({ tagArgument, $context }) => {
           let parser: Parser | undefined;
-          ($options.context as MetaContext).plugins.some(
+          ($context as MetaContext).plugins.some(
             plugin => (parser = plugin.castParser?.(tagArgument))
           );
           if (!parser)

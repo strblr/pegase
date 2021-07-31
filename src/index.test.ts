@@ -130,21 +130,21 @@ test("The cut operator should work correctly", () => {
   expect(g3.value("ad")).toBe("d");
 });
 
-test("Inherited attributes should be implementable using context", () => {
+test("L-attributed grammars should be implementable using context", () => {
   const g = peg<number>`
     expr:
-      (num ${({ num, $options }) => {
-        $options.context.acc = num;
+      (num ${({ num, $context }) => {
+        $context.acc = num;
       }})
       exprRest
         @context(${{ acc: 0 }})
     
     exprRest:
-    | ('-' num ${({ num, $options }) => {
-      $options.context.acc -= num;
+    | ('-' num ${({ num, $context }) => {
+      $context.acc -= num;
     }})
       exprRest
-    | ε ${({ $options }) => $options.context.acc}
+    | ε ${({ $context }) => $context.acc}
     
     num @number @token("number"):
       [0-9]+

@@ -500,6 +500,7 @@ export class ActionParser extends Parser {
         $raw: options.input.substring(match.from, match.to),
         $options: options,
         $match: match,
+        $context: options.context,
         $commit() {
           internals.committed.push(...mergeFailures(internals.failures));
           internals.failures.length = 0;
