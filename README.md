@@ -56,9 +56,13 @@ const g = peg`
 
 A few explanations here :
 
+- By default, whitespace skipping is cleverly handled without you having to tweak a single thing. This is entirely configurable.
 - `a % b` is a shortcut for `a (b a)*`.
 - `@infix` is a directive. It tells the parser to reduce an _emitted_ sequence representing an infix expression.
-- `@number` is another directive. It takes the raw parsed substring, converts it into a number and emits that number.
+- `@number` is another directive. It takes the raw match, converts it into a number and emits that number.
+- Notice how some literals are single-quoted like `')'` or double-quoted like `"+"`. Double-quote literals emit their string
+  match as a value, while single-quotes are silent. Writing the operators with double quotes allows them to be accumulated
+  and reduced in `@infix`.
 
 Let's see how this plays out :
 
