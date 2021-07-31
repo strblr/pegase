@@ -67,29 +67,28 @@ export abstract class Parser<Value = any, Context = any> {
     const common: ResultCommon = {
       options: fullOptions,
       warnings: internals.warnings,
+      failures: match
+        ? []
+        : [...internals.committed, ...mergeFailures(internals.failures)],
       logs(options) {
         return log(result, options);
       }
     };
-    const result: Result<Value> = match
+    const result: Result<Value> = !match
       ? {
+          ...common,
+          success: false,
+          value: undefined,
+          children: [],
+          captures: new Map()
+        }
+      : {
           ...common,
           ...match,
           success: true,
           value: inferValue(match.children),
           raw: input.substring(match.from, match.to),
           complete: match.to === input.length
-        }
-      : {
-          ...common,
-          success: false,
-          value: undefined,
-          children: [],
-          captures: new Map(),
-          failures: [
-            ...internals.committed,
-            ...mergeFailures(internals.failures)
-          ]
         };
     return result;
   }

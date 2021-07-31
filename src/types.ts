@@ -176,12 +176,12 @@ export type FailResult<Context = any> = ResultCommon<Context> & {
   value: undefined;
   children: [];
   captures: Map<string, any>;
-  failures: Array<Failure>;
 };
 
 export type ResultCommon<Context = any> = {
   options: ParseOptions<Context>;
   warnings: Array<Warning>;
+  failures: Array<Failure>;
   logs(options?: Partial<LogOptions>): string;
 };
 
