@@ -182,10 +182,14 @@ export const defaultPlugin: Plugin = {
     reduce: action(({ $match }, ...args) =>
       ($match.children.reduce as Function)(...args)
     ),
-    infix: action(({ $match }, reducer) =>
-      $match.children.reduce((acc, op, index) =>
-        index % 2 ? reducer(acc, op, $match.children[index + 1]) : acc
-      )
+    infix: action(({ $match }, reducer, ltr = true) =>
+      ltr
+        ? $match.children.reduce((acc, op, index) =>
+            index % 2 ? reducer(acc, op, $match.children[index + 1]) : acc
+          )
+        : $match.children.reduceRight((acc, op, index) =>
+            index % 2 ? reducer($match.children[index - 1], op, acc) : acc
+          )
     ),
     reverse: action(({ $match, $propagate }) =>
       $propagate([...$match.children].reverse())
