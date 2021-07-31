@@ -4,7 +4,9 @@
 ![npm](https://img.shields.io/npm/v/pegase)
 ![npm bundle size](https://img.shields.io/bundlephobia/minzip/pegase?label=gzip)
 
-![pegase](https://raw.githubusercontent.com/ostrebler/pegase/master/pegase.png)
+<p align="center">
+  <img alt="pegase" src="https://raw.githubusercontent.com/ostrebler/pegase/master/pegase.png">
+</p>
 
 Pegase is the last PEG parser generator for JavaScript and TypeScript you will ever need to learn. Pegase is :
 
