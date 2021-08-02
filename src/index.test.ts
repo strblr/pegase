@@ -252,10 +252,11 @@ test("JSON.parse should be correctly reproduced", () => {
     value:
     | string
     | number
-    | boolean
+    | 'true' ${() => true}
+    | 'false' ${() => false}
     | 'null' ${() => null}
-    | '[' value % ',' ']' ${({ $match }) => $match.children}
-    | '{' (string ':' value) % ',' '}'
+    | '[' value %% ',' ']' ${({ $match }) => $match.children}
+    | '{' (string ':' value) %% ',' '}'
         ${({ $match }) => {
           const result: any = {};
           for (let i = 0; i < $match.children.length; i += 2)
@@ -270,15 +271,12 @@ test("JSON.parse should be correctly reproduced", () => {
     number @token:
       '-'? \d+ ('.' \d*)?
         ${({ $raw }) => Number($raw)}
-        
-    boolean:
-    | 'true' ${() => true}
-    | 'false' ${() => false}
   `;
 
   expect(json.value(`"test"`)).toBe("test");
   expect(json.value("true")).toBe(true);
   expect(json.value("null")).toBe(null);
+  expect(json.value("[]")).toEqual([]);
   expect(json.value("[true, null, false]")).toEqual([true, null, false]);
   expect(json.value(`[{ "pi": 3.14 }]`)).toEqual([{ pi: 3.14 }]);
   expect(json.value(`{"x": 45,"y":false  ,  "z" :[1, "test"] } `)).toEqual({

@@ -91,12 +91,14 @@ export function inferValue(children: Array<any>) {
 export function buildModulo(
   item: Parser,
   separator: Parser,
-  repetitionRange: [number, number] = [0, Infinity]
+  repetitionRange: [number, number] = [0, Infinity],
+  allowEmpty: boolean = false
 ) {
-  return new SequenceParser([
+  const mod = new SequenceParser([
     item,
     new RepetitionParser(new SequenceParser([separator, item]), repetitionRange)
   ]);
+  return allowEmpty ? new RepetitionParser(mod, [0, 1]) : mod;
 }
 
 // merge
