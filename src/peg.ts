@@ -112,7 +112,7 @@ export function createTag() {
  * | 'ε'
  * | '^'
  * | '(' parser ')'
- * | reference !(directives ':')
+ * | nonTerminal !(directives ':')
  * | numberLiteral
  * | stringLiteral
  * | characterClass
@@ -125,7 +125,7 @@ export function createTag() {
  * identifier:  => string
  *   $identifier
  *
- * reference:  => Parser
+ * nonTerminal:  => Parser
  *   identifier
  *
  * numberLiteral:  => number
@@ -172,7 +172,7 @@ export function createTag() {
  *   '(' directiveArgument % ',' ')'
  *
  * directiveArgument:  => [any]
- * | reference
+ * | nonTerminal
  * | numberLiteral
  * | stringLiteral
  * | characterClass
