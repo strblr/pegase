@@ -92,7 +92,7 @@ export function createTag() {
  *   moduloParser % '-'
  *
  * moduloParser:  => Parser
- *   forwardParser % (('%%' | '%') repetitionRange?)
+ *   forwardParser % ('%' repetitionRange?)
  *
  * forwardParser:  => Parser
  *   '...'? captureParser
@@ -297,25 +297,17 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new ActionParser(
       buildModulo(
         new NonTerminalParser("forwardParser"),
-        new ActionParser(
-          new SequenceParser([
-            new OptionsParser([
-              new LiteralParser("%%", true),
-              new LiteralParser("%", true)
-            ]),
-            new OptionsParser([
-              new NonTerminalParser("repetitionRange"),
-              new ActionParser(new LiteralParser(""), () => [0, Infinity])
-            ])
-          ]),
-          ({ $match }) => $match.children
-        )
+        new SequenceParser([
+          new LiteralParser("%"),
+          new OptionsParser([
+            new NonTerminalParser("repetitionRange"),
+            new ActionParser(new LiteralParser(""), () => [0, Infinity])
+          ])
+        ])
       ),
       ({ $match }) =>
-        $match.children.reduce((acc, [op, rep], index) =>
-          index % 2
-            ? buildModulo(acc, $match.children[index + 1], rep, op === "%%")
-            : acc
+        $match.children.reduce((acc, rep, index) =>
+          index % 2 ? buildModulo(acc, $match.children[index + 1], rep) : acc
         )
     )
   ],

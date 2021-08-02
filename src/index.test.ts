@@ -255,8 +255,8 @@ test("JSON.parse should be correctly reproduced", () => {
     | 'true' ${() => true}
     | 'false' ${() => false}
     | 'null' ${() => null}
-    | '[' value %% ',' ']' ${({ $match }) => $match.children}
-    | '{' (string ':' value) %% ',' '}'
+    | '[' (value % ',')? ']' ${({ $match }) => $match.children}
+    | '{' ((string ':' value) % ',')? '}'
         ${({ $match }) => {
           const result: any = {};
           for (let i = 0; i < $match.children.length; i += 2)
