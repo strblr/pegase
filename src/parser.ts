@@ -255,11 +255,11 @@ export class OptionsParser extends Parser {
   }
 
   exec(options: ParseOptions, internals: Internals) {
-    const cut = { active: false };
+    internals = { ...internals, cut: { active: false } };
     for (const parser of this.parsers) {
-      const match = parser.exec(options, { ...internals, cut });
+      const match = parser.exec(options, internals);
       if (match) return match;
-      if (cut.active) break;
+      if (internals.cut.active) break;
     }
     return null;
   }
