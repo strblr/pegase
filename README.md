@@ -15,7 +15,8 @@ Pegase is the last PEG parser generator for JavaScript and TypeScript you will e
   No extra generation step, no CLI.
 - **_Intuitive_**, meaning everything is as straightforward as it can get and you will never feel lost.
 - **_Lightweight_**. Pegase is a _zero-dependency_ package, and weights less than 7kB gzipped.
-- **_Powerful_**, in that it lets you express complex grammars and semantic actions in simple ways and with excellent error reporting.
+- **_Powerful_**, in that it lets you express complex grammars and semantic actions in simple ways and with excellent error reporting
+  (and warnings!).
   You can even implement error _recovery_. You can use [cut operators](http://ceur-ws.org/Vol-1269/paper232.pdf) to optimize
   ordered choices, split one big grammar in multiple fragments, and a lot more.
 - **_Seamlessly integrable_**: Pegase works in symbiosis with JS. As an example, [`RegExp`s](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp)
