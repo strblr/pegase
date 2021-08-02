@@ -277,8 +277,11 @@ test("JSON.parse should be correctly reproduced", () => {
   expect(json.value("true")).toBe(true);
   expect(json.value("null")).toBe(null);
   expect(json.value("[]")).toEqual([]);
+  expect(json.value("{}")).toEqual({});
   expect(json.value("[true, null, false]")).toEqual([true, null, false]);
+  expect(json.value("[[], {}, [[] ]]")).toEqual([[], {}, [[]]]);
   expect(json.value(`[{ "pi": 3.14 }]`)).toEqual([{ pi: 3.14 }]);
+  expect(json.value(`{ "x": {"y" :null }}`)).toEqual({ x: { y: null } });
   expect(json.value(`{"x": 45,"y":false  ,  "z" :[1, "test"] } `)).toEqual({
     x: 45,
     y: false,
