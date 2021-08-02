@@ -26,6 +26,8 @@ test("The peg tag should work with raw strings", () => {
   expect((g2 as RegExpParser).regExp.toString()).toBe("/[\\]]/");
   expect(g3).toBeInstanceOf(RegExpParser);
   expect((g3 as RegExpParser).regExp.toString()).toBe("/\\s/");
+  expect(g3.test("", { skip: false })).toBe(false);
+  expect(g3.test(" ", { skip: false })).toBe(true);
 });
 
 test("Repetition parsers should work", () => {
