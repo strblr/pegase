@@ -1,9 +1,9 @@
 ---
-title: About
-permalink: /about
+title: Rewriting JSON.parse
+permalink: /json_parser
 ---
 
-## About
+## Rewriting JSON.parse
 
 WebJeda is a web designing company
 .
