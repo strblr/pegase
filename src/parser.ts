@@ -23,7 +23,7 @@ import {
  * Parser
  * | LiteralParser
  * | RegExpParser
- * | ReferenceParser
+ * | NonTerminalParser
  * | OptionsParser
  * | SequenceParser
  * | GrammarParser
@@ -170,9 +170,9 @@ export class RegExpParser extends Parser {
   }
 }
 
-// ReferenceParser
+// NonTerminalParser
 
-export class ReferenceParser extends Parser {
+export class NonTerminalParser extends Parser {
   readonly type = "REFERENCE_PARSER";
   readonly label: string;
   readonly fallback?: Parser;

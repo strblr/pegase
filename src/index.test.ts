@@ -243,3 +243,47 @@ test("Math expressions should be correctly calculated", () => {
     )
   ).toBeCloseTo(71470.126502);
 });
+
+test("JSON.parse should be correctly reproduced", () => {
+  const json = peg`
+    json:
+      value $
+    
+    value:
+    | string
+    | number
+    | boolean
+    | 'null' ${() => null}
+    | '[' value % ',' ']' ${({ $match }) => $match.children}
+    | '{' (string ':' value) % ',' '}'
+        ${({ $match }) => {
+          const result: any = {};
+          for (let i = 0; i < $match.children.length; i += 2)
+            result[$match.children[i]] = $match.children[i + 1];
+          return result;
+        }}
+    
+    string @token:
+      '\"' ([^\"] | '\\'.)* '\"'
+        ${({ $raw }) => $raw.substring(1, $raw.length - 1)}
+      
+    number @token:
+      '-'? \d+ ('.' \d*)?
+        ${({ $raw }) => Number($raw)}
+        
+    boolean:
+    | 'true' ${() => true}
+    | 'false' ${() => false}
+  `;
+
+  expect(json.value(`"test"`)).toBe("test");
+  expect(json.value("true")).toBe(true);
+  expect(json.value("null")).toBe(null);
+  expect(json.value("[true, null, false]")).toEqual([true, null, false]);
+  expect(json.value(`[{ "pi": 3.14 }]`)).toEqual([{ pi: 3.14 }]);
+  expect(json.value(`{"x": 45,"y":false  ,  "z" :[1, "test"] } `)).toEqual({
+    x: 45,
+    y: false,
+    z: [1, "test"]
+  });
+});
