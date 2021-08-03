@@ -39,7 +39,7 @@ export type SemanticInfo<Context = any> = {
 
 export type ParseOptions<Context = any> = {
   input: string;
-  from: number;
+  from: Location;
   grammar?: Parser<any, Context>;
   skipper: Parser<any, Context>;
   skip: boolean;
@@ -81,6 +81,7 @@ export type TraceCommon<Context = any> = {
 };
 
 export type Internals = {
+  lines: Array<[number, string]>;
   cut: { active: boolean };
   warnings: Array<Warning>;
   failures: Array<Failure>;
@@ -153,8 +154,14 @@ export type Match = Range & {
 };
 
 export type Range = {
-  from: number;
-  to: number;
+  from: Location;
+  to: Location;
+};
+
+export type Location = {
+  index: number;
+  line: number;
+  column: number;
 };
 
 // Related to parsing results

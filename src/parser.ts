@@ -1,10 +1,11 @@
 import {
-  createInternals,
+  createLocation,
   ExpectationType,
   extendFlags,
   FailureType,
   inferValue,
   Internals,
+  lines,
   log,
   Match,
   mergeFailures,
@@ -51,9 +52,16 @@ export abstract class Parser<Value = any, Context = any> {
   }
 
   parse(input: string, options?: Partial<ParseOptions<Context>>) {
+    const internals = {
+      lines: lines(input),
+      cut: { active: false },
+      warnings: [],
+      failures: [],
+      committed: []
+    };
     const fullOptions = {
       input,
-      from: 0,
+      from: createLocation(0, internals.lines),
       skipper: defaultSkipper,
       skip: true,
       ignoreCase: false,
@@ -62,7 +70,6 @@ export abstract class Parser<Value = any, Context = any> {
       context: undefined as any,
       ...options
     };
-    const internals = createInternals();
     const match = this.exec(fullOptions, internals);
     const common: ResultCommon = {
       options: fullOptions,
@@ -71,24 +78,24 @@ export abstract class Parser<Value = any, Context = any> {
         ? []
         : [...internals.committed, ...mergeFailures(internals.failures)],
       logs(options) {
-        return log(result, options);
+        return log(result, internals.lines, options);
       }
     };
     const result: Result<Value> = !match
       ? {
           ...common,
-          success: false,
-          value: undefined,
           children: [],
-          captures: new Map()
+          captures: new Map(),
+          success: false,
+          value: undefined
         }
       : {
           ...common,
           ...match,
           success: true,
           value: inferValue(match.children),
-          raw: input.substring(match.from, match.to),
-          complete: match.to === input.length
+          raw: input.substring(match.from.index, match.to.index),
+          complete: match.to.index === input.length
         };
     return result;
   }
@@ -110,15 +117,15 @@ export class LiteralParser extends Parser {
   exec(options: ParseOptions, internals: Internals): Match | null {
     const from = skip(options, internals);
     if (from === null) return null;
-    const to = from + this.literal.length;
-    const raw = options.input.substring(from, to);
+    const to = from.index + this.literal.length;
+    const raw = options.input.substring(from.index, to);
     const result = options.ignoreCase
       ? this.literal.toUpperCase() === raw.toUpperCase()
       : this.literal === raw;
     if (result)
       return {
         from,
-        to,
+        to: createLocation(to, internals.lines),
         children: this.emit ? [raw] : [],
         captures: new Map()
       };
@@ -151,12 +158,12 @@ export class RegExpParser extends Parser {
     const from = skip(options, internals);
     if (from === null) return null;
     const regExp = options.ignoreCase ? this.withoutCase : this.withCase;
-    regExp.lastIndex = from;
+    regExp.lastIndex = from.index;
     const result = regExp.exec(options.input);
     if (result !== null)
       return {
         from,
-        to: from + result[0].length,
+        to: createLocation(from.index + result[0].length, internals.lines),
         children: result.slice(1),
         captures: new Map(result.groups ? Object.entries(result.groups) : [])
       };
@@ -404,7 +411,15 @@ export class PredicateParser extends Parser {
   exec(options: ParseOptions, internals: Internals): Match | null {
     const match = this.parser.exec(
       options,
-      this.polarity ? internals : createInternals()
+      this.polarity
+        ? internals
+        : {
+            ...internals,
+            cut: { active: false },
+            warnings: [],
+            failures: [],
+            committed: []
+          }
     );
     const success = () => ({
       from: options.from,
@@ -496,7 +511,7 @@ export class ActionParser extends Parser {
       const value = this.action({
         ...Object.fromEntries(match.captures),
         $value: inferValue(match.children),
-        $raw: options.input.substring(match.from, match.to),
+        $raw: options.input.substring(match.from.index, match.to.index),
         $options: options,
         $match: match,
         $context: options.context,
@@ -548,9 +563,7 @@ export class ActionParser extends Parser {
 
 export const defaultSkipper = new RegExpParser(/\s*/);
 
-export const pegSkipper = new RegExpParser(
-  /(?:\s|#[^#\r\n]*(?:#|\r\n|\r|\n))*/
-);
+export const pegSkipper = new RegExpParser(/(?:\s|#[^#\r\n]*[#\r\n])*/);
 
 export const defaultTracer: Tracer = event => {
   let adjective = "";
