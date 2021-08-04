@@ -24,9 +24,7 @@ Pegase is the last PEG parser generator for JavaScript and TypeScript you will e
 - **_Highly extensible_**: You can define your own `Parser` subclasses, create plugins with custom directives and global rules,
   share these plugins on npm, etc.
 
-### Table of Contents
-
----
+## Table of Contents
 
 - [Overview](#overview)
   - [Motivation](#motivation)
@@ -99,6 +97,8 @@ Line 1, col 9 | Failure: Expected integer or "("
 
 Don't worry if things aren't so clear yet. The rest of the documentation below is here to go step by step in all the underlying
 concepts, so that you're not left with static API sheet but understand the core philosophy and principles at hand.
+
+---
 
 ### Quick start
 
