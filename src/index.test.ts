@@ -36,6 +36,7 @@ test("Repetition parsers should work", () => {
   const g3 = peg`"a"*`;
   const g4 = peg`"a"{3}`;
   const g5 = peg`"a" {2, ${4}}`;
+  const g6 = peg`"a"{2,} `;
 
   expect(g1.test("")).toBe(true);
   expect(g1.parse("a").value).toBe("a");
@@ -56,6 +57,10 @@ test("Repetition parsers should work", () => {
   expect(g5.test("aa")).toBe(true);
   expect(g5.test("aaa")).toBe(true);
   expect(g5.parse("aaaaaa").children).toEqual(["a", "a", "a", "a"]);
+  expect(g6.test("a")).toBe(false);
+  expect(g6.test("aa")).toBe(true);
+  expect(g6.test("aaa")).toBe(true);
+  expect(g6.parse("aaaaaa").children).toEqual(["a", "a", "a", "a", "a", "a"]);
 });
 
 test("Captures should work", () => {

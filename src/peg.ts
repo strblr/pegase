@@ -156,7 +156,7 @@ export function createTag() {
  * | '?'
  * | '+'
  * | '*'
- * | '{' repetitionCount %? ',' '}'
+ * | '{' repetitionCount (',' repetitionCount?)? '}'
  *
  * repetitionCount:  => number
  *   numberLiteral | numberTagArgument
@@ -569,9 +569,18 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
       new ActionParser(
         new SequenceParser([
           new LiteralParser("{"),
-          buildModulo(
-            new NonTerminalParser("repetitionCount"),
-            new LiteralParser(","),
+          new NonTerminalParser("repetitionCount"),
+          new RepetitionParser(
+            new SequenceParser([
+              new LiteralParser(","),
+              new ActionParser(
+                new RepetitionParser(new NonTerminalParser("repetitionCount"), [
+                  0,
+                  1
+                ]),
+                ({ repetitionCount }) => repetitionCount ?? Infinity
+              )
+            ]),
             [0, 1]
           ),
           new LiteralParser("}")
