@@ -124,16 +124,16 @@ So that would be :
 const integer = peg`[0-9]+`;
 ```
 
-But wait, Whitespace skipping between items like `[0-9]` (which are called _terminals_) is active by default (which has
-many benefits as we'll see later), but we don't want that here (`4 3 9` are three integers, not one), so we can disable
-it via a directive:
+But wait, whitespace skipping between items like `[0-9]` (which are called _terminals_) is active by default (which has
+many benefits as we'll see later), but we don't want that here (`4 3 9` are three integers, not one). One option would be
+to declare `[0-9]+` a token via a _directive_ (`@token`):
 
 ```js
-const integer = peg`[0-9]+ @noskip`;
+const integer = peg`[0-9]+ @token`;
 ```
 
 Ok, `integer` is now a `Parser` instance, which has three methods : `parse`, `test` and `value`. Let's take a look at `test`.
-It takes a string input and returns `true` or `false`, whether the string conforms to the pattern or not.
+It takes a string input and returns `true` or `false` (whether the string conforms to the pattern or not):
 
 <!-- prettier-ignore -->
 ```js
@@ -142,18 +142,28 @@ if (integer.test("425"))
 ```
 
 Good, but so far, a `RegExp` could have done the job. Things get interesting when we add in rules and grammars.
-Let's say we want to match bracketed integers, possibly infinitly-bracketed. This implies a recursive pattern :
+Let's say we want to match bracketed integers, possibly infinitely-bracketed. This implies a recursive pattern :
 
 ```js
 const bracketInt = peg`
   expr: integer | '(' expr ')'
-  integer: [0-9]+ @noskip
+  integer: [0-9]+ @token
 `;
 ```
 
-This is now called a grammar and it has two rules (or _non-terminals_) : `expr` and `integer`. `bracketInt` points to the
-topmost rule, `expr`. Here, we actually wanna _allow_ whitespace skipping between brackets, so `@noskip` is only applied to
-`integer`. Testing it:
+This is now called a grammar, and it has two rules (or _non-terminals_) : `expr` and `integer`. `bracketInt` points to the
+topmost rule, `expr`. Here, we actually wanna _allow_ whitespace skipping between brackets, so `@token` is only applied to
+`integer`. Since this directive applies to the whole definition of `integer`, we can place it after the rule name.
+It's totally equivalent but more idiomatic and readable:
+
+```js
+const bracketInt = peg`
+  expr: integer | '(' expr ')'
+  integer @token: [0-9]+
+`;
+```
+
+Testing it:
 
 ```js
 bracketInt.test("()"); // false
