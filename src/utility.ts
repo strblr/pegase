@@ -44,7 +44,7 @@ export function createLocation(
   index: number,
   lines: Array<[number, string]>
 ): Location {
-  // TODO Should this be lazy ?
+  // TODO Should this be lazy ? (probably better on big inputs, worse on small inputs)
   let line = 0;
   let n = lines.length - 2;
   while (line < n) {

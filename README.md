@@ -24,12 +24,21 @@ Pegase is the last PEG parser generator for JavaScript and TypeScript you will e
 - **_Highly extensible_**: You can define your own `Parser` subclasses, create plugins with custom directives and global rules,
   share these plugins on npm, etc.
 
+#### Table of Contents
+
+- [Overview](#overview)
+  - [Motivation](#motivation)
+  - [Quick start](#quick-start)
+
+## Overview
+
 ### Motivation
 
 ---
 
-Let's take a look at a quick example. You can write a parser for math expressions with very few lines of code. Adding some directives and semantic
-actions, it turns just as quickly into a _calculator_:
+The first and main goal of this library is to get you quickly and painlessly into parsing. Let's take a look at a quick example.
+You can write a parser for math expressions with very few lines of code. Adding some directives and semantic actions, it turns
+just as quickly into a _calculator_:
 
 <!-- prettier-ignore -->
 ```js
@@ -53,7 +62,7 @@ const g = peg`
 `;
 ```
 
-A few explanations here :
+A few early explanations here :
 
 - `a % b` is a shortcut for `a (b a)*`.
 - `@infix` is a directive. It tells the parser to reduce an _emitted_ sequence representing an infix expression.
@@ -86,14 +95,11 @@ Line 1, col 9 | Failure: Expected integer or "("
     |         ^
 ```
 
-### Installation
+Don't worry if things aren't so clear yet. The rest of the documentation below is here to go step by step in all the underlying
+concepts, so that you're not left with static API sheet but understand the core philosophy and principles at hand.
+
+### Quick start
 
 ---
 
 `npm install pegase` or `yarn add pegase`
-
-### Documentation
-
----
-
-The official website with guides and API is still under construction.
