@@ -26,8 +26,6 @@ Pegase is the last PEG parser generator for JavaScript and TypeScript you will e
 
 ## Table of Contents
 
----
-
 - [Overview](#overview)
   - [Motivation](#motivation)
   - [Quick start](#quick-start)
@@ -35,8 +33,6 @@ Pegase is the last PEG parser generator for JavaScript and TypeScript you will e
 # Overview
 
 ## Motivation
-
----
 
 The first and main goal of this library is to get you quickly and painlessly into parsing. Let's take a look at an example.
 You can write a parser for math expressions with very few lines of code. Adding some directives and semantic actions, it turns
@@ -101,8 +97,6 @@ Don't worry if things aren't so clear yet. The rest of the documentation below i
 concepts, so that you're not left with static API sheet but understand the core philosophy and principles at hand.
 
 ## Quick start
-
----
 
 First, add pegase as a dependency:
 
