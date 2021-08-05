@@ -51,6 +51,12 @@ export abstract class Parser<Value = any, Context = any> {
     return this.parse(input, options).value;
   }
 
+  safeValue(input: string, options?: Partial<ParseOptions<Context>>) {
+    const result = this.parse(input, options);
+    if (!result.success) throw new Error(result.logs());
+    return result.value;
+  }
+
   parse(
     input: string,
     options?: Partial<ParseOptions<Context>>
