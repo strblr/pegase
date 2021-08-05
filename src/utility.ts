@@ -27,14 +27,14 @@ import {
   WarningType
 } from ".";
 
-// lines
+// indexes
 
-export function lines(input: string) {
+export function indexes(input: string) {
   let acc = 0;
   return input.split(/[\r\n]/).map(chunk => {
-    const result: [number, string] = [acc, chunk];
+    const start = acc;
     acc += chunk.length + 1;
-    return result;
+    return start;
   });
 }
 
@@ -42,15 +42,15 @@ export function lines(input: string) {
 
 export function createLocation(
   index: number,
-  lines: Array<[number, string]>
+  indexes: Array<number>
 ): Location {
   // TODO Should this be lazy ? (probably better on big inputs, worse on small inputs)
   let line = 0;
-  let n = lines.length - 1;
+  let n = indexes.length - 1;
   while (line < n) {
     const k = line + ((n - line) >> 1);
-    if (index < lines[k][0]) n = k - 1;
-    else if (index >= lines[k + 1][0]) line = k + 1;
+    if (index < indexes[k]) n = k - 1;
+    else if (index >= indexes[k + 1]) line = k + 1;
     else {
       line = k;
       break;
@@ -59,7 +59,7 @@ export function createLocation(
   return {
     index,
     line: line + 1,
-    column: index - lines[line][0] + 1
+    column: index - indexes[line] + 1
   };
 }
 
@@ -159,7 +159,7 @@ export function action(
 
 export function log(
   result: Result,
-  lines: Array<[number, string]>,
+  indexes: Array<number>,
   options?: Partial<LogOptions>
 ) {
   const fullOptions: LogOptions = {
@@ -214,45 +214,46 @@ export function log(
     }
   };
 
+  function codeFrame(location: Location) {
+    const start = Math.max(1, location.line - fullOptions.linesBefore);
+    const end = Math.min(
+      indexes.length,
+      location.line + fullOptions.linesAfter
+    );
+    const maxLineNum = String(end).length;
+    const padding = " ".repeat(maxLineNum);
+    let acc = "";
+    for (let i = start; i !== end + 1; i++) {
+      const lineNum = (padding + i).slice(-maxLineNum);
+      const current = result.options.input.substring(
+        indexes[i - 1],
+        (indexes[i] ?? result.options.input.length + 1) - 1
+      );
+      const normalized = current.replace(/\t+/, tabs =>
+        "  ".repeat(tabs.length)
+      );
+      if (i !== location.line) acc += `  ${lineNum} | ${normalized}\n`;
+      else {
+        const count = Math.max(
+          0,
+          normalized.length - current.length + location.column - 1
+        );
+        acc += `> ${lineNum} | ${normalized}\n`;
+        acc += `  ${padding} | ${" ".repeat(count)}^\n`;
+      }
+    }
+    return acc;
+  }
+
   return entries
     .map(entry => {
       let acc = `(${entry.from.line}:${entry.from.column}) `;
       const [type, detail] = stringifyEntry(entry);
       acc += `${type}: ${detail}`;
-      if (fullOptions.codeFrames)
-        acc += `\n\n${codeFrame(entry.from, lines, fullOptions)}`;
+      if (fullOptions.codeFrames) acc += `\n\n${codeFrame(entry.from)}`;
       return acc;
     })
     .join("\n\n");
-}
-
-// codeFrame
-
-export function codeFrame(
-  location: Location,
-  lines: Array<[number, string]>,
-  options: LogOptions
-) {
-  const start = Math.max(1, location.line - options.linesBefore);
-  const end = Math.min(lines.length, location.line + options.linesAfter);
-  const maxLineNum = String(end).length;
-  const padding = " ".repeat(maxLineNum);
-  let acc = "";
-  for (let i = start; i !== end + 1; i++) {
-    const lineNum = (padding + i).slice(-maxLineNum);
-    const current = lines[i - 1][1];
-    const normalized = current.replace(/\t+/, tabs => "  ".repeat(tabs.length));
-    if (i !== location.line) acc += `  ${lineNum} | ${normalized}\n`;
-    else {
-      const count = Math.max(
-        0,
-        normalized.length - current.length + location.column - 1
-      );
-      acc += `> ${lineNum} | ${normalized}\n`;
-      acc += `  ${padding} | ${" ".repeat(count)}^\n`;
-    }
-  }
-  return acc;
 }
 
 // defaultPlugin

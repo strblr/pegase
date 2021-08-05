@@ -82,7 +82,7 @@ export type TraceCommon<Context = any> = {
 };
 
 export type Internals = {
-  lines: Array<[number, string]>;
+  indexes: Array<number>;
   cut: { active: boolean };
   warnings: Array<Warning>;
   failures: Array<Failure>;

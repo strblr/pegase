@@ -3,9 +3,9 @@ import {
   ExpectationType,
   extendFlags,
   FailureType,
+  indexes,
   inferValue,
   Internals,
-  lines,
   log,
   Match,
   mergeFailures,
@@ -62,7 +62,7 @@ export abstract class Parser<Value = any, Context = any> {
     options?: Partial<ParseOptions<Context>>
   ): Result<Value> {
     const internals = {
-      lines: lines(input),
+      indexes: indexes(input),
       cut: { active: false },
       warnings: [],
       failures: [],
@@ -70,7 +70,7 @@ export abstract class Parser<Value = any, Context = any> {
     };
     const fullOptions = {
       input,
-      from: createLocation(0, internals.lines),
+      from: createLocation(0, internals.indexes),
       complete: true,
       skipper: defaultSkipper,
       skip: true,
@@ -91,7 +91,7 @@ export abstract class Parser<Value = any, Context = any> {
         ? []
         : [...internals.committed, ...mergeFailures(internals.failures)],
       logs(options) {
-        return log(result, internals.lines, options);
+        return log(result, internals.indexes, options);
       }
     };
     const result: Result<Value> = !match
@@ -138,7 +138,7 @@ export class LiteralParser extends Parser {
     if (result)
       return {
         from,
-        to: createLocation(to, internals.lines),
+        to: createLocation(to, internals.indexes),
         children: this.emit ? [raw] : [],
         captures: new Map()
       };
@@ -176,7 +176,7 @@ export class RegExpParser extends Parser {
     if (result !== null)
       return {
         from,
-        to: createLocation(from.index + result[0].length, internals.lines),
+        to: createLocation(from.index + result[0].length, internals.indexes),
         children: result.slice(1),
         captures: new Map(result.groups ? Object.entries(result.groups) : [])
       };
