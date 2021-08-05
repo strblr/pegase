@@ -49,7 +49,7 @@ export function createTag() {
         context: { plugins: peg.plugins, args }
       }
     );
-    if (!result.success) throw result;
+    if (!result.success) throw new Error(result.logs());
     return result.value;
   }
 
