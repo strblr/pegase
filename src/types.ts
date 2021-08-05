@@ -41,6 +41,7 @@ export type ParseOptions<Context = any> = {
   input: string;
   from: Location;
   grammar?: Parser<any, Context>;
+  complete: boolean;
   skipper: Parser<any, Context>;
   skip: boolean;
   ignoreCase: boolean;
@@ -179,10 +180,10 @@ export type SuccessResult<Value = any, Context = any> = ResultCommon<Context> &
   };
 
 export type FailResult<Context = any> = ResultCommon<Context> & {
-  success: false;
-  value: undefined;
   children: [];
   captures: Map<string, any>;
+  success: false;
+  value: undefined;
 };
 
 export type ResultCommon<Context = any> = {

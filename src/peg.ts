@@ -4,6 +4,7 @@ import {
   CaptureParser,
   CutParser,
   defaultPlugin,
+  endOfInput,
   GrammarParser,
   LiteralParser,
   MetaContext,
@@ -69,9 +70,6 @@ export function createTag() {
 /** The peg metagrammar
  *
  * # Main rules :
- *
- * peg:  => Parser
- *   parser $
  *
  * parser:  => Parser
  *   grammarParser | optionsParser
@@ -182,16 +180,6 @@ export function createTag() {
 
 const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   // Main rules :
-  [
-    "peg",
-    new SequenceParser([
-      new NonTerminalParser("parser"),
-      new TokenParser(
-        new PredicateParser(new RegExpParser(/./), false),
-        "end of input"
-      )
-    ])
-  ],
   [
     "parser",
     new OptionsParser([
@@ -389,14 +377,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     "primaryParser",
     new OptionsParser([
       new ActionParser(new LiteralParser("."), () => new RegExpParser(/./)),
-      new ActionParser(
-        new LiteralParser("$"),
-        () =>
-          new TokenParser(
-            new PredicateParser(new RegExpParser(/./), false),
-            "end of input"
-          )
-      ),
+      new ActionParser(new LiteralParser("$"), () => endOfInput),
       new ActionParser(new LiteralParser("ε"), () => new LiteralParser("")),
       new ActionParser(new LiteralParser("^"), () => new CutParser()),
       new SequenceParser([

@@ -51,7 +51,10 @@ export abstract class Parser<Value = any, Context = any> {
     return this.parse(input, options).value;
   }
 
-  parse(input: string, options?: Partial<ParseOptions<Context>>) {
+  parse(
+    input: string,
+    options?: Partial<ParseOptions<Context>>
+  ): Result<Value> {
     const internals = {
       lines: lines(input),
       cut: { active: false },
@@ -62,6 +65,7 @@ export abstract class Parser<Value = any, Context = any> {
     const fullOptions = {
       input,
       from: createLocation(0, internals.lines),
+      complete: true,
       skipper: defaultSkipper,
       skip: true,
       ignoreCase: false,
@@ -70,7 +74,10 @@ export abstract class Parser<Value = any, Context = any> {
       context: undefined as any,
       ...options
     };
-    const match = this.exec(fullOptions, internals);
+    const parser = fullOptions.complete
+      ? new SequenceParser([this, endOfInput])
+      : this;
+    const match = parser.exec(fullOptions, internals);
     const common: ResultCommon = {
       options: fullOptions,
       warnings: internals.warnings,
@@ -559,11 +566,16 @@ export class ActionParser extends Parser {
   }
 }
 
-// Defaults
+// Presets
 
 export const defaultSkipper = new RegExpParser(/\s*/);
 
 export const pegSkipper = new RegExpParser(/(?:\s|#[^#\r\n]*[#\r\n])*/);
+
+export const endOfInput = new TokenParser(
+  new PredicateParser(new RegExpParser(/./), false),
+  "end of input"
+);
 
 export const defaultTracer: Tracer = event => {
   let adjective = "";

@@ -38,35 +38,37 @@ test("Repetition parsers should work", () => {
   const g5 = peg`"a" {2, ${4}}`;
   const g6 = peg`"a"{2,} `;
 
+  const a = (n: number) => [..."a".repeat(n)];
+
   expect(g1.test("")).toBe(true);
   expect(g1.parse("a").value).toBe("a");
-  expect(g1.parse("aa").children).toEqual(["a"]);
+  expect(g1.parse("aa", { complete: false }).children).toEqual(["a"]);
   expect(g2.test("")).toBe(false);
   expect(g2.parse("a").value).toBe("a");
-  expect(g2.parse("aa").children).toEqual(["a", "a"]);
-  expect(g2.parse("aaaa").children).toEqual(["a", "a", "a", "a"]);
+  expect(g2.parse("aa").children).toEqual(a(2));
+  expect(g2.parse("aaaa").children).toEqual(a(4));
   expect(g3.test("")).toBe(true);
   expect(g3.parse("a").value).toBe("a");
-  expect(g3.parse("aa").children).toEqual(["a", "a"]);
-  expect(g3.parse("aaaa").children).toEqual(["a", "a", "a", "a"]);
+  expect(g3.parse("aa").children).toEqual(a(2));
+  expect(g3.parse("aaaa").children).toEqual(a(4));
   expect(g4.test("a")).toBe(false);
   expect(g4.test("aa")).toBe(false);
   expect(g4.test("aaa")).toBe(true);
-  expect(g4.parse("aaaaaa").children).toEqual(["a", "a", "a"]);
+  expect(g4.parse("aaaaaa", { complete: false }).children).toEqual(a(3));
   expect(g5.test("a")).toBe(false);
   expect(g5.test("aa")).toBe(true);
   expect(g5.test("aaa")).toBe(true);
-  expect(g5.parse("aaaaaa").children).toEqual(["a", "a", "a", "a"]);
+  expect(g5.parse("aaaaaa", { complete: false }).children).toEqual(a(4));
   expect(g6.test("a")).toBe(false);
   expect(g6.test("aa")).toBe(true);
   expect(g6.test("aaa")).toBe(true);
-  expect(g6.parse("aaaaaa").children).toEqual(["a", "a", "a", "a", "a", "a"]);
+  expect(g6.parse("a".repeat(103)).children).toEqual([..."a".repeat(103)]);
 });
 
 test("Captures should work", () => {
   const g1 = peg`<val>([abc] @raw)`;
   const g2 = peg`${g1}*`;
-  const g3 = peg`...<val>("a" | "b"){1}`;
+  const g3 = peg`...<val>("a" | "b"){1} .*`;
   const g4 = peg`<val1>("a" <val2>("b" | "c") "d" @count)`;
   const g5 = peg`a: <val>b c ${({ val, b, c }) => val + c + b} b: "b" c: "c"`;
   const g6 = peg`'a' <val3>(${/(?<val>(?<val1>[bc])(?<val2>[de]))/} @raw) 'f'`;
@@ -86,20 +88,22 @@ test("Captures should work", () => {
 });
 
 test("Modulos in grammars should work", () => {
+  const i = (n: number) => [..."1".repeat(n)];
+
   const g1 = peg`"1" % ','`;
   expect(g1.parse("1").children).toEqual(["1"]);
-  expect(g1.parse("1,1").children).toEqual(["1", "1"]);
-  expect(g1.parse("1 ,1, 1 , 1").children).toEqual(["1", "1", "1", "1"]);
+  expect(g1.parse("1,1").children).toEqual(i(2));
+  expect(g1.parse("1 ,1, 1 , 1").children).toEqual(i(4));
 
   const g2 = peg`"1" %? ','`;
   expect(g2.parse("1").children).toEqual(["1"]);
-  expect(g2.parse("1,1").children).toEqual(["1", "1"]);
-  expect(g2.parse("1 ,1, 1 , 1").children).toEqual(["1", "1"]);
+  expect(g2.parse("1,1").children).toEqual(i(2));
+  expect(g2.parse("1 ,1, 1 , 1", { complete: false }).children).toEqual(i(2));
 
   const g3 = peg`"1" %{2} ','`;
   expect(g3.test("1")).toBe(false);
   expect(g3.test("1,1")).toBe(false);
-  expect(g3.parse("1 ,1, 1 , 1").children).toEqual(["1", "1", "1"]);
+  expect(g3.parse("1 ,1, 1 , 1", { complete: false }).children).toEqual(i(3));
 
   const g4 = peg`("1" % ',' @count) % '|'`;
   expect(g4.test(" 2, 1, 1 | 1")).toBe(false);
@@ -191,7 +195,6 @@ test("Math expressions should be correctly calculated", () => {
   }
 
   const calc = peg<number>`
-    calc: expr $
     expr: term % ("+" | "-") @infix(${doop})
     term: fact % ("*" | "/") @infix(${doop})
     fact: num | '(' expr ')'
