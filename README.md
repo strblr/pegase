@@ -124,20 +124,16 @@ So that would be :
 const integer = peg`[0-9]+`;
 ```
 
+Ok, `integer` is now a `Parser` instance, which has four methods : `parse`, `test`, `value` and `safeValue`. Let's take a look
+at `test`. It takes a string input and returns `true` or `false` (whether the string conforms to the pattern or not).
+
 But wait, whitespace skipping between items like `[0-9]` (which are called _terminals_) is active by default (which has
 many benefits as we'll see later), but we don't want that here (`4 3 9` are three integers, not one). One option would be
-to declare `[0-9]+` a token via a _directive_ (`@token`):
-
-```js
-const integer = peg`[0-9]+ @token`;
-```
-
-Ok, `integer` is now a `Parser` instance, which has three methods : `parse`, `test` and `value`. Let's take a look at `test`.
-It takes a string input and returns `true` or `false` (whether the string conforms to the pattern or not):
+to disable skipping:
 
 <!-- prettier-ignore -->
 ```js
-if (integer.test("425"))
+if (integer.test("425", { skip: false }))
   console.log("Yes, 425 is an integer");
 ```
 
@@ -147,14 +143,15 @@ Let's say we want to match bracketed integers, possibly infinitely-bracketed. Th
 ```js
 const bracketInt = peg`
   expr: integer | '(' expr ')'
-  integer: [0-9]+ @token
+  integer: [0-9]+
 `;
 ```
 
 This is now called a grammar, and it has two rules (or _non-terminals_) : `expr` and `integer`. `bracketInt` points to the
-topmost rule, `expr`. Here, we actually wanna _allow_ whitespace skipping between brackets, so `@token` is only applied to
-`integer`. Since this directive applies to the whole definition of `integer`, we can place it after the rule name.
-It's totally equivalent but more idiomatic and readable:
+topmost rule, `expr`. Here, we actually wanna _allow_ whitespace skipping between brackets, just not between `[0-9]`s. We
+can't just blindly disable skipping for the entire grammar. There is a directive called `@token` that does exactly what we
+need: allowing pre-skipping but then disabling skipping for the wrapped parser. Applying this directive to the
+whole definition of `integer`, we can place it after the rule name:
 
 ```js
 const bracketInt = peg`
@@ -180,6 +177,6 @@ defined previously and inject it as a tag argument :
 
 ```js
 const bracketInt = peg`
-  expr: ${integer} | '(' expr ')'
+  expr: ${integer} @token | '(' expr ')'
 `;
 ```
