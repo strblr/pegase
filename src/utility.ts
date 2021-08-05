@@ -216,7 +216,7 @@ export function log(
 
   return entries
     .map(entry => {
-      let acc = `Line ${entry.from.line}, col ${entry.from.column} | `;
+      let acc = `(${entry.from.line}:${entry.from.column}) `;
       const [type, detail] = stringifyEntry(entry);
       acc += `${type}: ${detail}`;
       if (fullOptions.codeFrames)
