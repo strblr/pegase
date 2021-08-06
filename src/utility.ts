@@ -118,7 +118,7 @@ export function pipeDirectives(
 
 // applyVisitors
 
-export function applyVisitors(parser: Parser, plugins: Array<Plugin>) {
+export function applyVisitors(plugins: Array<Plugin>, parser: Parser) {
   const visitors = plugins
     .map(plugin => plugin.visitor)
     .filter(Boolean) as Array<Visitor>;
@@ -148,8 +148,7 @@ export function applyVisitors(parser: Parser, plugins: Array<Plugin>) {
         parser.parser = visit(parser.parser);
       return parser;
     };
-    const next = visit(parser);
-    if (next) parser = next;
+    parser = visit(parser);
   }
   return parser;
 }

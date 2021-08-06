@@ -51,7 +51,7 @@ export function createTag() {
       }
     );
     if (!result.success) throw new Error(result.logs());
-    return applyVisitors(result.value, peg.plugins);
+    return applyVisitors(peg.plugins, result.value);
   }
 
   peg.trace = false;
