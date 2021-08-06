@@ -5,7 +5,6 @@ import {
   CaptureParser,
   CutParser,
   defaultPlugin,
-  endOfInput,
   GrammarParser,
   LiteralParser,
   MetaContext,
@@ -378,7 +377,14 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     "primaryParser",
     new OptionsParser([
       new ActionParser(new LiteralParser("."), () => new RegExpParser(/./)),
-      new ActionParser(new LiteralParser("$"), () => endOfInput),
+      new ActionParser(
+        new LiteralParser("$"),
+        () =>
+          new TokenParser(
+            new PredicateParser(new RegExpParser(/./), false),
+            "end of input"
+          )
+      ),
       new ActionParser(new LiteralParser("ε"), () => new LiteralParser("")),
       new ActionParser(new LiteralParser("^"), () => new CutParser()),
       new SequenceParser([
