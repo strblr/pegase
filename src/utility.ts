@@ -1,5 +1,6 @@
 import {
   ActionParser,
+  CaptureParser,
   Directive,
   Expectation,
   ExpectationType,
@@ -10,10 +11,12 @@ import {
   LiteralParser,
   Location,
   LogOptions,
+  NonTerminalParser,
   OptionsParser,
   ParseOptions,
   Parser,
   Plugin,
+  PredicateParser,
   RegExpParser,
   RepetitionParser,
   Result,
@@ -23,6 +26,7 @@ import {
   TokenParser,
   Tracer,
   TweakParser,
+  Visitor,
   Warning,
   WarningType
 } from ".";
@@ -110,6 +114,44 @@ export function pipeDirectives(
       );
     return definition.directives![directive](parser, ...args);
   }, parser);
+}
+
+// applyVisitors
+
+export function applyVisitors(parser: Parser, plugins: Array<Plugin>) {
+  const visitors = plugins
+    .map(plugin => plugin.visitor)
+    .filter(Boolean) as Array<Visitor>;
+  for (const visitor of visitors) {
+    const visit = (parser: Parser): Parser => {
+      const result = visitor(parser, visit);
+      if (result) return result;
+      else if (parser instanceof NonTerminalParser)
+        parser.fallback && (parser.fallback = visit(parser.fallback));
+      else if (
+        parser instanceof OptionsParser ||
+        parser instanceof SequenceParser
+      )
+        parser.parsers = parser.parsers.map(visit);
+      else if (parser instanceof GrammarParser)
+        parser.rules = new Map(
+          [...parser.rules].map(([rule, parser]) => [rule, visit(parser)])
+        );
+      else if (
+        parser instanceof TokenParser ||
+        parser instanceof RepetitionParser ||
+        parser instanceof PredicateParser ||
+        parser instanceof TweakParser ||
+        parser instanceof CaptureParser ||
+        parser instanceof ActionParser
+      )
+        parser.parser = visit(parser.parser);
+      return parser;
+    };
+    const next = visit(parser);
+    if (next) parser = next;
+  }
+  return parser;
 }
 
 // inferValue

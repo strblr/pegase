@@ -25,6 +25,7 @@ import {
  * | LiteralParser
  * | RegExpParser
  * | NonTerminalParser
+ * | CutParser
  * | OptionsParser
  * | SequenceParser
  * | GrammarParser
@@ -117,9 +118,8 @@ export abstract class Parser<Value = any, Context = any> {
 // LiteralParser
 
 export class LiteralParser extends Parser {
-  readonly type = "LITERAL_PARSER";
-  readonly literal: string;
-  readonly emit: boolean;
+  literal: string;
+  emit: boolean;
 
   constructor(literal: string, emit: boolean = false) {
     super();
@@ -155,10 +155,9 @@ export class LiteralParser extends Parser {
 // RegExpParser
 
 export class RegExpParser extends Parser {
-  readonly type = "REGEXP_PARSER";
-  readonly regExp: RegExp;
-  private readonly withCase: RegExp;
-  private readonly withoutCase: RegExp;
+  regExp: RegExp;
+  withCase: RegExp;
+  withoutCase: RegExp;
 
   constructor(regExp: RegExp) {
     super();
@@ -193,9 +192,8 @@ export class RegExpParser extends Parser {
 // NonTerminalParser
 
 export class NonTerminalParser extends Parser {
-  readonly type = "REFERENCE_PARSER";
-  readonly label: string;
-  readonly fallback?: Parser;
+  label: string;
+  fallback?: Parser;
 
   constructor(label: string, fallback?: Parser) {
     super();
@@ -251,7 +249,6 @@ export class NonTerminalParser extends Parser {
 // CutParser
 
 export class CutParser extends Parser {
-  readonly type = "CUT_PARSER";
   exec(options: ParseOptions, internals: Internals): Match | null {
     internals.cut.active = true;
     return {
@@ -266,8 +263,7 @@ export class CutParser extends Parser {
 // OptionsParser
 
 export class OptionsParser extends Parser {
-  readonly type = "OPTIONS_PARSER";
-  readonly parsers: Array<Parser>;
+  parsers: Array<Parser>;
 
   constructor(parsers: Array<Parser>) {
     super();
@@ -288,8 +284,7 @@ export class OptionsParser extends Parser {
 // SequenceParser
 
 export class SequenceParser extends Parser {
-  readonly type = "SEQUENCE_PARSER";
-  readonly parsers: Array<Parser>;
+  parsers: Array<Parser>;
 
   constructor(parsers: Array<Parser>) {
     super();
@@ -317,27 +312,24 @@ export class SequenceParser extends Parser {
 // GrammarParser
 
 export class GrammarParser extends Parser {
-  readonly type = "GRAMMAR_PARSER";
-  readonly rules: Map<string, Parser>;
-  private readonly entry: Parser;
+  rules: Map<string, Parser>;
 
   constructor(rules: Array<[string, Parser]>) {
     super();
     this.rules = new Map(rules);
-    this.entry = rules[0][1];
   }
 
   exec(options: ParseOptions, internals: Internals): Match | null {
-    return this.entry.exec({ ...options, grammar: this }, internals);
+    const entry: Parser = this.rules.values().next().value;
+    return entry.exec({ ...options, grammar: this }, internals);
   }
 }
 
 // TokenParser
 
 export class TokenParser extends Parser {
-  readonly type = "TOKEN_PARSER";
-  readonly parser: Parser;
-  readonly alias?: string;
+  parser: Parser;
+  alias?: string;
 
   constructor(parser: Parser, alias?: string) {
     super();
@@ -372,10 +364,9 @@ export class TokenParser extends Parser {
 // RepetitionParser
 
 export class RepetitionParser extends Parser {
-  readonly type = "REPETITION_PARSER";
-  readonly parser: Parser;
-  readonly min: number;
-  readonly max: number;
+  parser: Parser;
+  min: number;
+  max: number;
 
   constructor(parser: Parser, [min, max]: [number, number]) {
     super();
@@ -411,9 +402,8 @@ export class RepetitionParser extends Parser {
 // PredicateParser
 
 export class PredicateParser extends Parser {
-  readonly type = "PREDICATE_PARSER";
-  readonly parser: Parser;
-  readonly polarity: boolean;
+  parser: Parser;
+  polarity: boolean;
 
   constructor(parser: Parser, polarity: boolean) {
     super();
@@ -455,9 +445,8 @@ export class PredicateParser extends Parser {
 // TweakParser
 
 export class TweakParser extends Parser {
-  readonly type = "TWEAK_PARSER";
-  readonly parser: Parser;
-  readonly options: (options: ParseOptions) => Partial<ParseOptions>;
+  parser: Parser;
+  options: (options: ParseOptions) => Partial<ParseOptions>;
 
   constructor(
     parser: Parser,
@@ -479,9 +468,8 @@ export class TweakParser extends Parser {
 // CaptureParser
 
 export class CaptureParser extends Parser {
-  readonly type = "CAPTURE_PARSER";
-  readonly parser: Parser;
-  readonly name: string;
+  parser: Parser;
+  name: string;
 
   constructor(parser: Parser, name: string) {
     super();
@@ -505,9 +493,8 @@ export class CaptureParser extends Parser {
 // ActionParser
 
 export class ActionParser extends Parser {
-  readonly type = "ACTION_PARSER";
-  readonly parser: Parser;
-  readonly action: SemanticAction;
+  parser: Parser;
+  action: SemanticAction;
 
   constructor(parser: Parser, action: SemanticAction) {
     super();
