@@ -1,13 +1,13 @@
 import {
   ActionParser,
   applyVisitors,
-  buildModulo,
   CaptureParser,
   CutParser,
   defaultPlugin,
   GrammarParser,
   LiteralParser,
   MetaContext,
+  modulo,
   NonTerminalParser,
   OptionsParser,
   Parser,
@@ -229,7 +229,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
           new OptionsParser([new LiteralParser("|"), new LiteralParser("/")]),
           [0, 1]
         ),
-        buildModulo(
+        modulo(
           new NonTerminalParser("directiveParser"),
           new OptionsParser([new LiteralParser("|"), new LiteralParser("/")])
         )
@@ -269,10 +269,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "minusParser",
     new ActionParser(
-      buildModulo(
-        new NonTerminalParser("moduloParser"),
-        new LiteralParser("-")
-      ),
+      modulo(new NonTerminalParser("moduloParser"), new LiteralParser("-")),
       ({ $match }) =>
         ($match.children as Array<Parser>).reduce(
           (acc, not) =>
@@ -283,7 +280,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "moduloParser",
     new ActionParser(
-      buildModulo(
+      modulo(
         new NonTerminalParser("forwardParser"),
         new SequenceParser([
           new LiteralParser("%"),
@@ -295,7 +292,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
       ),
       ({ $match }) =>
         $match.children.reduce((acc, rep, index) =>
-          index % 2 ? buildModulo(acc, $match.children[index + 1], rep) : acc
+          index % 2 ? modulo(acc, $match.children[index + 1], rep) : acc
         )
     )
   ],
@@ -628,7 +625,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new ActionParser(
       new SequenceParser([
         new LiteralParser("("),
-        buildModulo(
+        modulo(
           new NonTerminalParser("directiveArgument"),
           new LiteralParser(",")
         ),

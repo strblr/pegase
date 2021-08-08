@@ -15,14 +15,14 @@ export type Plugin = {
   visitor?: Visitor;
 };
 
+export type Directives = Record<string, Directive>;
+
+export type Directive = (parser: Parser, ...args: Array<any>) => Parser;
+
 export type Visitor = (
   parser: Parser,
   visit: (parser: Parser) => Parser
 ) => Parser | undefined;
-
-export type Directives = Record<string, Directive>;
-
-export type Directive = (parser: Parser, ...args: Array<any>) => Parser;
 
 export type SemanticAction<Context = any> = (
   info: SemanticInfo<Context>

@@ -123,7 +123,7 @@ export function applyVisitors(plugins: Array<Plugin>, parser: Parser) {
     .map(plugin => plugin.visitor)
     .filter(Boolean) as Array<Visitor>;
   for (const visitor of visitors) {
-    const visit = (parser: Parser): Parser => {
+    const visit = (parser: Parser) => {
       const result = visitor(parser, visit);
       if (result) return result;
       else if (parser instanceof NonTerminalParser)
@@ -159,9 +159,9 @@ export function inferValue(children: Array<any>) {
   return children.length === 1 ? children[0] : undefined;
 }
 
-// buildModulo
+// modulo
 
-export function buildModulo(
+export function modulo(
   item: Parser,
   separator: Parser,
   repetitionRange: [number, number] = [0, Infinity]
