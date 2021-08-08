@@ -91,7 +91,7 @@ false
 #### `g.parse("2* (4 + )/32").logs()`
 
 ```
-Line 1, col 9 | Failure: Expected integer or "("
+(1:9) Failure: Expected integer or "("
 
 > 1 | 2* (4 + )/32
     |         ^
