@@ -29,11 +29,7 @@ Pegase is the last PEG parser generator for JavaScript and TypeScript you will e
 
 ### Motivation
 
----
-
-The first and main goal of this library is to get you quickly and painlessly into parsing. Let's take a look at an example.  
-You can write a parser for math expressions with very few lines of code. Adding some directives and semantic actions, it turns  
-just as quickly into a _calculator_:
+The first and main goal of this library is to get you quickly and painlessly into parsing. Let's take a look at an example. You can write a parser for math expressions with very few lines of code. Adding some directives and semantic actions, it turns just as quickly into a _calculator_:
 
 <!-- prettier-ignore -->
 ```js
@@ -53,7 +49,8 @@ const g = peg`
   term: fact % ("*" | "/") @infix(${calc})  
   fact: num | '(' expr ')'
   num @token("integer"):
-    '-'? [0-9]+ @number`;
+    '-'? [0-9]+ @number
+`;
 ```
 
 A few early explanations here :
@@ -151,7 +148,7 @@ bracketInt.test("((36))"); // true
 bracketInt.test(" ( (( 36)  ) ) "); // true
 ```
 
-One fun trick, we're not obligated to redefine `integer` as a rule. We can take our `Parser` instance `integer` defined previously and inject it as a tag argument :
+One fun trick, we're not obligated to redefine `integer` as a rule. We can take our `Parser` instance `integer` defined previously and inject it as a tag argument:
 
 ```js
 const bracketInt = peg`  
@@ -163,37 +160,67 @@ const bracketInt = peg`
 
 ### Building parsers
 
----
+| Pegase expression                          | Description                                                  | Children                                                     |
+| ------------------------------------------ | :----------------------------------------------------------- | ------------------------------------------------------------ |
+| `.`                                        | Matches any character                                        | `[]`                                                         |
+| `$`                                        | Matches the end of the input (equivalent to `!.`)            | `[]`                                                         |
+| `ε`                                        | Matches the empty string. This is equivalent to `''` and is always a success, it can be used to implement a default parsing case in alternatives. | `[]`                                                         |
+| `^`                                        | The cut operator. Always a success, its role is to commit to an alternative and not explore any further in the first parent alternative. Example : <code>peg\`'a' ^ e1 &#124; e2\`</code> **will not** try `e2` if `'a'` was found but `e1` failed. | `[]`                                                         |
+| `(e)`                                      | Matches `e` (any arbitrary parsing expression)               | Forwarded from `e`                                           |
+| `id`                                       | Matches the non-terminal `id`                                | Forwarded from the non-terminal `id`                         |
+| `'literal'`                                | Matches the string `"literal"`                               | `[]`                                                         |
+| `"literal"`                                | Matches the string `"literal"`                               | `["literal"]`                                                |
+| `42`, `964`, ...                           | Matches the number literally                                 | `[]`                                                         |
+| `[0-9]`, `[a-zA-Z]`, ...                   | Matches one character in the given character class           | `[]`                                                         |
+| `[^0-9]`, `[^a-zA-Z]`, ...                 | Matches one character **not** in the given character class   | `[]`                                                         |
+| `\n`, `\s`, `\xAF`, `\uA6F1`, ...          | Matches the escaped metacharacter as a `RegExp` expression (i.e. `\s` matches any whitespace, `\S` any non-whitespace, `\uA6F1` matches the unicode character `A6F1`, etc. ([See `RegExp` documentation](https://www.w3schools.com/jsref/jsref_obj_regexp.asp) for a complete list of supported metacharacters), | `[]`                                                         |
+| `e @directive`, `e @directive(a, b)`       | Applies the directive `directive` to the parser `e`. Directives are functions that take a parser and return a new parser. They can take additional arguments (`e @dir(a, b, ...)`) and can be chained (`e @dir1 @dir2 ...`). | Depends entirely on the new parser constructed by the directive |
+| `${arg}`                                   | Template tag argument. It can be a number (matches the number literally), a string (matches the string), a `RegExp` (matches the regular expression), or a `Parser` instance. | If `arg` is a string or a number: `[]`. If `arg` is a `RegExp`, it emits its capturing groups (if any). If `arg` is a `Parser` instance, children are forwarded from `arg`. |
+| `e ${func}`                                | Semantic action. `func` can be any js function passed as tag argument. It will be called with a match payload as argument if `e` succeeds. Shortcut for `e @action(${func})`. | `[<return value of func>]` if that value is not `undefined`, `[]` otherwise |
+| <code>e1 &#124; e2</code>                  | Matches `e1` or `e2` (any arbitrary parsing expression)      | Forwarded from `e1` or `e2`                                  |
+| `e1 e2`                                    | Matches `e1` followed by `e2`                                | Forwarded and concatenated from `e1` and `e2`                |
+| `e?`                                       | Matches zero or one `e`                                      | Forwarded from `e`                                           |
+| `e+`                                       | Matches one or more `e`s                                     | Forwarded and concatenated from `e`                          |
+| `e*`                                       | Matches zero or more `e`s                                    | Forwarded and concatenated from `e`                          |
+| `e{4}`                                     | Matches `e` exactly 4 times                                  | Forwarded and concatenated from `e`                          |
+| `e{4, 7}`                                  | Matches `e` between 4 and 7 times                            | Forwarded and concatenated from `e`                          |
+| `e{4,}`                                    | Matches `e` at least 4 times                                 | Forwarded and concatenated from `e`                          |
+| `e1 % e2`, `e1 %? e2`, `e1 %{1,3} e2`, ... | Matches a sequence of `e1`s separated by `e2`. The `%` operator can be parametrized using the same quantifiers as above. | Forwarded and concatenated from the matched sequence of `e1`s and `e2`s |
+| `rule: e`, `rule @directive: e`, ...       | In context of a grammar, this creates a non-terminal `rule` as an alias to parser `e`. **A grammar is just a stack of rule definitions**. If directives are specified after the rule name, they are applied to the whole expression `e`. | The entry point of a grammar is its topmost rule. So children are forwarded from there. |
+| `&e`                                       | Matches `e` without consuming any input nor emitting any children | `[]`                                                         |
+| `!e`                                       | Succeeds if `e` fails and vice-versa. No input is consumed, no children is emitted. | `[]`                                                         |
+| `e1 - e2`                                  | Matches `e1` but not `e2` (fails if `e2` succeeds). Equivalent to `!e2 e1`. | Forwarded from `e1`                                          |
+| `...e`                                     | Skips input character by character until `e` is matched. This can be used to implement error recovery and is equivalent to `(!e .)* e`. | Forwarded from `e`                                           |
+| `<name>e`                                  | Captures the value emitted by `e` and binds it to `name`     | Forwarded from `e`                                           |
 
-| Pegase expression                          | Description                                                                                                                                                                                                                                                                                                      | Children                                                                                                                                                                    |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.`                                        | Matches any character                                                                                                                                                                                                                                                                                            | `[]`                                                                                                                                                                        |
-| `$`                                        | Matches the end of the input (equivalent to `!.`)                                                                                                                                                                                                                                                                | `[]`                                                                                                                                                                        |
-| `ε`                                        | Matches the empty string. This is equivalent to `''` and is always a success, it can be used to implement a default parsing case in alternatives.                                                                                                                                                                | `[]`                                                                                                                                                                        |
-| `^`                                        | The cut operator. Always a success, its role is to commit to an alternative and not explore any further in the first parent alternative. Example : <code>peg\`'a' ^ e1 &#124; e2\`</code> **will not** try `e2` if `'a'` was found but `e1` failed.                                                              | `[]`                                                                                                                                                                        |
-| `(e)`                                      | Matches `e` (any arbitrary parsing expression)                                                                                                                                                                                                                                                                   | Forwarded from `e`                                                                                                                                                          |
-| `id`                                       | Matches the non-terminal `id`                                                                                                                                                                                                                                                                                    | Forwarded from the non-terminal `id`                                                                                                                                        |
-| `'literal'`                                | Matches the string `"literal"`                                                                                                                                                                                                                                                                                   | `[]`                                                                                                                                                                        |
-| `"literal"`                                | Matches the string `"literal"`                                                                                                                                                                                                                                                                                   | `["literal"]`                                                                                                                                                               |
-| `42`, `964`, ...                           | Matches the number literally                                                                                                                                                                                                                                                                                     | `[]`                                                                                                                                                                        |
-| `[0-9]`, `[a-zA-Z]`, ...                   | Matches one character in the given character class                                                                                                                                                                                                                                                               | `[]`                                                                                                                                                                        |
-| `[^0-9]`, `[^a-zA-Z]`, ...                 | Matches one character **not** in the given character class                                                                                                                                                                                                                                                       | `[]`                                                                                                                                                                        |
-| `\n`, `\s`, `\xAF`, `\uA6F1`, ...          | Matches the escaped metacharacter as a `RegExp` expression (i.e. `\s` matches any whitespace, `\S` any non-whitespace, `\uA6F1` matches the unicode character `A6F1`, etc. ([See `RegExp` documentation](https://www.w3schools.com/jsref/jsref_obj_regexp.asp) for a complete list of supported metacharacters), | `[]`                                                                                                                                                                        |
-| `e @directive`, `e @directive(a, b)`       | Applies the directive `directive` to the parser `e`. Directives are functions that take a parser and return a new parser. They can take additional arguments (`e @dir(a, b, ...)`) and can be chained (`e @dir1 @dir2 ...`).                                                                                     | Depends entirely on the new parser constructed by the directive                                                                                                             |
-| `${arg}`                                   | Template tag argument. It can be a number (matches the number literally), a string (matches the string), a `RegExp` (matches the regular expression), or a `Parser` instance.                                                                                                                                    | If `arg` is a string or a number: `[]`. If `arg` is a `RegExp`, it emits its capturing groups (if any). If `arg` is a `Parser` instance, children are forwarded from `arg`. |
-| `e ${func}`                                | Semantic action. `func` can be any js function passed as tag argument. It will be called with a match payload as argument if `e` succeeds. Shortcut for `e @action(${func})`.                                                                                                                                    | `[<return value of func>]` if that value is not `undefined`, `[]` otherwise                                                                                                 |
-| <code>e1 &#124; e2</code>                  | Matches `e1` or `e2` (any arbitrary parsing expression)                                                                                                                                                                                                                                                          | Forwarded from `e1` or `e2`                                                                                                                                                 |
-| `e1 e2`                                    | Matches `e1` followed by `e2`                                                                                                                                                                                                                                                                                    | Forwarded and concatenated from `e1` and `e2`                                                                                                                               |
-| `e?`                                       | Matches zero or one `e`                                                                                                                                                                                                                                                                                          | Forwarded from `e`                                                                                                                                                          |
-| `e+`                                       | Matches one or more `e`s                                                                                                                                                                                                                                                                                         | Forwarded and concatenated from `e`                                                                                                                                         |
-| `e*`                                       | Matches zero or more `e`s                                                                                                                                                                                                                                                                                        | Forwarded and concatenated from `e`                                                                                                                                         |
-| `e{4}`                                     | Matches `e` exactly 4 times                                                                                                                                                                                                                                                                                      | Forwarded and concatenated from `e`                                                                                                                                         |
-| `e{4, 7}`                                  | Matches `e` between 4 and 7 times                                                                                                                                                                                                                                                                                | Forwarded and concatenated from `e`                                                                                                                                         |
-| `e{4,}`                                    | Matches `e` at least 4 times                                                                                                                                                                                                                                                                                     | Forwarded and concatenated from `e`                                                                                                                                         |
-| `e1 % e2`, `e1 %? e2`, `e1 %{1,3} e2`, ... | Matches a sequence of `e1`s separated by `e2`. The `%` operator can be parametrized using the same quantifiers as above.                                                                                                                                                                                         | Forwarded and concatenated from the matched sequence of `e1`s and `e2`s                                                                                                     |
-| `rule: e`, `rule @directive: e`, ...       | In context of a grammar, this creates a non-terminal `rule` as an alias to parser `e`. **A grammar is just a stack of rule definitions**. If directives are specified after the rule name, they are applied to the whole expression `e`.                                                                         | The entry point of a grammar is its topmost rule. So children are forwarded from there.                                                                                     |
-| `&e`                                       | Matches `e` without consuming any input nor emitting any children                                                                                                                                                                                                                                                | `[]`                                                                                                                                                                        |
-| `!e`                                       | Succeeds if `e` fails and vice-versa. No input is consumed, no children is emitted.                                                                                                                                                                                                                              | `[]`                                                                                                                                                                        |
-| `e1 - e2`                                  | Matches `e1` but not `e2` (fails if `e2` succeeds). Equivalent to `!e2 e1`.                                                                                                                                                                                                                                      | Forwarded from `e1`                                                                                                                                                         |
-| `...e`                                     | Skips input character by character until `e` is matched. This can be used to implement error recovery and is equivalent to `(!e .)* e`.                                                                                                                                                                          | Forwarded from `e`                                                                                                                                                          |
-| `<name>e`                                  | Captures the value emitted by `e` and binds it to `name`                                                                                                                                                                                                                                                         | Forwarded from `e`                                                                                                                                                          |
+<table>
+  <thead>
+    <tr>
+      <th>Pegase</th>
+      <th>Description</th>
+      <th>Children</th>
+      <th>Priority</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><pre>.</pre></td>
+      <td>Matches any character</td>
+      <td><code>[]</code></td>
+      <td align="center">/</td>
+    </tr>
+    <tr>
+      <td><pre>$</pre></td>
+      <td>Matches the end of the input (equivalent to <code>!.</code>)</td>
+      <td><code>[]</code></td>
+      <td align="center">/</td>
+    </tr>
+    <tr>
+      <td><pre>ε</pre></td>
+      <td>Matches the empty string. This is equivalent to <code>''</code> and is always a success. It can be used to implement a default parsing case in alternatives.</td>
+      <td><code>[]</code></td>
+      <td align="center">/</td>
+    </tr>
+  </tbody>
+</table>
+
