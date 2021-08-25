@@ -596,12 +596,24 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new OptionsParser([
       new ActionParser(
         new SequenceParser([
-          new TokenParser(
-            new SequenceParser([
-              new LiteralParser("@"),
-              new NonTerminalParser("identifier")
-            ]),
-            "directive"
+          new ActionParser(
+            new TokenParser(
+              new SequenceParser([
+                new LiteralParser("@"),
+                new NonTerminalParser("identifier")
+              ]),
+              "directive"
+            ),
+            ({ identifier, $context }) => {
+              if (
+                !($context as MetaContext).plugins.find(plugin =>
+                  plugin.directives?.hasOwnProperty(identifier)
+                )
+              )
+                throw new Error(
+                  `Couldn't resolve directive "${identifier}", you can add support for it via peg.addPlugin`
+                );
+            }
           ),
           new RepetitionParser(new NonTerminalParser("directiveArguments"), [
             0,

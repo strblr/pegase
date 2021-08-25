@@ -102,11 +102,7 @@ export function pipeDirectives(
   return directives.reduce((parser, [directive, args]) => {
     const definition = plugins.find(plugin =>
       plugin.directives?.hasOwnProperty(directive)
-    );
-    if (!definition)
-      throw new Error(
-        `Couldn't resolve directive "${directive}", you can add support for it via peg.addPlugin`
-      );
+    )!;
     return definition.directives![directive](parser, ...args);
   }, parser);
 }
