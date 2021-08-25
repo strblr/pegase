@@ -12,17 +12,11 @@ export type Plugin = {
   grammar?: Parser;
   castParser?(arg: any): Parser | undefined;
   directives?: Directives;
-  visitor?: Visitor;
 };
 
 export type Directives = Record<string, Directive>;
 
 export type Directive = (parser: Parser, ...args: Array<any>) => Parser;
-
-export type Visitor = (
-  parser: Parser,
-  visit: (parser: Parser) => Parser
-) => Parser | undefined;
 
 export type SemanticAction<Context = any> = (
   info: SemanticInfo<Context>
@@ -54,6 +48,7 @@ export type ParseOptions<Context = any> = {
   tracer: Tracer<Context>;
   trace: boolean;
   context: Context;
+  internals: Internals;
 };
 
 export type Tracer<Context = any> = (event: TraceEvent<Context>) => void;
@@ -140,7 +135,6 @@ export type RegExpExpectation = {
 export type TokenExpectation = {
   type: ExpectationType.Token;
   alias: string;
-  failures: Array<Failure>;
 };
 
 export type MismatchExpectation = {
@@ -186,23 +180,19 @@ export type SuccessResult<Value = any, Context = any> = ResultCommon<Context> &
   };
 
 export type FailResult<Context = any> = ResultCommon<Context> & {
-  children: [];
-  captures: Map<string, any>;
   success: false;
-  value: undefined;
+  failures: Array<Failure>;
 };
 
 export type ResultCommon<Context = any> = {
   options: ParseOptions<Context>;
   warnings: Array<Warning>;
-  failures: Array<Failure>;
   logs(options?: Partial<LogOptions>): string;
 };
 
 export type LogOptions = {
   warnings: boolean;
   failures: boolean;
-  tokenDetail: boolean;
   codeFrames: boolean;
   linesBefore: number;
   linesAfter: number;

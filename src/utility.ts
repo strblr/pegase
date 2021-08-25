@@ -1,22 +1,18 @@
 import {
   ActionParser,
-  CaptureParser,
   Directive,
   Expectation,
   ExpectationType,
   Failure,
   FailureType,
   GrammarParser,
-  Internals,
   LiteralParser,
   Location,
   LogOptions,
-  NonTerminalParser,
   OptionsParser,
   ParseOptions,
   Parser,
   Plugin,
-  PredicateParser,
   RegExpParser,
   RepetitionParser,
   Result,
@@ -26,14 +22,13 @@ import {
   TokenParser,
   Tracer,
   TweakParser,
-  Visitor,
   Warning,
   WarningType
 } from ".";
 
-// indexes
+// createIndexes
 
-export function indexes(input: string) {
+export function createIndexes(input: string) {
   let acc = 0;
   return input.split(/[\r\n]/).map(chunk => {
     const start = acc;
@@ -75,9 +70,9 @@ export function extendFlags(regExp: RegExp, flags: string) {
 
 // skip
 
-export function skip(options: ParseOptions, internals: Internals) {
+export function skip(options: ParseOptions) {
   if (!options.skip) return options.from;
-  const match = options.skipper.exec({ ...options, skip: false }, internals);
+  const match = options.skipper.exec({ ...options, skip: false });
   return match && match.to;
 }
 
@@ -114,43 +109,6 @@ export function pipeDirectives(
       );
     return definition.directives![directive](parser, ...args);
   }, parser);
-}
-
-// applyVisitors
-
-export function applyVisitors(plugins: Array<Plugin>, parser: Parser) {
-  const visitors = plugins
-    .map(plugin => plugin.visitor)
-    .filter(Boolean) as Array<Visitor>;
-  for (const visitor of visitors) {
-    const visit = (parser: Parser) => {
-      const result = visitor(parser, visit);
-      if (result) return result;
-      else if (parser instanceof NonTerminalParser)
-        parser.fallback && (parser.fallback = visit(parser.fallback));
-      else if (
-        parser instanceof OptionsParser ||
-        parser instanceof SequenceParser
-      )
-        parser.parsers = parser.parsers.map(visit);
-      else if (parser instanceof GrammarParser)
-        parser.rules = new Map(
-          [...parser.rules].map(([rule, parser]) => [rule, visit(parser)])
-        );
-      else if (
-        parser instanceof TokenParser ||
-        parser instanceof RepetitionParser ||
-        parser instanceof PredicateParser ||
-        parser instanceof TweakParser ||
-        parser instanceof CaptureParser ||
-        parser instanceof ActionParser
-      )
-        parser.parser = visit(parser.parser);
-      return parser;
-    };
-    parser = visit(parser);
-  }
-  return parser;
 }
 
 // inferValue
@@ -198,15 +156,10 @@ export function action(
 
 // log
 
-export function log(
-  result: Result,
-  indexes: Array<number>,
-  options?: Partial<LogOptions>
-) {
+export function log(result: Result, options?: Partial<LogOptions>) {
   const fullOptions: LogOptions = {
     warnings: true,
     failures: true,
-    tokenDetail: false,
     codeFrames: true,
     linesBefore: 2,
     linesAfter: 2,
@@ -214,7 +167,7 @@ export function log(
   };
   const entries = [
     ...(fullOptions.warnings ? result.warnings : []),
-    ...(fullOptions.failures ? result.failures : [])
+    ...(fullOptions.failures && !result.success ? result.failures : [])
   ].sort((a, b) => a.from.index - b.from.index);
 
   const stringifyEntry = (entry: Warning | Failure) => {
@@ -241,12 +194,7 @@ export function log(
       case ExpectationType.RegExp:
         return String(expectation.regExp);
       case ExpectationType.Token:
-        let detail = "";
-        if (fullOptions.tokenDetail)
-          detail += ` (${expectation.failures
-            .map(failure => stringifyEntry(failure)[1])
-            .join(" | ")})`;
-        return `${expectation.alias}${detail}`;
+        return expectation.alias;
       case ExpectationType.Mismatch:
         return `mismatch of "${result.options.input.substring(
           expectation.match.from.index,
@@ -256,6 +204,7 @@ export function log(
   };
 
   function codeFrame(location: Location) {
+    const indexes = result.options.internals.indexes;
     const start = Math.max(1, location.line - fullOptions.linesBefore);
     const end = Math.min(
       indexes.length,

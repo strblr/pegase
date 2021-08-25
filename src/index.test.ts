@@ -1,4 +1,4 @@
-import peg, { LiteralParser, RegExpParser } from ".";
+import peg, { LiteralParser, RegExpParser, SuccessResult } from ".";
 
 function echo(entity: any) {
   console.log(
@@ -41,28 +41,28 @@ test("Repetition parsers should work", () => {
   const a = (n: number) => [..."a".repeat(n)];
 
   expect(g1.test("")).toBe(true);
-  expect(g1.parse("a").value).toBe("a");
-  expect(g1.parse("aa", { complete: false }).children).toEqual(["a"]);
+  expect(g1.value("a")).toBe("a");
+  expect(g1.children("aa", { complete: false })).toEqual(["a"]);
   expect(g2.test("")).toBe(false);
-  expect(g2.parse("a").value).toBe("a");
-  expect(g2.parse("aa").children).toEqual(a(2));
-  expect(g2.parse("aaaa").children).toEqual(a(4));
+  expect(g2.value("a")).toBe("a");
+  expect(g2.children("aa")).toEqual(a(2));
+  expect(g2.children("aaaa")).toEqual(a(4));
   expect(g3.test("")).toBe(true);
-  expect(g3.parse("a").value).toBe("a");
-  expect(g3.parse("aa").children).toEqual(a(2));
-  expect(g3.parse("aaaa").children).toEqual(a(4));
+  expect(g3.value("a")).toBe("a");
+  expect(g3.children("aa")).toEqual(a(2));
+  expect(g3.children("aaaa")).toEqual(a(4));
   expect(g4.test("a")).toBe(false);
   expect(g4.test("aa")).toBe(false);
   expect(g4.test("aaa")).toBe(true);
-  expect(g4.parse("aaaaaa", { complete: false }).children).toEqual(a(3));
+  expect(g4.children("aaaaaa", { complete: false })).toEqual(a(3));
   expect(g5.test("a")).toBe(false);
   expect(g5.test("aa")).toBe(true);
   expect(g5.test("aaa")).toBe(true);
-  expect(g5.parse("aaaaaa", { complete: false }).children).toEqual(a(4));
+  expect(g5.children("aaaaaa", { complete: false })).toEqual(a(4));
   expect(g6.test("a")).toBe(false);
   expect(g6.test("aa")).toBe(true);
   expect(g6.test("aaa")).toBe(true);
-  expect(g6.parse("a".repeat(103)).children).toEqual([..."a".repeat(103)]);
+  expect(g6.children("a".repeat(103))).toEqual([..."a".repeat(103)]);
 });
 
 test("Captures should work", () => {
@@ -73,14 +73,16 @@ test("Captures should work", () => {
   const g5 = peg`a: <val>b c ${({ val, b, c }) => val + c + b} b: "b" c: "c"`;
   const g6 = peg`'a' <val3>(${/(?<val>(?<val1>[bc])(?<val2>[de]))/} @raw) 'f'`;
 
-  expect(g1.parse("a").captures.get("val")).toBe("a");
-  expect(g2.parse("abc").captures.get("val")).toBe("c");
-  expect(g3.parse("#@@@°#§¬ba.aps").captures.get("val")).toBe("b");
-  const result = g4.parse("acd");
+  expect((g1.parse("a") as SuccessResult).captures.get("val")).toBe("a");
+  expect((g2.parse("abc") as SuccessResult).captures.get("val")).toBe("c");
+  expect(
+    (g3.parse("#@@@°#§¬ba.aps") as SuccessResult).captures.get("val")
+  ).toBe("b");
+  const result = g4.parse("acd") as SuccessResult;
   expect(result.captures.get("val1")).toBe(3);
   expect(result.captures.get("val2")).toBe("c");
-  expect(g5.parse("bc").value).toBe("bcb");
-  const result2 = g6.parse("a ce f");
+  expect(g5.value("bc")).toBe("bcb");
+  const result2 = g6.parse("a ce f") as SuccessResult;
   expect(result2.captures.get("val")).toBe("ce");
   expect(result2.captures.get("val1")).toBe("c");
   expect(result2.captures.get("val2")).toBe("e");
@@ -91,24 +93,24 @@ test("Modulos in grammars should work", () => {
   const i = (n: number) => [..."1".repeat(n)];
 
   const g1 = peg`"1" % ','`;
-  expect(g1.parse("1").children).toEqual(["1"]);
-  expect(g1.parse("1,1").children).toEqual(i(2));
-  expect(g1.parse("1 ,1, 1 , 1").children).toEqual(i(4));
+  expect(g1.children("1")).toEqual(["1"]);
+  expect(g1.children("1,1")).toEqual(i(2));
+  expect(g1.children("1 ,1, 1 , 1")).toEqual(i(4));
 
   const g2 = peg`"1" %? ','`;
-  expect(g2.parse("1").children).toEqual(["1"]);
-  expect(g2.parse("1,1").children).toEqual(i(2));
-  expect(g2.parse("1 ,1, 1 , 1", { complete: false }).children).toEqual(i(2));
+  expect(g2.children("1")).toEqual(["1"]);
+  expect(g2.children("1,1")).toEqual(i(2));
+  expect(g2.children("1 ,1, 1 , 1", { complete: false })).toEqual(i(2));
 
   const g3 = peg`"1" %{2} ','`;
   expect(g3.test("1")).toBe(false);
   expect(g3.test("1,1")).toBe(false);
-  expect(g3.parse("1 ,1, 1 , 1", { complete: false }).children).toEqual(i(3));
+  expect(g3.children("1 ,1, 1 , 1", { complete: false })).toEqual(i(3));
 
   const g4 = peg`("1" % ',' @count) % '|'`;
   expect(g4.test(" 2, 1, 1 | 1")).toBe(false);
   expect(g4.test("  1 ,1,1 |1,1,  1,1|1 |1,1   ")).toBe(true);
-  expect(g4.parse("1 ,1,1 |1,1, 1  ,   1,1|1 |   1,1 ").children).toEqual([
+  expect(g4.children("1 ,1,1 |1,1, 1  ,   1,1|1 |   1,1 ")).toEqual([
     3,
     5,
     1,
@@ -131,26 +133,26 @@ test("Prefix math expressions should be correctly converted to postfix", () => {
   `;
 
   expect(g.value("23")).toBe("23");
-  expect(g.value("+")).toBe(undefined);
+  expect(g.test("+")).toBe(false);
   expect(g.value("+ 1 2")).toBe("1 2 +");
   expect(g.value("* + 1 2 3")).toBe("1 2 + 3 *");
   expect(g.value("+ - 1 25 * / 369 4 5")).toBe("1 25 - 369 4 / 5 * +");
 });
 
 test("The cut operator should work correctly", () => {
-  const g1 = peg`'a' "b" | 'a' "c" | 'a' "d"`;
-  const g2 = peg`'a' ^ "b" | 'a' "c" | 'a' "d"`;
-  const g3 = peg`('a' ^ "b" | 'a' "c") | 'a' "d"`;
+  const g1 = peg`'a' 'b' | 'a' 'c' | 'a' 'd'`;
+  const g2 = peg`'a' ^ 'b' | 'a' 'c' | 'a' 'd'`;
+  const g3 = peg`('a' ^ 'b' | 'a' 'c') | 'a' 'd'`;
 
-  expect(g1.value("ab")).toBe("b");
-  expect(g2.value("ab")).toBe("b");
-  expect(g3.value("ab")).toBe("b");
-  expect(g1.value("ac")).toBe("c");
-  expect(g2.value("ac")).toBe(undefined);
-  expect(g3.value("ac")).toBe(undefined);
-  expect(g1.value("ad")).toBe("d");
-  expect(g2.value("ad")).toBe(undefined);
-  expect(g3.value("ad")).toBe("d");
+  expect(g1.test("ab")).toBe(true);
+  expect(g2.test("ab")).toBe(true);
+  expect(g3.test("ab")).toBe(true);
+  expect(g1.test("ac")).toBe(true);
+  expect(g2.test("ac")).toBe(false);
+  expect(g3.test("ac")).toBe(false);
+  expect(g1.test("ad")).toBe(true);
+  expect(g2.test("ad")).toBe(false);
+  expect(g3.test("ad")).toBe(true);
 });
 
 test("L-attributed grammars should be implementable using context", () => {
@@ -230,10 +232,10 @@ test("Math expressions should be correctly calculated", () => {
   expect(calc.value("10/4")).toBe(2.5);
   expect(calc.value("5/3")).toBeCloseTo(1.66666);
   expect(calc.value("3 + 8/5 -1 -2*5")).toBeCloseTo(-6.4);
-  expect(calc.value("  6  + c")).toBe(undefined);
-  expect(calc.value("  7 & 2")).toBe(undefined);
-  expect(calc.value(" %  ")).toBe(undefined);
-  expect(calc.value(" 5 + + 6")).toBe(undefined);
+  expect(calc.test("  6  + c")).toBe(false);
+  expect(calc.test("  7 & 2")).toBe(false);
+  expect(calc.test(" %  ")).toBe(false);
+  expect(calc.test(" 5 + + 6")).toBe(false);
   expect(calc.value("5/0")).toBe(Infinity);
   expect(calc.value("(2)")).toBe(2);
   expect(calc.value("(5 + 2*3 - 1 + 7 * 8)")).toBe(66);
@@ -243,10 +245,10 @@ test("Math expressions should be correctly calculated", () => {
   expect(calc.value("(((((5)))))")).toBe(5);
   expect(calc.value("(( ((2)) + 4))*((5))")).toBe(30);
   expect(calc.value("(( ((2)) + 4))*((5)  -1) ")).toBe(24);
-  expect(calc.value("2 + (5 * 2")).toBe(undefined);
-  expect(calc.value("(((((4))))")).toBe(undefined);
-  expect(calc.value("((((4)))))")).toBe(undefined);
-  expect(calc.value("((2)) * ((3")).toBe(undefined);
+  expect(calc.test("2 + (5 * 2")).toBe(false);
+  expect(calc.test("(((((4))))")).toBe(false);
+  expect(calc.test("((((4)))))")).toBe(false);
+  expect(calc.test("((2)) * ((3")).toBe(false);
   expect(
     calc.value(
       " ( (( ( (485.56) -  318.95) *( 486.17/465.96 -  324.49/-122.8 )+ -422.8) * 167.73+-446.4 *-88.31) -271.61/ ( (( 496.31 / ((  -169.3*  453.70) ) )/-52.22 )* (( (-134.9* (-444.1-(( 278.79 * (  -384.5)) ) / (-270.6/  396.89-(  -391.5/150.39-  -422.9 )* -489.2 ) )+-38.02 )) )) )"

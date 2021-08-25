@@ -217,7 +217,7 @@ const bracketInt = peg`
     </tr>
     <tr>
       <td><pre>ε</pre></td>
-      <td>Matches the empty string. This is equivalent to <code>''</code> and is always a success. It can be used to implement a default parsing case in alternatives.</td>
+      <td>Matches the empty string. This is equivalent to <code>''</code> and is always a success. It can be used to implement a default parsing case in an alternative expression.</td>
       <td><code>[]</code></td>
       <td align="center">/</td>
     </tr>

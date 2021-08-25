@@ -1,6 +1,5 @@
 import {
   ActionParser,
-  applyVisitors,
   CaptureParser,
   CutParser,
   defaultPlugin,
@@ -50,7 +49,7 @@ export function createTag() {
       }
     );
     if (!result.success) throw new Error(result.logs());
-    return applyVisitors(peg.plugins, result.value);
+    return result.value;
   }
 
   peg.trace = false;

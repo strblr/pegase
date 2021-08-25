@@ -1,11 +1,10 @@
 import {
+  createIndexes,
   createLocation,
   ExpectationType,
   extendFlags,
   FailureType,
-  indexes,
   inferValue,
-  Internals,
   log,
   Match,
   mergeFailures,
@@ -39,39 +38,32 @@ import {
  */
 
 export abstract class Parser<Value = any, Context = any> {
-  abstract exec(
-    options: ParseOptions<Context>,
-    internals: Internals
-  ): Match | null;
+  abstract exec(options: ParseOptions<Context>): Match | null;
 
   test(input: string, options?: Partial<ParseOptions<Context>>) {
     return this.parse(input, options).success;
   }
 
   value(input: string, options?: Partial<ParseOptions<Context>>) {
-    return this.parse(input, options).value;
-  }
-
-  safeValue(input: string, options?: Partial<ParseOptions<Context>>) {
     const result = this.parse(input, options);
     if (!result.success) throw new Error(result.logs());
     return result.value;
   }
 
+  children(input: string, options?: Partial<ParseOptions<Context>>) {
+    const result = this.parse(input, options);
+    if (!result.success) throw new Error(result.logs());
+    return result.children;
+  }
+
   parse(
     input: string,
     options?: Partial<ParseOptions<Context>>
-  ): Result<Value> {
-    const internals = {
-      indexes: indexes(input),
-      cut: { active: false },
-      warnings: [],
-      failures: [],
-      committed: []
-    };
-    const fullOptions = {
+  ): Result<Value, Context> {
+    const indexes = createIndexes(input);
+    const opts: ParseOptions<Context> = {
       input,
-      from: createLocation(0, internals.indexes),
+      from: createLocation(0, indexes),
       complete: true,
       skipper: defaultSkipper,
       skip: true,
@@ -79,29 +71,34 @@ export abstract class Parser<Value = any, Context = any> {
       tracer: defaultTracer,
       trace: false,
       context: undefined as any,
+      internals: {
+        indexes,
+        cut: { active: false },
+        warnings: [],
+        failures: [],
+        committed: []
+      },
       ...options
     };
-    const parser = fullOptions.complete
+    const parser = opts.complete
       ? new SequenceParser([this, endOfInput])
       : this;
-    const match = parser.exec(fullOptions, internals);
+    const match = parser.exec(opts);
     const common: ResultCommon = {
-      options: fullOptions,
-      warnings: internals.warnings,
-      failures: match
-        ? []
-        : [...internals.committed, ...mergeFailures(internals.failures)],
+      options: opts,
+      warnings: opts.internals.warnings,
       logs(options) {
-        return log(result, internals.indexes, options);
+        return log(result, options);
       }
     };
     const result: Result<Value> = !match
       ? {
           ...common,
-          children: [],
-          captures: new Map(),
           success: false,
-          value: undefined
+          failures: [
+            ...opts.internals.committed,
+            ...mergeFailures(opts.internals.failures)
+          ]
         }
       : {
           ...common,
@@ -127,8 +124,8 @@ export class LiteralParser extends Parser {
     this.emit = emit;
   }
 
-  exec(options: ParseOptions, internals: Internals): Match | null {
-    const from = skip(options, internals);
+  exec(options: ParseOptions): Match | null {
+    const from = skip(options);
     if (from === null) return null;
     const to = from.index + this.literal.length;
     const raw = options.input.substring(from.index, to);
@@ -138,11 +135,11 @@ export class LiteralParser extends Parser {
     if (result)
       return {
         from,
-        to: createLocation(to, internals.indexes),
+        to: createLocation(to, options.internals.indexes),
         children: this.emit ? [raw] : [],
         captures: new Map()
       };
-    internals.failures.push({
+    options.internals.failures.push({
       from,
       to: from,
       type: FailureType.Expectation,
@@ -166,8 +163,8 @@ export class RegExpParser extends Parser {
     this.withoutCase = extendFlags(regExp, "iy");
   }
 
-  exec(options: ParseOptions, internals: Internals): Match | null {
-    const from = skip(options, internals);
+  exec(options: ParseOptions): Match | null {
+    const from = skip(options);
     if (from === null) return null;
     const regExp = options.ignoreCase ? this.withoutCase : this.withCase;
     regExp.lastIndex = from.index;
@@ -175,11 +172,14 @@ export class RegExpParser extends Parser {
     if (result !== null)
       return {
         from,
-        to: createLocation(from.index + result[0].length, internals.indexes),
+        to: createLocation(
+          from.index + result[0].length,
+          options.internals.indexes
+        ),
         children: result.slice(1),
         captures: new Map(result.groups ? Object.entries(result.groups) : [])
       };
-    internals.failures.push({
+    options.internals.failures.push({
       from,
       to: from,
       type: FailureType.Expectation,
@@ -201,7 +201,7 @@ export class NonTerminalParser extends Parser {
     this.fallback = fallback;
   }
 
-  exec(options: ParseOptions, internals: Internals): Match | null {
+  exec(options: ParseOptions): Match | null {
     let parser = (options.grammar as GrammarParser | undefined)?.rules?.get(
       this.label
     );
@@ -222,7 +222,7 @@ export class NonTerminalParser extends Parser {
         label: this.label,
         options
       });
-    const match = parser.exec(options, internals);
+    const match = parser.exec(options);
     if (match === null) {
       options.trace &&
         options.tracer({
@@ -249,8 +249,8 @@ export class NonTerminalParser extends Parser {
 // CutParser
 
 export class CutParser extends Parser {
-  exec(options: ParseOptions, internals: Internals): Match | null {
-    internals.cut.active = true;
+  exec(options: ParseOptions): Match | null {
+    options.internals.cut.active = true;
     return {
       from: options.from,
       to: options.from,
@@ -270,12 +270,15 @@ export class OptionsParser extends Parser {
     this.parsers = parsers;
   }
 
-  exec(options: ParseOptions, internals: Internals) {
-    internals = { ...internals, cut: { active: false } };
+  exec(options: ParseOptions) {
+    options = {
+      ...options,
+      internals: { ...options.internals, cut: { active: false } }
+    };
     for (const parser of this.parsers) {
-      const match = parser.exec(options, internals);
+      const match = parser.exec(options);
       if (match) return match;
-      if (internals.cut.active) break;
+      if (options.internals.cut.active) break;
     }
     return null;
   }
@@ -291,11 +294,11 @@ export class SequenceParser extends Parser {
     this.parsers = parsers;
   }
 
-  exec(options: ParseOptions, internals: Internals): Match | null {
+  exec(options: ParseOptions): Match | null {
     let from = options.from;
     const matches: Array<Match> = [];
     for (const parser of this.parsers) {
-      const match = parser.exec({ ...options, from }, internals);
+      const match = parser.exec({ ...options, from });
       if (match === null) return null;
       from = match.to;
       matches.push(match);
@@ -319,9 +322,9 @@ export class GrammarParser extends Parser {
     this.rules = new Map(rules);
   }
 
-  exec(options: ParseOptions, internals: Internals): Match | null {
+  exec(options: ParseOptions): Match | null {
     const entry: Parser = this.rules.values().next().value;
-    return entry.exec({ ...options, grammar: this }, internals);
+    return entry.exec({ ...options, grammar: this });
   }
 }
 
@@ -337,25 +340,21 @@ export class TokenParser extends Parser {
     this.alias = alias;
   }
 
-  exec(options: ParseOptions, internals: Internals) {
-    const from = skip(options, internals);
+  exec(options: ParseOptions) {
+    const from = skip(options);
     if (from === null) return null;
     options = { ...options, from, skip: false };
-    if (!this.alias) return this.parser.exec(options, internals);
-    const fails = { failures: [], committed: [] };
-    const match = this.parser.exec(options, { ...internals, ...fails });
+    if (!this.alias) return this.parser.exec(options);
+    const match = this.parser.exec({
+      ...options,
+      internals: { ...options.internals, failures: [], committed: [] }
+    });
     if (match) return match;
-    internals.failures.push({
+    options.internals.failures.push({
       from,
       to: from,
       type: FailureType.Expectation,
-      expected: [
-        {
-          type: ExpectationType.Token,
-          alias: this.alias,
-          failures: [...fails.committed, ...mergeFailures(fails.failures)]
-        }
-      ]
+      expected: [{ type: ExpectationType.Token, alias: this.alias }]
     });
     return null;
   }
@@ -375,7 +374,7 @@ export class RepetitionParser extends Parser {
     this.max = max;
   }
 
-  exec(options: ParseOptions, internals: Internals): Match | null {
+  exec(options: ParseOptions): Match | null {
     let from = options.from,
       counter = 0;
     const matches: Array<Match> = [];
@@ -388,7 +387,7 @@ export class RepetitionParser extends Parser {
     });
     while (true) {
       if (counter === this.max) return success();
-      const match = this.parser.exec({ ...options, from }, internals);
+      const match = this.parser.exec({ ...options, from });
       if (match) {
         matches.push(match);
         from = match.to;
@@ -411,19 +410,19 @@ export class PredicateParser extends Parser {
     this.polarity = polarity;
   }
 
-  exec(options: ParseOptions, internals: Internals): Match | null {
-    const match = this.parser.exec(
-      options,
-      this.polarity
-        ? internals
-        : {
-            ...internals,
-            cut: { active: false },
-            warnings: [],
-            failures: [],
-            committed: []
-          }
-    );
+  exec(options: ParseOptions): Match | null {
+    const match = this.parser.exec({
+      ...options,
+      ...(!this.polarity && {
+        internals: {
+          ...options.internals,
+          cut: { active: false },
+          warnings: [],
+          failures: [],
+          committed: []
+        }
+      })
+    });
     const success = () => ({
       from: options.from,
       to: options.from,
@@ -432,7 +431,7 @@ export class PredicateParser extends Parser {
     });
     if (this.polarity === Boolean(match)) return success();
     if (match)
-      internals.failures.push({
+      options.internals.failures.push({
         from: match.from,
         to: match.to,
         type: FailureType.Expectation,
@@ -457,11 +456,8 @@ export class TweakParser extends Parser {
     this.options = options;
   }
 
-  exec(options: ParseOptions, internals: Internals) {
-    return this.parser.exec(
-      { ...options, ...this.options(options) },
-      internals
-    );
+  exec(options: ParseOptions) {
+    return this.parser.exec({ ...options, ...this.options(options) });
   }
 }
 
@@ -477,8 +473,8 @@ export class CaptureParser extends Parser {
     this.name = name;
   }
 
-  exec(options: ParseOptions, internals: Internals): Match | null {
-    const match = this.parser.exec(options, internals);
+  exec(options: ParseOptions): Match | null {
+    const match = this.parser.exec(options);
     if (match === null) return null;
     return {
       ...match,
@@ -502,8 +498,8 @@ export class ActionParser extends Parser {
     this.action = action;
   }
 
-  exec(options: ParseOptions, internals: Internals): Match | null {
-    const match = this.parser.exec(options, internals);
+  exec(options: ParseOptions): Match | null {
+    const match = this.parser.exec(options);
     if (match === null) return null;
     try {
       let failed = false,
@@ -516,11 +512,13 @@ export class ActionParser extends Parser {
         $match: match,
         $context: options.context,
         $commit() {
-          internals.committed.push(...mergeFailures(internals.failures));
-          internals.failures.length = 0;
+          options.internals.committed.push(
+            ...mergeFailures(options.internals.failures)
+          );
+          options.internals.failures.length = 0;
         },
         $warn(message: string) {
-          internals.warnings.push({
+          options.internals.warnings.push({
             from: match.from,
             to: match.to,
             type: WarningType.Message,
@@ -530,7 +528,7 @@ export class ActionParser extends Parser {
         $expected(expected) {
           failed = true;
           if (!Array.isArray(expected)) expected = [expected];
-          internals.failures.push({
+          options.internals.failures.push({
             from: match.from,
             to: match.to,
             type: FailureType.Expectation,
@@ -548,7 +546,7 @@ export class ActionParser extends Parser {
       };
     } catch (e) {
       if (!(e instanceof Error)) throw e;
-      internals.failures.push({
+      options.internals.failures.push({
         from: match.from,
         to: match.to,
         type: FailureType.Semantic,
