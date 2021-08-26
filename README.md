@@ -352,5 +352,5 @@ const prefix = peg`
 
 The input `"* + 5 2 4"` would generate the following concrete syntax tree:
 
-![Parse tree](https://raw.githubusercontent.com/ostrebler/pegase/master/img/dataflow-1.png)
+![Parse tree](https://raw.githubusercontent.com/ostrebler/pegase/master/img/dataflow1.png)
 
