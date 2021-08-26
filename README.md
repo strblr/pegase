@@ -22,6 +22,7 @@ Pegase is the last PEG parser generator for JavaScript and TypeScript you will e
   - [Quick start](#quick-start)
 - [Basic concepts](#basic-concepts)
   - [Building parsers](#building-parsers)
+  - [Dataflow](#dataflow)
 
 ## Overview
 
@@ -126,7 +127,7 @@ if (bitArray.test(" [ 0,1 ,0  ,  1, 1]  "))
   console.log("It matches!");
 ```
 
-As you might have spotted, whitespaces are handled automatically by default. The way this works is pretty simple: whitespace characters and comments are parsed and discarded **before every terminal expression** (like `'['`, `'1'`, etc.). This process is called **skipping**. By default, every parser also adds an implicit "end of input" symbol (`$`) at the end of the parsing expression and treats it as a terminal, thus the trailing space is also skipped and the whole string matches.
+As you might have spotted, whitespaces are handled automatically by default (it can be changed). The way this works is pretty simple: whitespace characters and comments are parsed and discarded **before every terminal expression** (like `'['`, `'1'`, etc.). This process is called **skipping**. By default, every parser also adds an implicit "end of input" symbol (`$`) at the end of the parsing expression and treats it as a terminal, thus the trailing space is also skipped and the whole string matches.
 
 Good, but so far, a `RegExp` could have done the job. Things get interesting when we add in **non-terminals**. A non-terminal is an identifier that refers to a more complex parsing expression which will be invoked every time the identifier is used. You can think of non-terminals as variables whose value is a parser, initialized in what we call `rules`. This allows for recursive patterns. Let's say we want to match possibly infinitely-nested bit arrays:
 
@@ -147,7 +148,7 @@ nestedBitArray.test("[ [1, 0], 1] "); // true
 nestedBitArray.test(" [0, [[0] ]]"); // true
 ```
 
-One fun trick, if we already defined `bit` as a JS variable, we're not obligated to redefine it as a rule. We can simply inject it as a tag argument:
+Fun fact: if we already defined `bit` as a JS variable, we're not obligated to redefine it as a rule. We can simply inject it as a tag argument:
 
 ```js
 const nestedBitArray = peg`  
@@ -159,7 +160,7 @@ const nestedBitArray = peg`
 
 ### Building parsers
 
-Here are the different expressions you can use as building blocks of more complex parsing expressions (`e` represents any parsing expression of higher precedence):
+Here are the different expressions you can use as building blocks of arbitrarily complex parsing expressions (in the following examples, `e` represents any parsing expression of higher precedence):
 
 <table>
   <thead>
@@ -167,7 +168,7 @@ Here are the different expressions you can use as building blocks of more comple
       <th>Pegase</th>
       <th>Description</th>
       <th>Children</th>
-      <th>Priority</th>
+      <th>Precedence</th>
     </tr>
   </thead>
   <tbody>
@@ -194,12 +195,12 @@ Here are the different expressions you can use as building blocks of more comple
     </tr>
     <tr>
       <td><pre>(e)</pre></td>
-      <td>Matches `e` (any arbitrary parsing expression)</td>
-      <td><code>[]</code></td>
+      <td>Matches <code>e</code></td>
+      <td>Forwarded from <code>e</code></td>
     </tr>
     <tr>
       <td><pre>id</pre></td>
-      <td>Matches the non-terminal `id`</td>
+      <td>Matches the non-terminal <code>id</code></td>
       <td><code>[]</code></td>
     </tr>
     <tr>
@@ -220,7 +221,7 @@ Here are the different expressions you can use as building blocks of more comple
     <tr>
       <td><pre>${arg}</pre></td>
       <td>Template tag argument (<code>arg</code> is a js expression). It can be a number (matches the number literally), a string (matches the string), a <code>RegExp</code> (matches the regular expression), or a <code>Parser</code> instance. Plugins can add support for additionnal types.</td>
-      <td>If <code>arg</code> is a string or a number: <code>[]</code>. If <code>arg</code> is a <code>RegExp</code>, it emits its capturing groups (if any). If <code>arg</code> is a `Parser` instance, its children are forwarded.</td>
+      <td>If <code>arg</code> is a string or a number: <code>[]</code>. If <code>arg</code> is a <code>RegExp</code>, it emits its capturing groups (if any). If <code>arg</code> is a <code>Parser</code> instance, its children are forwarded.</td>
     </tr>
     <tr>
       <td><pre>[a-zA-Z]</pre></td>
@@ -334,4 +335,19 @@ Here are the different expressions you can use as building blocks of more comple
     </tr>
   </tbody>
 </table>
+
+---
+
+### Dataflow
+
+PEG parsers are top-down parsers, meaning non-terminal expressions (sequences, alternatives, non-terminal identifier, etc.) are recursively derived into a sequence of terminals by matching the input from left to right. In other words, if this derivation process were to be represented as an explicit parse tree, that tree would be constructed top-down. Let's illustrate that with the following grammar:
+
+```js
+const prefix = peg`
+  expr: op expr expr | \d
+  op: '+' | '-' | '*' | '/'
+`;
+```
+
+The input `"* + 5 2 4"` would generate the following parse tree:
 
