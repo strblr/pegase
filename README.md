@@ -341,7 +341,7 @@ Here are the different expressions you can use as building blocks of arbitrarily
 
 ### Dataflow
 
-PEG parsers are top-down parsers, meaning the parsing expressions are recursively traversed (or *"called"*) in a depth-first manner, guided by a left-to-right input read. This traversal process can be represented as a tree, called concrete syntax tree, as it nicely illustrates the syntactic structure of the input. In fact, a top-down parsing process can be thought of as an attempt to build such tree. Let's illustrate that with the following grammar:
+PEG parsers are top-down parsers, meaning the parsing expressions are recursively traversed (or *"called"*) in a depth-first manner, guided by a left-to-right input read. This traversal process can be represented as a tree, called concrete syntax tree. In fact, a top-down parsing process can be thought of as an attempt to build such tree. Let's illustrate that with the following grammar:
 
 ```js
 const prefix = peg`
@@ -350,7 +350,7 @@ const prefix = peg`
 `;
 ```
 
-The input `"* + 5 2 4"` would generate the following concrete syntax tree:
+The input `"+ 5 2"` would generate the following concrete syntax tree:
 
 ![Parse tree](https://raw.githubusercontent.com/ostrebler/pegase/master/img/dataflow1.png)
 
