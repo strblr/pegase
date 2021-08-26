@@ -316,15 +316,16 @@ export class SequenceParser extends Parser {
 
 export class GrammarParser extends Parser {
   rules: Map<string, Parser>;
+  entry: Parser;
 
   constructor(rules: Array<[string, Parser]>) {
     super();
     this.rules = new Map(rules);
+    this.entry = new NonTerminalParser(rules[0][0]);
   }
 
   exec(options: ParseOptions): Match | null {
-    const entry: Parser = this.rules.values().next().value;
-    return entry.exec({ ...options, grammar: this });
+    return this.entry.exec({ ...options, grammar: this });
   }
 }
 
