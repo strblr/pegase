@@ -569,20 +569,22 @@ export const endOfInput = new TokenParser(
 );
 
 export const defaultTracer: Tracer = event => {
+  const at = event.options.from;
   let adjective = "";
   let complement = "";
   switch (event.type) {
     case TraceEventType.Enter:
       adjective = "Entered";
-      complement = `at index ${event.options.from}`;
+      complement = `at (${at.line}:${at.column})`;
       break;
     case TraceEventType.Match:
+      const { from, to } = event.match;
       adjective = "Matched";
-      complement = `from index ${event.match.from} to ${event.match.to}`;
+      complement = `from (${from.line}:${from.column}) to (${to.line}:${to.column})`;
       break;
     case TraceEventType.Fail:
       adjective = "Failed";
-      complement = `at index ${event.options.from}`;
+      complement = `at (${at.line}:${at.column})`;
       break;
   }
   console.log(adjective, `"${event.label}"`, complement);
