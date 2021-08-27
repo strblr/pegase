@@ -267,12 +267,12 @@ test("JSON.parse should be correctly reproduced", () => {
     | 'true' ${() => true}
     | 'false' ${() => false}
     | 'null' ${() => null}
-    | '[' (value % ',')? ']' ${({ $match }) => $match.children}
+    | '[' (value % ',')? ']' ${({ $children }) => $children}
     | '{' ((string ':' value) % ',')? '}'
-        ${({ $match }) => {
+        ${({ $children }) => {
           const result: any = {};
-          for (let i = 0; i < $match.children.length; i += 2)
-            result[$match.children[i]] = $match.children[i + 1];
+          for (let i = 0; i < $children.length; i += 2)
+            result[$children[i]] = $children[i + 1];
           return result;
         }}
     

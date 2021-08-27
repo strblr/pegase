@@ -200,13 +200,13 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
             new LiteralParser(":"),
             new NonTerminalParser("optionsParser")
           ]),
-          ({ $match }) => $match.children
+          ({ $children }) => $children
         ),
         [1, Infinity]
       ),
-      ({ $match, $context }) =>
+      ({ $context, $children }) =>
         new GrammarParser(
-          $match.children.map(
+          $children.map(
             ([label, directives, parser]: [
               string,
               Array<[Directive, Array<any>]>,
@@ -244,10 +244,8 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
           new OptionsParser([new LiteralParser("|"), new LiteralParser("/")])
         )
       ]),
-      ({ $match }) =>
-        $match.children.length === 1
-          ? $match.children[0]
-          : new OptionsParser($match.children)
+      ({ $children }) =>
+        $children.length === 1 ? $children[0] : new OptionsParser($children)
     )
   ],
   [
@@ -265,18 +263,16 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     "sequenceParser",
     new ActionParser(
       new RepetitionParser(new NonTerminalParser("minusParser"), [1, Infinity]),
-      ({ $match }) =>
-        $match.children.length === 1
-          ? $match.children[0]
-          : new SequenceParser($match.children)
+      ({ $children }) =>
+        $children.length === 1 ? $children[0] : new SequenceParser($children)
     )
   ],
   [
     "minusParser",
     new ActionParser(
       modulo(new NonTerminalParser("moduloParser"), new LiteralParser("-")),
-      ({ $match }) =>
-        ($match.children as Array<Parser>).reduce(
+      ({ $children }) =>
+        ($children as Array<Parser>).reduce(
           (acc, not) =>
             new SequenceParser([new PredicateParser(not, false), acc])
         )
@@ -295,9 +291,9 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
           ])
         ])
       ),
-      ({ $match }) =>
-        $match.children.reduce((acc, rep, index) =>
-          index % 2 ? modulo(acc, $match.children[index + 1], rep) : acc
+      ({ $children }) =>
+        $children.reduce((acc, rep, index) =>
+          index % 2 ? modulo(acc, $children[index + 1], rep) : acc
         )
     )
   ],
@@ -308,8 +304,8 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         new RepetitionParser(new LiteralParser("...", true), [0, 1]),
         new NonTerminalParser("captureParser")
       ]),
-      ({ captureParser, $match }) => {
-        if ($match.children.length === 1) return captureParser;
+      ({ captureParser, $children }) => {
+        if ($children.length === 1) return captureParser;
         return new SequenceParser([
           new RepetitionParser(
             new SequenceParser([
@@ -337,10 +333,10 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         ),
         new NonTerminalParser("predicateParser")
       ]),
-      ({ predicateParser, $match }) =>
-        $match.children.length === 1
+      ({ predicateParser, $children }) =>
+        $children.length === 1
           ? predicateParser
-          : new CaptureParser(predicateParser, $match.children[0])
+          : new CaptureParser(predicateParser, $children[0])
     )
   ],
   [
@@ -356,10 +352,10 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         ),
         new NonTerminalParser("repetitionParser")
       ]),
-      ({ repetitionParser, $match }) =>
-        $match.children.length === 1
+      ({ repetitionParser, $children }) =>
+        $children.length === 1
           ? repetitionParser
-          : new PredicateParser(repetitionParser, $match.children[0] === "&")
+          : new PredicateParser(repetitionParser, $children[0] === "&")
     )
   ],
   [
@@ -600,7 +596,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     "directives",
     new ActionParser(
       new RepetitionParser(new NonTerminalParser("directive"), [0, Infinity]),
-      ({ $match }) => $match.children
+      ({ $children }) => $children
     )
   ],
   [
@@ -649,7 +645,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         ),
         new LiteralParser(")")
       ]),
-      ({ $match }) => $match.children.flat()
+      ({ $children }) => $children.flat()
     )
   ],
   [

@@ -295,44 +295,40 @@ export const defaultPlugin: Plugin = {
     length: action(({ $raw }) => $raw.length),
     number: action(({ $raw }) => Number($raw)),
     index: action(({ $match }) => $match.from.index),
-    children: action(({ $match }) => $match.children),
-    count: action(({ $match }) => $match.children.length),
-    every: action(({ $match }, predicate) => $match.children.every(predicate)),
-    filter: action(({ $match, $propagate }, predicate) =>
-      $propagate($match.children.filter(predicate))
+    children: action(({ $children }) => $children),
+    count: action(({ $children }) => $children.length),
+    every: action(({ $children }, predicate) => $children.every(predicate)),
+    filter: action(({ $children, $propagate }, predicate) =>
+      $propagate($children.filter(predicate))
     ),
-    find: action(({ $match }, predicate, defaultValue?) => {
-      const result = $match.children.find(predicate);
+    find: action(({ $children }, predicate, defaultValue?) => {
+      const result = $children.find(predicate);
       return result === undefined ? defaultValue : result;
     }),
-    flat: action(({ $match, $propagate }, depth = 1) =>
-      $propagate($match.children.flat(depth))
+    flat: action(({ $children, $propagate }, depth = 1) =>
+      $propagate($children.flat(depth))
     ),
-    forEach: action(({ $match }, callback) =>
-      $match.children.forEach(callback)
+    forEach: action(({ $children }, callback) => $children.forEach(callback)),
+    join: action(({ $children }, separator = ",") => $children.join(separator)),
+    map: action(({ $children, $propagate }, mapper) =>
+      $propagate($children.map(mapper))
     ),
-    join: action(({ $match }, separator = ",") =>
-      $match.children.join(separator)
+    reduce: action(({ $children }, ...args) =>
+      ($children.reduce as Function)(...args)
     ),
-    map: action(({ $match, $propagate }, mapper) =>
-      $propagate($match.children.map(mapper))
-    ),
-    reduce: action(({ $match }, ...args) =>
-      ($match.children.reduce as Function)(...args)
-    ),
-    infix: action(({ $match }, reducer, ltr = true) =>
+    infix: action(({ $children }, reducer, ltr = true) =>
       ltr
-        ? $match.children.reduce((acc, op, index) =>
-            index % 2 ? reducer(acc, op, $match.children[index + 1]) : acc
+        ? $children.reduce((acc, op, index) =>
+            index % 2 ? reducer(acc, op, $children[index + 1]) : acc
           )
-        : $match.children.reduceRight((acc, op, index) =>
-            index % 2 ? reducer($match.children[index - 1], op, acc) : acc
+        : $children.reduceRight((acc, op, index) =>
+            index % 2 ? reducer($children[index - 1], op, acc) : acc
           )
     ),
-    reverse: action(({ $match, $propagate }) =>
-      $propagate([...$match.children].reverse())
+    reverse: action(({ $children, $propagate }) =>
+      $propagate([...$children].reverse())
     ),
-    some: action(({ $match }, predicate) => $match.children.some(predicate)),
+    some: action(({ $children }, predicate) => $children.some(predicate)),
     // Other
     action: (parser, action: SemanticAction) =>
       new ActionParser(parser, action),
