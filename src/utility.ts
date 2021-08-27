@@ -274,21 +274,14 @@ export const defaultPlugin: Plugin = {
   directives: {
     // Option tweaks
     skip: (parser, skipper?: Parser) =>
-      new TweakParser(parser, () => ({
-        skip: true,
-        ...(skipper && { skipper })
-      })),
-    noskip: parser => new TweakParser(parser, () => ({ skip: false })),
-    case: parser => new TweakParser(parser, () => ({ ignoreCase: false })),
-    nocase: parser => new TweakParser(parser, () => ({ ignoreCase: true })),
+      new TweakParser(parser, { skip: true, ...(skipper && { skipper }) }),
+    noskip: parser => new TweakParser(parser, { skip: false }),
+    case: parser => new TweakParser(parser, { ignoreCase: false }),
+    nocase: parser => new TweakParser(parser, { ignoreCase: true }),
     trace: (parser, tracer?: Tracer) =>
-      new TweakParser(parser, () => ({
-        trace: true,
-        ...(tracer && { tracer })
-      })),
-    notrace: parser => new TweakParser(parser, () => ({ trace: false })),
-    context: (parser, context: any) =>
-      new TweakParser(parser, () => ({ context })),
+      new TweakParser(parser, { trace: true, ...(tracer && { tracer }) }),
+    notrace: parser => new TweakParser(parser, { trace: false }),
+    context: (parser, context: any) => new TweakParser(parser, { context }),
     // Children transforms
     omit: action(() => undefined),
     raw: action(({ $raw }) => $raw),

@@ -450,11 +450,13 @@ export class TweakParser extends Parser {
 
   constructor(
     parser: Parser,
-    options: (options: ParseOptions) => Partial<ParseOptions>
+    options:
+      | Partial<ParseOptions>
+      | ((options: ParseOptions) => Partial<ParseOptions>)
   ) {
     super();
     this.parser = parser;
-    this.options = options;
+    this.options = typeof options === "function" ? options : () => options;
   }
 
   exec(options: ParseOptions) {
