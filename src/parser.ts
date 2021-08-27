@@ -428,7 +428,7 @@ export class PredicateParser extends Parser {
       from: options.from,
       to: options.from,
       children: [],
-      captures: new Map()
+      captures: match ? match.captures : new Map()
     });
     if (this.polarity === Boolean(match)) return success();
     if (match)
