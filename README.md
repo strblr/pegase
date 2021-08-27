@@ -129,7 +129,7 @@ if (bitArray.test(" [ 0,1 ,0  ,  1, 1]  "))
   console.log("It's a match!");
 ```
 
-As you might have spotted, whitespaces are handled automatically by default (it can be changed). The way this works is pretty simple: whitespace characters and comments are parsed and discarded **before every terminal expression** (like `'['`, `'1'`, etc.). This process is called **skipping**. By default, every parser also adds an implicit "end of input" symbol (`$`) at the end of the parsing expression and treats it as a terminal, thus the trailing space is also skipped and the whole string matches.
+As you might have spotted, whitespaces are handled automatically by default ([it can be changed](#handling-whitespaces)). The way this works is pretty simple: whitespace characters and comments are parsed and discarded **before every terminal parser** (like `'['`, `'1'`, etc.). This process is called **skipping**. By default, every parser also adds an implicit "end of input" symbol (`$`) at the end of the parsing expression and treats it as a terminal, thus the trailing space is also skipped and the whole string matches.
 
 Good, but so far, a `RegExp` could have done the job. Things get interesting when we add in **non-terminals**. A non-terminal is an identifier that refers to a more complex parsing expression which will be invoked every time the identifier is used. You can think of non-terminals as variables whose value is a parser, initialized in what we call `rules`. This allows for recursive patterns. Let's say we want to match possibly infinitely-nested bit arrays:
 
@@ -406,7 +406,7 @@ console.log(prefix.children("+ 5 * 2 6"));       // ["+", "5", "*", "2", "6"]
 
 That can already be pretty useful, but what you usually want to do is to process these `children` in certain ways at strategic steps during parse time in order to incrementally build your desired output. This is where *semantic actions* come into play.
 
-**A semantic action is a `Parser` wrapped around another `Parser`, and whose role is to call a callback on success. This callback will be provided with a bunch of infos like the `children`, named captures, matched substring, etc. If it returns a *non-undefined* value, this value will be emitted as a single child. If it returns `undefined`, no child will be emitted.**
+**A semantic action is a `Parser` wrapped around another `Parser`, and whose role is to call a callback on success. This callback will be provided with a bunch of infos like the `children`, captures, matched substring, etc. If it returns a *non-undefined* value, this value will be emitted as a single child. If it returns `undefined`, no child will be emitted.**
 
 Let's take our `prefix` grammar and say we want to make it generate the input expression but written in postfix notation (operators *after* operands). All we need to do is wrap a semantic action around `op expr expr`, reorder its `children` to postfix order, join them into a string and emit that string as a single child.
 
@@ -446,7 +446,7 @@ peg`expr ${({ $propagate }) => $propagate()}`; // pass-through
 peg`expr ${({ $propagate }) => $propagate([1, true, "test"])}`; // propagate custom children
 ```
 
-Great, but `children` are just unlabeled propagated values. Sometimes in a semantic actions, you want to be able to grab a specific parser's value by name. This is where *captures* will come in handy.
+Great, but `children` are just unlabeled propagated values. Sometimes that's what you want (for example when parsing a phone number list), but more often in semantic actions, you want to be able to grab a specific parser's value by name. This is where *captures* will come in handy.
 
 **A capture expression `<id>a` associates the *value* of a parser `a` to an identifier `id`, which can then be used in semantic actions.**
 
@@ -467,8 +467,51 @@ const prefix = peg`
 `;
 ```
 
+As an exercise, try to rewrite the `prefix` grammar so that its value is the actual result of the calculation.
+
 ---
 
 ### Handling whitespaces
 
-Coming soon.
+When it comes to parsing, whitespaces are usually an annoying part to handle. Well, not with Pegase which provides you with a set of default behaviors and options to make everything straightforward. For most use cases, you won't even have to think about it.
+
+**By default, whitespaces (and comments) are skipped before every *terminal* parser.**
+
+Terminal parsers include:
+
+- *Literal* parsers (like `"lit"`, `'lit'`, `42` or `ε`)
+- *Regexp* parsers (like `[a-z]`, `\w` or `.`)
+- *Token* parsers, including the end-of-input token `$` and every parser wrapped with the `@token` directive (we will go to that in the next section).
+
+In the following example, whitespaces are skipped before each `'a'` and before `$`. Thus, the parse is a success.
+
+```js
+const g = peg`'a'+ $`;
+console.log(g.test("  aa  a  a a   a  ")); // true
+```
+
+`Parser`'s methods (`parse`, `test`, etc.) actually accept an optional second argument, an `options` object. Two options are of interest with the matter at hand here:
+
+- `skipper`, a `Parser` instance that should match the substring you want to skip before every terminal. When you don't provide that option, a default `Parser` is used which skips any sequence of `\s` and comments.
+- `skip`, a boolean value that enables or disables skipping.
+
+```js
+const g = peg`'a'+ $`;
+console.log(g.test("  aa  a  a a   a  ", { skip: false })); // false
+console.log(g.test("aaaaaa", { skip: false }));             // true
+```
+
+You can toggle skipping for specific parts of your parsing expression by using the `@skip` and/or `@noskip` directives:
+
+```js
+const g = peg`('a'+ @noskip) $`;
+console.log(g.test("  aa  a  a a   a  ")); // false
+console.log(g.test("aaaaaaa   "));         // true
+```
+
+---
+
+### Tokens
+
+*Coming soon.*
+
