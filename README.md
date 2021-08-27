@@ -161,7 +161,8 @@ Okay, the `test` method is fun but what if you want to do something more elabora
 
 ```js
 const result = nestedBitArray.parse("[[0]");
-console.log(result.success ? "It's a match!" : result.logs());
+if(!result.success)
+  console.log(result.logs());
 ```
 
 This will output:
@@ -329,18 +330,18 @@ Here are the different expressions you can use as building blocks of arbitrarily
     </tr>
     <tr>
       <td><pre>a @dir<br/>a @dir(x, y)<br/>a @dir(x, ${arg})<br/>a @dir @other</pre>etc.</td>
-      <td>Applies the directive <code>dir</code> to the parser <code>a</code>. Directives are functions that take a parser and return a new parser. They can take additional arguments and can be chained.</td>
+      <td>Applies the directive(s) to the parser <code>a</code>. Directives are functions that take a parser and return a new parser. They can take additional arguments and can be chained.</td>
       <td>Directives generate new parsers. So <code>children</code> depends on whatever parser is generated.</td>
       <td align="center" rowspan="2">8</td>
     </tr>
     <tr>
       <td><pre>a ${func}</pre></td>
-      <td>Semantic action. <code>func</code> can be any js function passed as tag argument. It will be called if <code>a</code> succeeds. This is in fact a shortcut for the <code>@action</code> directive and can thus be chained with other directives as described above.</td>
-      <td><code>[<return value of func>]</code> if that return value is different than <code>undefined</code>, <code>[]</code> otherwise</td>
+      <td>Semantic action. <code>func</code> is a js function passed as tag argument. It will be called if <code>a</code> succeeds. This is in fact a shortcut for the <code>@action</code> directive and can thus be chained with other directives as described above.</td>
+      <td><code>[&lt;return value of func&gt;]</code> if that value is different than <code>undefined</code>, <code>[]</code> otherwise</td>
     </tr>
     <tr>
-      <td><pre>a | b</pre></td>
-      <td>Succeeds if <code>a</code> or <code>b</code> succeeds (order matters)</td>
+      <td><pre>a | b<br/>a / b</pre></td>
+      <td>Succeeds if <code>a</code> or <code>b</code> succeeds (order matters). Please note that you can add a leading bar for aesthetic purposes.</td>
       <td>Forwarded from <code>a</code> or <code>b</code></td>
       <td align="center">9</td>
     </tr>
@@ -352,6 +353,7 @@ Here are the different expressions you can use as building blocks of arbitrarily
     </tr>
   </tbody>
 </table>
+
 
 
 ---
@@ -373,9 +375,7 @@ The input `"+ 5 * 2 6"` would generate the following syntax tree:
 
 ![Parse tree](https://raw.githubusercontent.com/ostrebler/pegase/master/img/dataflow-1.png)
 
-You can quickly convince yourself that no other parse tree is possible given that specific grammar and input.
-
-To handle semantic values, Pegase implements a mechanism by which every individual parser (including all its subparsers) can emit an array of values called `children`. For example, in the `op` rule, `'+'` is a parser in and of itself who will succeed if a *plus* character can be read from the input, and fail otherwise. It's called a literal parser. You can make every literal parser emit the substring they matched as a single child by using double quotes instead of single quotes. More generally, we can make **any** parser emit the substring they matched as a single child by using the `@raw` directive. So `\d @raw` will emit the exact digit it just matched.
+To handle semantic values, Pegase implements a mechanism by which every individual parser can emit an array of values called `children`. For example, in the `op` rule, `'+'` is a parser in and of itself who will succeed if a *plus* character can be read from the input, and fail otherwise. It's called a literal parser. You can make every literal parser emit the substring they matched as a single child by using double quotes instead of single quotes. More generally, we can make **any** parser emit the substring they matched as a single child by using the `@raw` directive. So `\d @raw` will emit the exact digit it just matched.
 
 `children` can be collected and processed in parent parsers through composition. Some composition patterns process `children` automatically. This is for example the case with the sequence expression `op expr expr`: The `children` of that sequence is the concatenation of the individual `children` of `op`, `expr` and `expr`. Please refer to the table in [Building parsers](#building-parsers), column *Children*, for more information. We can also customize that processing behavior with the help of semantic actions as we'll discuss later. For now, let's rewrite the grammar to make it emit the operators and the digits it matched:
 
