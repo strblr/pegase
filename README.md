@@ -57,7 +57,7 @@ A few early notes here :
 - `a % b` is a shortcut for `a (b a)*`, meaning _"any sequence of `a` separated by `b`"_.
 - You can think of parsers as black boxes *emitting* (if they succeed) zero or more values, called `children`. These black boxes can be composed together to form more complex parsers.
 - `@infix` is a directive. It transforms a parser's `children` by treating them as items of an infix expression and reducing them to a single child using the provided callback.
-- `@number` is another directive. It takes the raw match, converts it into a number and emits that number as a single child.
+- `@number` is another directive. It converts the matched substring into a number and emits that number as a single child.
 - By default, whitespace skipping is automatically handled without you having to tweak a single thing. It's entirely configurable of course.
 - Notice how some literals are single-quoted like `')'` or double-quoted like `"+"`. Double-quote literals emit their string match as a single child, while single-quotes are silent. Writing the operators with double quotes allows them to be accumulated and processed in `@infix`.
 
@@ -90,7 +90,7 @@ Don't worry if things aren't so clear yet. The rest of the documentation below i
 
 ### Quick start
 
-First, add pegase as a dependency:
+First, add Pegase as a dependency:
 
 `npm install pegase` or `yarn add pegase`
 
@@ -157,7 +157,7 @@ const nestedBitArray = peg`
 `;
 ```
 
-Okay, the `test` method is fun but what if you want to do something more elaborated like collecting semantic values, reading warnings or parse failures ? The `parse` method is what you're asking for. It returns a result object containing all the infos you might be interested in after a parsing. In fact, all other `Parser` methods (`test`, `value` and `children`) are wrapped around `parse`.
+Okay, the `test` method is fun but what if you want to do something more elaborated like collecting semantic values, reading warnings or parse failures ? The `parse` method is what you're asking for. It returns a result object containing all the infos you might be interested in after a parsing. In fact, all other `Parser` methods (`test`, `value` and `children`) are wrappers around `parse`.
 
 ```js
 const result = nestedBitArray.parse("[[0]");
@@ -178,7 +178,9 @@ This will output:
 
 ### Building parsers
 
-Here are the different expressions you can use as building blocks of arbitrarily complex parsing expressions (in the following examples, `a` and `b` represents any parsing expression of higher precedence):
+**The `peg` tag accepts any valid Pegase expression and always returns a `Parser` instance.**
+
+Here are the different expressions you can use as building blocks of more complex parsing expressions (in the following examples, `a` and `b` represents any parsing expression of higher precedence). Please note that *every expression* in this table and *every arbitrary composition* of them are `Parser`s in and of themselves.
 
 <table>
   <thead>
@@ -347,7 +349,7 @@ Here are the different expressions you can use as building blocks of arbitrarily
     </tr>
     <tr>
       <td><pre>id: a<br/>$id: a</br/>id @dir: a</pre>etc.</td>
-      <td>Rule. This creates a non-terminal <code>id</code> as an alias to parser <code>a</code>. Rules can be stacked to form grammars. If directives are specified right after the rule name, they are applied to the whole right-side expression. Adding <code>$</code> at the beginning of a rule name applies an implicit <code>@token</code> directive (the alias will be the rule name transformed to text case, i.e. <code>$myToken</code> is equivalent to <code>myToken @token("my token")</code>).</td>
+      <td>Rule. This creates a non-terminal <code>id</code> as an alias to parser <code>a</code>. Rules can be stacked to form <b>grammars</b>. If directives are specified right after the rule name, they are applied to the whole right-side expression <code>a</code>. Adding <code>$</code> at the beginning of a rule name applies an implicit <code>@token</code> directive (the display name in failure reports will be the rule name transformed to space case, i.e. <code>$myToken: a</code> is equivalent to <code>myToken @token("my token"): a</code>).</td>
       <td>Forwarded from the topmost rule</td>
       <td align="center">10</td>
     </tr>
@@ -357,11 +359,12 @@ Here are the different expressions you can use as building blocks of arbitrarily
 
 
 
+
 ---
 
 ### Dataflow
 
-Differenciating between faulty and correct inputs is generally only part of the job we expect from a parser. Another big part is to run some routines and generate some data as a side-effect. In this section, we'll talk *dataflow*, *semantic actions*, and *parse children*.
+Differentiating between faulty and correct inputs is generally only part of the job we expect from a parser. Another big part is to **run routines** and **generate data** as a side-effect. In this section, we'll talk *dataflow*, *semantic actions*, *parse children* and *captures*.
 
 PEG parsers are top-down parsers, meaning the parsing expressions are recursively traversed (or *"called"*) in a depth-first manner, guided by a left-to-right input read. This traversal process can be represented as a tree, called syntax tree. In fact, a top-down parsing process can be thought of as an attempt to build such tree. Let's illustrate that with the following grammar:
 
@@ -376,9 +379,13 @@ The input `"+ 5 * 2 6"` would generate the following syntax tree:
 
 ![Parse tree](https://raw.githubusercontent.com/ostrebler/pegase/master/img/dataflow-1.png)
 
-To handle semantic values, Pegase implements a mechanism by which every individual parser can emit an array of values called `children`. For example, in the `op` rule, `'+'` is a parser in and of itself who will succeed if a *plus* character can be read from the input, and fail otherwise. It's called a literal parser. You can make every literal parser emit the substring they matched as a single child by using double quotes instead of single quotes. More generally, we can make **any** parser emit the substring they matched as a single child by using the `@raw` directive. So `\d @raw` will emit the exact digit it just matched.
+**To handle semantic values, Pegase implements a mechanism by which every individual parser can emit an array of values called `children`**.
 
-`children` can be collected and processed in parent parsers through composition. Some composition patterns process `children` automatically. This is for example the case with the sequence expression `op expr expr`: The `children` of that sequence is the concatenation of the individual `children` of `op`, `expr` and `expr`. Please refer to the table in [Building parsers](#building-parsers), column *Children*, for more information. We can also customize that processing behavior with the help of semantic actions as we'll discuss later. For now, let's rewrite the grammar to make it emit the operators and the digits it matched:
+For example, in the `op` rule, `'+'` is a parser in and of itself who will succeed if a *plus* character can be read from the input. It's called a *literal* parser. You can make every literal parser emit the substring they matched as a single child by using double quotes instead of single quotes. More generally, we can make **any** parser emit the substring they matched as a single child by using the `@raw` directive. So `\d @raw` will emit the exact character it just matched.
+
+**`children` can be collected and processed in parent parsers through composition**.
+
+Some composition patterns process `children` automatically. This is for example the case with the sequence expression `op expr expr`: The `children` of that sequence is the concatenation of the individual `children` of `op`, `expr` and `expr`. Please refer to the table in [Building parsers](#building-parsers), column *Children*, for more information. We can also customize that processing behavior with the help of semantic actions as we'll discuss in a second. For now, let's rewrite the grammar to make it emit the operators and the digits it matched:
 
 ```js
 const prefix = peg`
@@ -387,15 +394,81 @@ const prefix = peg`
 `;
 ```
 
-Now values are propagated upwards:
+Now strings are emitted and propagated during the parsing process:
 
 
 
 ![Parse tree](https://raw.githubusercontent.com/ostrebler/pegase/master/img/dataflow-2.png)
 
-And indeed:
+Indeed:
 
 ```js
-console.log(prefix.parse("+ 5 * 2 6").children); // logs ["+", "5", "*", "2", "6"]
+console.log(prefix.parse("+ 5 * 2 6").children); // ["+", "5", "*", "2", "6"]
+console.log(prefix.children("+ 5 * 2 6"));       // ["+", "5", "*", "2", "6"]
 ```
+
+That can already be pretty useful, but what you usually want to do is to process these `children` in certain ways at strategic steps during the parse time in order to incrementally build your desired output. This is where *semantic actions* come into play.
+
+**A semantic action is a `Parser` wrapped around another `Parser`, and whose role is to call a callback on success. This callback will be provided with a bunch of infos like the `children`, named captures, matched substring, etc. If it returns a *non-undefined* value, this value will be emitted as a single child. If it returns `undefined`, no child will be emitted.**
+
+Let's take our `prefix` grammar and say we want to make it generate the input expression but written in postfix notation (operators *after* operands). All we need to do is wrap a semantic action around `op expr expr`, reorder its `children` to postfix order, join them into a string and emit that string as a single child.
+
+```js
+const prefix = peg`
+  expr:
+  | op expr expr ${({ $children: [op, ...r] }) => [...r, op].join(' ')}
+  | \d @raw
+
+  op: "+" | "-" | "*" | "/"
+`;
+```
+
+Recursively, this process will transform the entire input from prefix to postfix:
+
+![Parse tree](https://raw.githubusercontent.com/ostrebler/pegase/master/img/dataflow-3.png)
+
+Let's test this:
+
+```js
+console.log(prefix.parse("+ 5 * 2 6").children); // ["5 2 6 * +"]
+```
+
+**When a `Parser` emits only a single child, it's called the *value* of that `Parser`.**
+
+```js
+console.log(prefix.parse("+ 5 * 2 6").value); // "5 2 6 * +"
+console.log(prefix.value("+ 5 * 2 6"));       // "5 2 6 * +"
+```
+
+`value` is `undefined` if there is no child, or multiple children.
+
+What if you want to call a semantic action but let the initial `children` propagate through or emit more than one child ? Well, this has to be done explicitly by calling the `$propagate` callback passed as an argument:
+
+```js
+peg`expr ${({ $propagate }) => $propagate()}`; // pass-through
+peg`expr ${({ $propagate }) => $propagate([1, true, "test"])}`; // propagate custom children
+```
+
+Sometimes in a semantic action, you want to be able to grab a parser's value by name. This is where *captures* will come in handy.
+
+**A capture expression `<id>a` associates the *value* of a parser `a` to an identifier `id`, which can then be used in semantic actions.**
+
+There are two things to keep in mind:
+
+- Non-terminals are self-captured, meaning that `id` is equivalent to `<id>id`.
+- Captures are propagated and accumulated upwards just like `children`, but are stopped at non-terminals. I.e. `'[' expr ']'` will just capture `expr`, but not forward the sub-captures done in `expr`.
+
+Taking this into consideration, our prefix-to-postfix converter could be rewritten is a clearer way:
+
+```js
+const prefix = peg`
+  expr:
+  | op <a>expr <b>expr ${({ op, a, b }) => [a, b, op].join(' ')}
+  | \d @raw
+
+  op: "+" | "-" | "*" | "/"
+`;
+```
+
+
 
