@@ -101,18 +101,27 @@ export function mergeFailures(failures: Array<Failure>) {
   ];
 }
 
+// resolveDirective
+
+export function resolveDirective(plugins: Array<Plugin>, directive: string) {
+  const plugin = plugins.find(plugin =>
+    plugin.directives?.hasOwnProperty(directive)
+  );
+  if (!plugin)
+    throw new Error(
+      `Couldn't resolve directive "${directive}", you can add support for it via peg.addPlugin`
+    );
+  return plugin.directives![directive];
+}
+
 // pipeDirectives
 
 export function pipeDirectives(
-  plugins: Array<Plugin>,
   parser: Parser,
-  directives: Array<[string, Array<any>]>
+  directives: Array<[Directive, Array<any>]>
 ) {
   return directives.reduce(
-    (parser, [directive, args]) =>
-      plugins
-        .find(plugin => plugin.directives?.hasOwnProperty(directive))!
-        .directives![directive](parser, ...args),
+    (parser, [directive, args]) => directive(parser, ...args),
     parser
   );
 }

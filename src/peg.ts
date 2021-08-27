@@ -3,6 +3,7 @@ import {
   CaptureParser,
   CutParser,
   defaultPlugin,
+  Directive,
   GrammarParser,
   LiteralParser,
   MetaContext,
@@ -16,6 +17,7 @@ import {
   PredicateParser,
   RegExpParser,
   RepetitionParser,
+  resolveDirective,
   SequenceParser,
   spaceCase,
   TokenParser
@@ -159,10 +161,10 @@ export function createTag() {
  * repetitionCount:  => number
  *   numberLiteral | numberTagArgument
  *
- * directives:  => [string, any[]][]
+ * directives:  => [function, any[]][]
  *   directive*
  *
- * directive:  => [string, any[]]
+ * directive:  => [function, any[]]
  * | $directive directiveArguments?
  * | actionTagArgument
  *
@@ -207,21 +209,23 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
           $match.children.map(
             ([label, directives, parser]: [
               string,
-              Array<[string, Array<any>]>,
+              Array<[Directive, Array<any>]>,
               Parser
             ]) => {
               if (label.startsWith("$")) {
                 label = label.substring(1);
-                directives = [...directives, ["token", [spaceCase(label)]]];
+                directives = [
+                  ...directives,
+                  [
+                    resolveDirective(
+                      ($context as MetaContext).plugins,
+                      "token"
+                    ),
+                    [spaceCase(label)]
+                  ]
+                ];
               }
-              return [
-                label,
-                pipeDirectives(
-                  ($context as MetaContext).plugins,
-                  parser,
-                  directives
-                )
-              ];
+              return [label, pipeDirectives(parser, directives)];
             }
           )
         )
@@ -253,13 +257,8 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         new NonTerminalParser("sequenceParser"),
         new NonTerminalParser("directives")
       ]),
-      ({ sequenceParser, directives, $context }) => {
-        return pipeDirectives(
-          ($context as MetaContext).plugins,
-          sequenceParser,
-          directives
-        );
-      }
+      ({ sequenceParser, directives }) =>
+        pipeDirectives(sequenceParser, directives)
     )
   ],
   [
@@ -617,30 +616,25 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
               ]),
               "directive"
             ),
-            ({ identifier, $context }) => {
-              if (
-                !($context as MetaContext).plugins.find(plugin =>
-                  plugin.directives?.hasOwnProperty(identifier)
-                )
-              )
-                throw new Error(
-                  `Couldn't resolve directive "${identifier}", you can add support for it via peg.addPlugin`
-                );
-            }
+            ({ identifier, $context }) =>
+              resolveDirective(($context as MetaContext).plugins, identifier)
           ),
-          new RepetitionParser(new NonTerminalParser("directiveArguments"), [
-            0,
-            1
-          ])
+          new ActionParser(
+            new RepetitionParser(new NonTerminalParser("directiveArguments"), [
+              0,
+              1
+            ]),
+            ({ directiveArguments }) => directiveArguments ?? []
+          )
         ]),
-        ({ identifier, directiveArguments }) => [
-          identifier,
-          directiveArguments ?? []
-        ]
+        ({ $children }) => $children
       ),
       new ActionParser(
         new NonTerminalParser("actionTagArgument"),
-        ({ actionTagArgument }) => ["action", [actionTagArgument]]
+        ({ actionTagArgument, $context }) => [
+          resolveDirective(($context as MetaContext).plugins, "action"),
+          [actionTagArgument]
+        ]
       )
     ])
   ],
