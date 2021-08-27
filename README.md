@@ -346,8 +346,8 @@ Here are the different expressions you can use as building blocks of arbitrarily
       <td align="center">9</td>
     </tr>
     <tr>
-      <td><pre>id: a<br/>id @dir: a</pre>etc.</td>
-      <td>Rule. This creates a non-terminal <code>id</code> as an alias to parser <code>a</code>. Rules can be stacked to form grammars. If directives are specified right after the rule name, they are applied to the whole right-side expression.</td>
+      <td><pre>id: a<br/>$id: a</br/>id @dir: a</pre>etc.</td>
+      <td>Rule. This creates a non-terminal <code>id</code> as an alias to parser <code>a</code>. Rules can be stacked to form grammars. If directives are specified right after the rule name, they are applied to the whole right-side expression. Adding <code>$</code> at the beginning of a rule name applies an implicit <code>@token</code> directive (the alias will be the rule name transformed to text case, i.e. <code>$myToken</code> is equivalent to <code>myToken @token("my token")</code>).</td>
       <td>Forwarded from the topmost rule</td>
       <td align="center">10</td>
     </tr>
