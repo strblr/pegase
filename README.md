@@ -24,6 +24,7 @@ Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
 - [Basic concepts](#basic-concepts)
   - [Building parsers](#building-parsers)
   - [Dataflow](#dataflow)
+  - [Handling whitespaces](#handling-whitespaces)
 
 ## Overview
 
@@ -356,10 +357,6 @@ Here are the different expressions you can use as building blocks of more comple
   </tbody>
 </table>
 
-
-
-
-
 ---
 
 ### Dataflow
@@ -407,7 +404,7 @@ console.log(prefix.parse("+ 5 * 2 6").children); // ["+", "5", "*", "2", "6"]
 console.log(prefix.children("+ 5 * 2 6"));       // ["+", "5", "*", "2", "6"]
 ```
 
-That can already be pretty useful, but what you usually want to do is to process these `children` in certain ways at strategic steps during the parse time in order to incrementally build your desired output. This is where *semantic actions* come into play.
+That can already be pretty useful, but what you usually want to do is to process these `children` in certain ways at strategic steps during parse time in order to incrementally build your desired output. This is where *semantic actions* come into play.
 
 **A semantic action is a `Parser` wrapped around another `Parser`, and whose role is to call a callback on success. This callback will be provided with a bunch of infos like the `children`, named captures, matched substring, etc. If it returns a *non-undefined* value, this value will be emitted as a single child. If it returns `undefined`, no child will be emitted.**
 
@@ -442,14 +439,14 @@ console.log(prefix.value("+ 5 * 2 6"));       // "5 2 6 * +"
 
 `value` is `undefined` if there is no child, or multiple children.
 
-What if you want to call a semantic action but let the initial `children` propagate through or emit more than one child ? Well, this has to be done explicitly by calling the `$propagate` callback passed as an argument:
+What if you want to call a semantic action for some side-effects but let the initial `children` propagate through or emit more than one child ? Well, this has to be done explicitly by calling the `$propagate` callback passed as an argument:
 
 ```js
 peg`expr ${({ $propagate }) => $propagate()}`; // pass-through
 peg`expr ${({ $propagate }) => $propagate([1, true, "test"])}`; // propagate custom children
 ```
 
-Sometimes in a semantic action, you want to be able to grab a parser's value by name. This is where *captures* will come in handy.
+Great, but `children` are just unlabeled propagated values. Sometimes in a semantic actions, you want to be able to grab a specific parser's value by name. This is where *captures* will come in handy.
 
 **A capture expression `<id>a` associates the *value* of a parser `a` to an identifier `id`, which can then be used in semantic actions.**
 
@@ -470,5 +467,8 @@ const prefix = peg`
 `;
 ```
 
+---
 
+### Handling whitespaces
 
+Coming soon.
