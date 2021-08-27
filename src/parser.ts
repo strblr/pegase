@@ -512,6 +512,7 @@ export class ActionParser extends Parser {
         $options: options,
         $match: match,
         $context: options.context,
+        $children: match.children,
         $commit() {
           options.internals.committed.push(
             ...mergeFailures(options.internals.failures)

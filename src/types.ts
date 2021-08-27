@@ -28,6 +28,7 @@ export type SemanticInfo<Context = any> = {
   $options: ParseOptions<Context>;
   $match: Match;
   $context: Context;
+  $children: Array<any>;
   $commit(): void;
   $warn(message: string): void;
   $expected(expected: Expectation | Array<Expectation>): void;
