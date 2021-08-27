@@ -17,6 +17,7 @@ import {
   RegExpParser,
   RepetitionParser,
   SequenceParser,
+  spaceCase,
   TokenParser
 } from "."; // The parser creator factory
 
@@ -105,7 +106,7 @@ export function createTag() {
  *
  * primaryParser:  => Parser
  * | '.'
- * | '$'
+ * | '$' - identifier
  * | 'ε'
  * | '^'
  * | '(' parser ')'
@@ -208,14 +209,20 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
               string,
               Array<[string, Array<any>]>,
               Parser
-            ]) => [
-              label,
-              pipeDirectives(
-                ($context as MetaContext).plugins,
-                parser,
-                directives
-              )
-            ]
+            ]) => {
+              if (label.startsWith("$")) {
+                label = label.substring(1);
+                directives = [...directives, ["token", [spaceCase(label)]]];
+              }
+              return [
+                label,
+                pipeDirectives(
+                  ($context as MetaContext).plugins,
+                  parser,
+                  directives
+                )
+              ];
+            }
           )
         )
     )
@@ -374,7 +381,10 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new OptionsParser([
       new ActionParser(new LiteralParser("."), () => new RegExpParser(/./)),
       new ActionParser(
-        new LiteralParser("$"),
+        new SequenceParser([
+          new PredicateParser(new NonTerminalParser("identifier"), false),
+          new LiteralParser("$")
+        ]),
         () =>
           new TokenParser(
             new PredicateParser(new RegExpParser(/./), false),
@@ -421,7 +431,10 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
 
   [
     "identifier",
-    new TokenParser(new RegExpParser(/([_a-zA-Z][_a-zA-Z0-9]*)/), "identifier")
+    new TokenParser(
+      new RegExpParser(/(\$?[_a-zA-Z][_a-zA-Z0-9]*)/),
+      "identifier"
+    )
   ],
   [
     "nonTerminal",

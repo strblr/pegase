@@ -68,6 +68,15 @@ export function extendFlags(regExp: RegExp, flags: string) {
   return new RegExp(regExp, [...new Set([...regExp.flags, ...flags])].join(""));
 }
 
+// spaceCase
+
+export function spaceCase(input: string) {
+  return input
+    .replace("_", " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .toLowerCase();
+}
+
 // skip
 
 export function skip(options: ParseOptions) {
@@ -99,12 +108,13 @@ export function pipeDirectives(
   parser: Parser,
   directives: Array<[string, Array<any>]>
 ) {
-  return directives.reduce((parser, [directive, args]) => {
-    const definition = plugins.find(plugin =>
-      plugin.directives?.hasOwnProperty(directive)
-    )!;
-    return definition.directives![directive](parser, ...args);
-  }, parser);
+  return directives.reduce(
+    (parser, [directive, args]) =>
+      plugins
+        .find(plugin => plugin.directives?.hasOwnProperty(directive))!
+        .directives![directive](parser, ...args),
+    parser
+  );
 }
 
 // inferValue

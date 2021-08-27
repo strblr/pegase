@@ -128,7 +128,7 @@ test("Prefix math expressions should be correctly converted to postfix", () => {
     operator:
       "+" | "-" | "*" | "/"
       
-    number @token("number") @raw:
+    $number @raw:
       [0-9]+
   `;
 
