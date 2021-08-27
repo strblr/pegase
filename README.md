@@ -25,6 +25,7 @@ Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
   - [Building parsers](#building-parsers)
   - [Dataflow](#dataflow)
   - [Handling whitespaces](#handling-whitespaces)
+  - [Tokens](#tokens)
 
 ## Overview
 
@@ -481,7 +482,7 @@ Terminal parsers include:
 
 - *Literal* parsers (like `"lit"`, `'lit'`, `42` or `ε`)
 - *Regexp* parsers (like `[a-z]`, `\w` or `.`)
-- *Token* parsers, including the end-of-input token `$` and every parser wrapped with the `@token` directive (we will go to that in the next section).
+- *Token* parsers, including the end-of-input token `$` and every parser wrapped with the `@token` directive (we will go to that in the [next section](#tokens)).
 
 In the following example, whitespaces are skipped before each `'a'` and before `$`. Thus, the parse is a success.
 
