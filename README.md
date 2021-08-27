@@ -470,18 +470,27 @@ const prefix = peg`
 
 As an exercise, try to rewrite the `prefix` grammar so that its value is the actual result of the calculation.
 
+**When a `RegExp` instance is inserted into a parsing expression, it is converted into a regexp parser. The `children` are the `RegExp`'s *capturing groups*, and its [named capturing groups](https://github.com/tc39/proposal-regexp-named-groups) (when supported by your environment) are transformed into regular Pegase captures.**
+
+```js
+const rgx = /@(\d+)/;
+const g = peg`${rgx} ${({ $value }) => 2*Number($value)}`;
+
+console.log(g.value("@13")); // 26
+```
+
 ---
 
 ### Handling whitespaces
 
 When it comes to parsing, whitespaces are usually an annoying part to handle. Well, not with Pegase which provides you with a set of default behaviors and options to make everything straightforward. For most use cases, you won't even have to think about it.
 
-**By default, whitespaces (and comments) are skipped before every *terminal* parser.**
+**By default, whitespaces and comments are skipped before every *terminal* parser.**
 
 Terminal parsers include:
 
 - *Literal* parsers (like `"lit"`, `'lit'`, `42` or `ε`)
-- *Regexp* parsers (like `[a-z]`, `\w` or `.`)
+- *Regexp* parsers (like `[a-z]`, `\w`, `.` or `${/my_js_regexp/}`)
 - *Token* parsers, including the end-of-input token `$` and every parser wrapped with the `@token` directive (we will go to that in the [next section](#tokens)).
 
 In the following example, whitespaces are skipped before each `'a'` and before `$`. Thus, the parse is a success.
