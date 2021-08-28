@@ -199,8 +199,8 @@ test("Math expressions should be correctly calculated", () => {
   const calc = peg<number>`
     expr: term % ("+" | "-") @infix(${doop})
     term: fact % ("*" | "/") @infix(${doop})
-    fact: num | '(' expr ')'
-    num @number @token("number"):
+    fact: number | '(' expr ')'
+    $number @number:
       '-'? [0-9]+ ('.' [0-9]*)?
   `;
 
