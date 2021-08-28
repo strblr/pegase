@@ -147,7 +147,7 @@ if (bitArray.test(" [ 0,1 ,0  ,  1, 1]  "))
   console.log("It's a match!");
 ```
 
-As you might have spotted, whitespaces are handled automatically by default ([it can be changed](#handling-whitespaces)). The way this works is pretty simple: whitespace characters and comments are parsed and discarded **before every terminal parser** (like `'['`, `'1'`, etc.). This process is called **skipping**. By default, every parser also adds an implicit "end of input" symbol (`$`) at the end of the parsing expression and treats it as a terminal, thus the trailing space is also skipped and the whole string matches.
+As you might have spotted, whitespaces are handled automatically by default ([it can be changed](#handling-whitespaces)). The way this works is pretty simple: whitespace characters are parsed and discarded **before every terminal parser** (like `'['`, `'1'`, etc.). This process is called **skipping**. By default, every parser also adds an implicit "end of input" symbol (`$`) at the end of the parsing expression and treats it as a terminal, thus the trailing space is also skipped and the whole string matches.
 
 Good, but so far, a `RegExp` could have done the job. Things get interesting when we add in **non-terminals**. A non-terminal is an identifier that refers to a more complex parsing expression which will be invoked every time the identifier is used. You can think of non-terminals as variables whose value is a parser, initialized in what we call `rules`. This allows for recursive patterns. Let's say we want to match possibly infinitely-nested bit arrays:
 
@@ -512,7 +512,7 @@ console.log(g.value("2021-08-19")); // "The year is 2021"
 
 When it comes to parsing, whitespaces are usually an annoying part to handle. Well, not with Pegase which provides you with a set of default behaviors and options to make everything straightforward. For most use cases, you won't even have to think about it.
 
-**By default, whitespaces and comments are skipped before every *terminal* parser.**
+**By default, whitespaces are skipped before every *terminal* parser.**
 
 Terminal parsers include:
 
@@ -529,7 +529,7 @@ console.log(g.test("  aa  a  a a   a  ")); // true
 
 `Parser`'s methods (`parse`, `test`, etc.) actually accept an optional second argument, an `options` object. Two options are of interest with the matter at hand here:
 
-- `skipper`, a `Parser` instance that should match the substring you want to skip before every terminal. When you don't provide that option, a default `Parser` is used which skips any sequence of `\s` and comments.
+- `skipper`, a `Parser` instance that should match the substring you want to skip before every terminal. When you don't provide that option, a default `Parser` is used which skips any sequence of `\s`.
 - `skip`, a boolean value that enables or disables skipping.
 
 ```js
@@ -546,6 +546,18 @@ console.log(g.test("  aa  a  a a   a  ")); // false
 console.log(g.test("aaaaaaa   "));         // true
 ```
 
+**If none of these options suits your particular needs, you can use explicit whitespaces:**
+
+```js
+const g = peg`
+  array: '[' _ '1' % ',' _ ']'
+  _: \s*
+`;
+
+g.test("[  1,1,1  ]", { skip: false });  // true
+g.test("[  1, 1,1  ]", { skip: false }); // false
+```
+
 ---
 
 ### Tokens
@@ -554,9 +566,9 @@ To understand the need for a token concept, let's take a look at a quick example
 
 ```js
 const intList = peg`
-	list: integer % ','
+  list: integer % ','
   integer @raw: \d+
-`
+`;
 ```
 
 But this doesn't work. Indeed, as whitespace skipping happens before every `\d`, `\d+` can match any space-separated digit list. Thus, `"23 4, 45"` would be a valid input because `23 4` would be considered *one* integer:
@@ -569,25 +581,25 @@ You might intuitively want to disable skipping for the integer rule:
 
 ```js
 const intList = peg`
-	list: integer % ','
+  list: integer % ','
   integer @raw @noskip: \d+
-`
+`;
 ```
 
-But this doesn't work either, because now you don't allow for whitespaces *before* integers. So a simple `"1, 1"` would fail when it should not:
+But this doesn't work either, because now you don't allow for whitespaces *before* integers. So a simple `"1 , 1"` would fail when it should not:
 
 ```js
-console.log(intList.parse("1, 1").logs());
+console.log(intList.parse("1 , 1").logs());
 ```
 
 ```
-(1:3) Failure: Expected /\d/
+(1:4) Failure: Expected /\d/
 
-> 1 | 1, 1
-    |   ^
+> 1 | 1 , 1
+    |    ^
 ```
 
-If you think about it, what we need is to skip whitespaces **before** `integer` but not **inside** it. And that's exactly what a token parser does:
+If you think about it, what we need is to skip whitespaces **before** `integer` but not **inside** it. Something like `\d (\d* @noskip)` but without the repetitiveness. And that's exactly what a token parser does:
 
 **A token parser wraps around a `Parser` and performs pre-skipping before calling it. Skipping is then disabled inside.**
 
@@ -595,12 +607,10 @@ Essentially, the token parser avoids the need for explicit whitespaces in the gr
 
 ```js
 const intList = peg`
-	list: integer % ','
+  list: integer % ','
   integer @raw @token: \d+
-`
-```
+`;
 
-```js
 console.log(intList.parse("23 4, 45").logs());
 ```
 
@@ -613,32 +623,34 @@ console.log(intList.parse("23 4, 45").logs());
 
 **A token can be given a *display name* to improve failure logging.**
 
-More often than not, tokens have a lexeme semantic, meaning we want to label them quick and easy and don't much care about their internal syntactical details. This can be done by passing a string as an argument to the `@token` directive:
+Tokens often have a lexeme semantic, meaning we want to label them with names and don't much care about their internal syntactical details. This can be done by passing a string as an argument to the `@token` directive:
 
 ```js
 const intList = peg`
-	list: integer % ','
+  list: integer % ','
   integer @raw @token("fancy integer"): \d+
-`
+`;
+
+console.log(intList.parse("12, ").logs());
 ```
+
+```
+(1:5) Failure: Expected fancy integer
+
+> 1 | 12, 
+    |     ^
+```
+
+**The `$id` shortcut**: The pattern that will appear the most is probably `fancyToken @token("fancy token")`. That's why Pegase has a shortcut for it: by starting your rule name with a dollar sign, it is automated. The display name is inferred by transforming PascalCase, camelCase and snake_case rule names to space case.
 
 ```js
-console.log(intList.parse("12,").logs());
-```
+peg`$lowerCaseWord: [a-z]+`;
+// is equivalent to
+peg`lowerCaseWord @token("lower case word"): [a-z]+`;
 
-```
-(1:4) Failure: Expected fancy integer
-
-> 1 | 12,
-    |    ^
-```
-
-What you will most likely want to write are some `fancyToken @token("fancy token")` rules. That's why Pegase has a shortcut for those: by starting your rule name with a dollar sign, that pattern is automated. The display name is then inferred by transforming pascal case, camel case and/or snake case rule names to space case.
-
-```js
-peg`$myToken: [a-z]+`;
-// is the same as
-peg`myToken @token("my token"): [a-z]+`;
+peg`$two_digit_integer: \d{2}`;
+// is equivalent to
+peg`two_digit_integer @token("two digit integer"): \d{2}`;
 ```
 
 ---
