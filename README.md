@@ -27,7 +27,7 @@ Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
   - [Handling whitespaces](#handling-whitespaces)
   - [Tokens](#tokens)
   - [Directives](#directives)
-  - [Dealing with parse results](#dealing-with-parse-results)
+  - [Working with parse results](#working-with-parse-results)
 - [Advanced concepts](#advanced-concepts)
   - [Working with `RegExp`](#working-with-regexp)
   - [Cut operator](#cut-operator)
@@ -491,24 +491,6 @@ peg`expr ${({ $emit }) => $emit([1, true, "test"])}`; // emit custom children
 
 If you don't care about emitted `children` and only wanna perform side-effects, then forget about `$emit` and just don't return any value.
 
-**When a `RegExp` instance is inserted into a parsing expression, it is converted into a regexp parser. The `children` are the `RegExp`'s *capturing groups*:**
-
-```js
-const num = /@(\d+)/;
-const g = peg`${num} ${({ $value }) => 2*Number($value)}`;
-
-console.log(g.value("@13")); // 26
-```
-
-**The `RegExp`'s [named capturing groups](https://github.com/tc39/proposal-regexp-named-groups) (when supported by your environment) are transformed into regular Pegase captures:**
-
-```js
-const date = /(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})/;
-const g = peg`${date} ${({ year }) => "The year is " + year}`;
-
-console.log(g.value("2021-08-19")); // "The year is 2021"
-```
-
 ---
 
 ### Handling whitespaces
@@ -679,4 +661,36 @@ definitionOfDir(peg`expr`, "str", 42);
 ```
 
 Directives are used for a wide range of purposes, from wrapping parsers in tokens, making some semantic behavior quickly reusable, toggling whitespace skipping, etc. There are a bunch of standard directives defined in the `defaultPlugin`, like `@omit`, `@raw`, `@number`, `@token`, `@reverse`, etc. See [API > `defaultPlugin`](#defaultplugin) for more infos. You can add support for your own directives by [creating a plugin](#writing-a-plugin).
+
+---
+
+### Working with parse results
+
+*Coming soon.*
+
+## Advanced concepts
+
+### Working with `RegExp`
+
+When a `RegExp` instance is inserted into a parsing expression via tag argument, it is converted into a regexp parser (an instance of `RegExpParser`). Pegase will then emit its *capturing groups* as `children`:
+
+```js
+const time = /(\d+):(\d+)/;
+const minutes = peg`
+  ${time} ${({ $children: [hr, min] }) => 60 * Number(hr) + Number(min)}
+`;
+
+console.log(minutes.value("2:43")); // 163
+```
+
+The `RegExp`'s [named capturing groups](https://github.com/tc39/proposal-regexp-named-groups) (when supported by your environment) are transformed into regular Pegase captures:
+
+```js
+const date = /(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})/;
+const yearIs = peg`
+  ${date} ${({ year }) => "The year is " + year}
+`;
+
+console.log(yearIs.value("2021-08-19")); // "The year is 2021"
+```
 
