@@ -506,7 +506,7 @@ export class ActionParser extends Parser {
     if (match === null) return null;
     try {
       let failed = false,
-        propagate = undefined;
+        emit = undefined;
       const value = this.action({
         ...Object.fromEntries(match.captures),
         $value: inferValue(match.children),
@@ -539,14 +539,14 @@ export class ActionParser extends Parser {
             expected
           });
         },
-        $propagate(children: Array<any> = match.children) {
-          propagate = children.filter(child => child !== undefined);
+        $emit(children: Array<any> = match.children) {
+          emit = children.filter(child => child !== undefined);
         }
       });
       if (failed) return null;
       return {
         ...match,
-        children: propagate ?? (value === undefined ? [] : [value])
+        children: emit ?? (value === undefined ? [] : [value])
       };
     } catch (e) {
       if (!(e instanceof Error)) throw e;

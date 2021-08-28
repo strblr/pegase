@@ -291,21 +291,19 @@ export const defaultPlugin: Plugin = {
     children: action(({ $children }) => $children),
     count: action(({ $children }) => $children.length),
     every: action(({ $children }, predicate) => $children.every(predicate)),
-    filter: action(({ $children, $propagate }, predicate) =>
-      $propagate($children.filter(predicate))
+    filter: action(({ $children, $emit }, predicate) =>
+      $emit($children.filter(predicate))
     ),
     find: action(({ $children }, predicate, defaultValue?) => {
       const result = $children.find(predicate);
       return result === undefined ? defaultValue : result;
     }),
-    flat: action(({ $children, $propagate }, depth = 1) =>
-      $propagate($children.flat(depth))
+    flat: action(({ $children, $emit }, depth = 1) =>
+      $emit($children.flat(depth))
     ),
     forEach: action(({ $children }, callback) => $children.forEach(callback)),
     join: action(({ $children }, separator = ",") => $children.join(separator)),
-    map: action(({ $children, $propagate }, mapper) =>
-      $propagate($children.map(mapper))
-    ),
+    map: action(({ $children, $emit }, mapper) => $emit($children.map(mapper))),
     reduce: action(({ $children }, ...args) =>
       ($children.reduce as Function)(...args)
     ),
@@ -318,9 +316,7 @@ export const defaultPlugin: Plugin = {
             index % 2 ? reducer($children[index - 1], op, acc) : acc
           )
     ),
-    reverse: action(({ $children, $propagate }) =>
-      $propagate([...$children].reverse())
-    ),
+    reverse: action(({ $children, $emit }) => $emit([...$children].reverse())),
     some: action(({ $children }, predicate) => $children.some(predicate)),
     // Other
     action: (parser, action: SemanticAction) =>

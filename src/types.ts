@@ -32,7 +32,7 @@ export type SemanticInfo<Context = any> = {
   $commit(): void;
   $warn(message: string): void;
   $expected(expected: Expectation | Array<Expectation>): void;
-  $propagate(children?: Array<any>): void;
+  $emit(children?: Array<any>): void;
   [capture: string]: any;
 };
 
