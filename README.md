@@ -449,7 +449,7 @@ peg`expr ${({ $propagate }) => $propagate([1, true, "test"])}`; // propagate cus
 
 Great, but `children` are just unlabeled propagated values. Sometimes that's what you want (for example when parsing a phone number list), but more often in semantic actions, you want to be able to grab a specific parser's value by name. This is where *captures* will come in handy.
 
-**A capture expression `<id>a` associates the *value* of a parser `a` to an identifier `id`, which can then be used in semantic actions.**
+**A capture expression `<id>a` associates the *value* (the single child) of a parser `a` to an identifier `id`, which can then be used in semantic actions.**
 
 There are two things to keep in mind:
 
