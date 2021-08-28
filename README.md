@@ -538,9 +538,10 @@ console.log(g.test("aaaaaaa   "));         // true
 ```js
 const g = peg`
   array: '[' _ '1' % ',' _ ']'
-  _: \s*
+  _: \s+
 `;
 
+console.log(g.test("[1,1,1]", { skip: false })); // false
 console.log(g.test("[  1,1,1  ]", { skip: false }));  // true
 console.log(g.test("[  1, 1,1  ]", { skip: false })); // false
 ```
