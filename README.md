@@ -39,6 +39,7 @@ Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
 - [API](#api)
   - [`peg`, `createTag`](#peg-createtag)
   - [`Parser`](#parser)
+  - [`defaultPlugin`](#defaultplugin)
   - [Utility functions](#utility-functions)
   - [Other types](#other-types)
   - [Metagrammar](#metagrammar)
@@ -374,7 +375,7 @@ Here are the different expressions you can use as building blocks of more comple
     </tr>
   </tbody>
 </table>
-
+Under the hood, parsers are instances and compositions of `Parser` subclasses like `LiteralParser`, `TokenParser`, `SequenceParser`, etc. You can read more about it in the [API > `Parser`](#parser) section.
 
 ---
 
@@ -456,16 +457,9 @@ console.log(prefix.parse("+ 5 * 2 6").value); // "5 2 6 * +"
 console.log(prefix.value("+ 5 * 2 6"));       // "5 2 6 * +"
 ```
 
-`value` is `undefined` if there is no child, or multiple children. You can quickly convince yourself that the `prefix` grammar can only ever return one child. Thus, except in case of a parse failure, there is always a `value` to be read from `prefix`. A well designed parsing expression should always have easily predictable `children` for itself and all its nested parser parts. A quick glimpse at a grammar for example should always give you a good general picture of the dataflow.
+`value` is `undefined` if there is no child, or multiple children. You can quickly convince yourself that the `prefix` grammar can only ever return one child. Thus, except in case of a parse failure, there is always a `value` to be read from `prefix`. A well designed parsing expression should always have easily predictable `children` for itself and all its nested parser parts. A quick glimpse at a grammar for example should always give you a good general picture of the dataflow. In most cases, a good design choice is to ensure that non-terminals always emit only up to one child but that's ultimately up to you.
 
-Okay. What if you want to call a semantic action for some side-effects but let the initial `children` propagate through or emit more than one child ? This has to be done explicitly by calling the `$propagate` callback passed as an argument:
-
-```js
-peg`expr ${({ $propagate }) => $propagate()}`; // pass-through
-peg`expr ${({ $propagate }) => $propagate([1, true, "test"])}`; // propagate custom children
-```
-
-If you don't care about emitted `children` and only wanna perform side-effects, then forget about `$propagate` and just don't return any value. Great, but in the end `children` are just unlabeled propagated values. Sometimes that's what you want (typically when you're parsing "list data": a list of phone numbers, a list of operators and operands, a list of arguments to a function, etc.), but more often in semantic actions, you want to be able to grab a specific parser's value by name. This is where *captures* will come in handy.
+Great, but at the end of the day `children` are just unlabeled propagated values. Sometimes that's what you want (typically when you're parsing "list data": a list of phone numbers, a list of operators and operands, a list of arguments to a function, etc.), but very often in semantic actions, you want to be able to grab a specific parser's value by name. This is where *captures* will come in handy.
 
 **A capture expression `<id>a` associates the *value* (the single child) of parser `a` to the identifier `id`, which can then be used in semantic actions.**
 
@@ -474,7 +468,7 @@ There are two things to keep in mind:
 - Non-terminals are self-captured, meaning that `id` is equivalent to `<id>id`.
 - Captures are propagated and accumulated upwards just like `children`, but are stopped at non-terminals. I.e. `'[' expr ']'` will just capture `expr`, but not forward the sub-captures done inside `expr`.
 
-Taking this into consideration, our prefix-to-postfix converter can be rewritten is a slightly nicer and more idiomatic way:
+Taking this into consideration, our prefix-to-postfix converter can be rewritten in a slightly nicer and more idiomatic way:
 
 ```js
 const prefix = peg`
@@ -487,6 +481,15 @@ const prefix = peg`
 ```
 
 As an exercise, try to rewrite the `prefix` grammar so that its value is the actual result of the calculation.
+
+Okay. What if you want to call a semantic action for some side-effects but let the initial `children` propagate through or emit more than one child ? This has to be done explicitly by calling the `$emit` callback passed as an argument:
+
+```js
+peg`expr ${({ $emit }) => $emit()}`; // pass-through (children are forwarded)
+peg`expr ${({ $emit }) => $emit([1, true, "test"])}`; // emit custom children
+```
+
+If you don't care about emitted `children` and only wanna perform side-effects, then forget about `$emit` and just don't return any value.
 
 **When a `RegExp` instance is inserted into a parsing expression, it is converted into a regexp parser. The `children` are the `RegExp`'s *capturing groups*:**
 
@@ -554,8 +557,8 @@ const g = peg`
   _: \s*
 `;
 
-g.test("[  1,1,1  ]", { skip: false });  // true
-g.test("[  1, 1,1  ]", { skip: false }); // false
+console.log(g.test("[  1,1,1  ]", { skip: false }));  // true
+console.log(g.test("[  1, 1,1  ]", { skip: false })); // false
 ```
 
 ---
@@ -657,5 +660,23 @@ peg`two_digit_integer @token("two digit integer"): \d{2}`;
 
 ### Directives
 
-*Coming soon.*
+Directives are functions defined in plugins with the following signature:
+
+```ts
+(parser: Parser, ...args: Array<any>) => Parser
+```
+
+**They transform a `Parser` into a new `Parser`.** The first `parser` argument is the parser the directive is applied to. The `args` array are the additional arguments passed to the directive with the bracketed parameter syntax. These arguments can include tag arguments.
+
+```js
+peg`expr @dir`
+// is equivalent to
+definitionOfDir(peg`expr`);
+
+peg`expr @dir("str", ${42})`;
+// is equivalent to
+definitionOfDir(peg`expr`, "str", 42);
+```
+
+Directives are used for a wide range of purposes, from wrapping parsers in tokens, making some semantic behavior quickly reusable, toggling whitespace skipping, etc. There are a bunch of standard directives defined in the `defaultPlugin`, like `@omit`, `@raw`, `@number`, `@token`, `@reverse`, etc. See [API > `defaultPlugin`](#defaultplugin) for more infos. You can add support for your own directives by [creating a plugin](#writing-a-plugin).
 
