@@ -13,7 +13,7 @@ Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
 
 - **_Inline_**, meaning parsing expressions and grammars are directly expressed in-code as [tagged template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates). No generation step, no CLI. Pegase works in complete symbiosis with JS. As an example, [`RegExp`s](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp) can directly be part of grammars via tag arguments.
 - **_Lightweight_**. Pegase is a _zero-dependency_ package, and weights less than 7kB gzipped.
-- **_Intuitive_**, in that it lets you express complex grammars and semantic actions in simple ways and with excellent error reporting, warnings, error recovery, [cut operator](http://ceur-ws.org/Vol-1269/paper232.pdf), grammar fragments, and a lot more.
+- **_Intuitive_**, in that it lets you express complex grammars and semantic actions in simple ways and with excellent error reporting, warnings, error recovery, [cut operator](#cut-operator), grammar fragments, and a lot more.
 - **_Highly extensible_**: You can define your own `Parser` subclasses, add plugins, write custom directives, etc.
 
 ## Table of Contents
@@ -23,7 +23,7 @@ Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
   - [Quick start](#quick-start)
 - [Basic concepts](#basic-concepts)
   - [Building parsers](#building-parsers)
-  - [Dataflow](#dataflow)
+  - [Semantic actions and dataflow](#semantic-actions-and-dataflow)
   - [Handling whitespaces](#handling-whitespaces)
   - [Tokens](#tokens)
   - [Directives](#directives)
@@ -199,7 +199,7 @@ This will output:
 
 **The `peg` tag accepts any valid Pegase expression and always returns a `Parser` instance.**
 
-Here are the different expressions you can use as building blocks of more complex parsing expressions (in the following examples, `a` and `b` represents any parsing expression of higher precedence). Please note that *every expression* in this table and *every arbitrary composition* of them are `Parser`s in and of themselves.
+Here are the different expressions you can use as building blocks of more complex parsing expressions (in the following examples, `a` and `b` represent any parsing expression of higher precedence). Please note that *every expression* in this table and *every arbitrary composition* of them are `Parser`s in and of themselves.
 
 <table>
   <thead>
@@ -219,7 +219,7 @@ Here are the different expressions you can use as building blocks of more comple
     </tr>
     <tr>
       <td><pre>$</pre></td>
-      <td>Matches the end of the input (equivalent to <code>!.</code>)</td>
+      <td>Matches the end of the input (equivalent to <code>!. @token("end of input")</code>)</td>
       <td><code>[]</code></td>
     </tr>
     <tr>
@@ -375,13 +375,14 @@ Here are the different expressions you can use as building blocks of more comple
   </tbody>
 </table>
 
+
 ---
 
-### Dataflow
+### Semantic actions and dataflow
 
-Differentiating between faulty and correct inputs is generally only part of the job we expect from a parser. Another big part is to **run routines** and **generate data** as a side-effect. In this section, we'll talk *dataflow*, *semantic actions*, *parse children* and *captures*.
+Differentiating between faulty and correct inputs is generally only part of the job we expect from a parser. Another big part is to **run routines** and **generate data** as a side-effect. In this section, we'll talk *semantic actions*, *dataflow*, *parse children* and *captures*.
 
-PEG parsers are top-down parsers, meaning the parsing expressions are recursively traversed (or *"called"*) in a depth-first manner, guided by a left-to-right input read. This traversal process can be represented as a tree, called syntax tree. In fact, a top-down parsing process can be thought of as an attempt to build such tree. Let's illustrate that with the following grammar:
+PEG parsers are top-down parsers, meaning the parsing expressions are recursively traversed (or *"called"*) in a depth-first manner, guided by a left-to-right input read. This traversal process can be represented as a tree, called syntax tree. Let's illustrate that with the following grammar:
 
 ```js
 const prefix = peg`
@@ -396,7 +397,7 @@ The input `"+ 5 * 2 6"` would generate the following syntax tree:
 
 **To handle semantic values, Pegase implements a mechanism by which every individual parser can emit an array of values called `children`**.
 
-For example, in the `op` rule, `'+'` is a parser in and of itself who will succeed if a *plus* character can be read from the input. It's called a *literal* parser. You can make every literal parser emit the substring they matched as a single child by using double quotes instead of single quotes. More generally, we can make **any** parser emit the substring they matched as a single child by using the `@raw` directive. So `\d @raw` will emit the exact character it just matched.
+For example, in the `op` rule, `'+'` is a parser in and of itself who will succeed if a *plus* character can be read from the input. It's called a *literal* parser. You can make every literal parser emit the substring they matched as a single child by using double quotes instead of single quotes. More generally, you can make **any** parser emit the substring they matched as a single child by using the `@raw` directive. So `\d @raw` will emit the exact character it just matched.
 
 **`children` can be collected and processed in parent parsers through composition**.
 
@@ -424,9 +425,9 @@ console.log(prefix.children("+ 5 * 2 6"));       // ["+", "5", "*", "2", "6"]
 
 That can already be pretty useful, but what you usually want to do is to process these `children` in certain ways at strategic steps during parse time in order to incrementally build your desired output. This is where *semantic actions* come into play.
 
-**A semantic action is a `Parser` wrapped around another `Parser`, and whose role is to call a callback on success. This callback will be provided with a bunch of infos like the `children`, captures, matched substring, etc. If it returns a *non-undefined* value, this value will be emitted as a single child. If it returns `undefined`, no child will be emitted.**
+**A semantic action wraps around a `Parser` and calls a callback on success. This callback will be given `children`, captures, matched substring and more. If it returns `undefined`, no child will be emitted. Any other return value will be emitted as a single child.**
 
-Let's take our `prefix` grammar and say we want to make it generate the input expression but written in postfix notation (operators *after* operands). All we need to do is wrap a semantic action around `op expr expr`, reorder its `children` to postfix order, join them into a string and emit that string as a single child.
+Let's take our `prefix` grammar and say we want to make it generate the input expression in postfix notation (operators *after* operands). All we need to do is wrap a semantic action around `op expr expr`, reorder its `children` to postfix order, join them into a string and emit that string as a single child.
 
 ```js
 const prefix = peg`
@@ -445,7 +446,7 @@ Recursively, this process will transform the entire input from prefix to postfix
 Let's test this:
 
 ```js
-console.log(prefix.parse("+ 5 * 2 6").children); // ["5 2 6 * +"]
+console.log(prefix.children("+ 5 * 2 6")); // ["5 2 6 * +"]
 ```
 
 **When a `Parser` emits only a single child, it's called the *value* of that `Parser`.**
@@ -455,25 +456,25 @@ console.log(prefix.parse("+ 5 * 2 6").value); // "5 2 6 * +"
 console.log(prefix.value("+ 5 * 2 6"));       // "5 2 6 * +"
 ```
 
-`value` is `undefined` if there is no child, or multiple children.
+`value` is `undefined` if there is no child, or multiple children. You can quickly convince yourself that the `prefix` grammar can only ever return one child. Thus, except in case of a parse failure, there is always a `value` to be read from `prefix`. A well designed parsing expression should always have easily predictable `children` for itself and all its nested parser parts. A quick glimpse at a grammar for example should always give you a good general picture of the dataflow.
 
-What if you want to call a semantic action for some side-effects but let the initial `children` propagate through or emit more than one child ? Well, this has to be done explicitly by calling the `$propagate` callback passed as an argument:
+Okay. What if you want to call a semantic action for some side-effects but let the initial `children` propagate through or emit more than one child ? This has to be done explicitly by calling the `$propagate` callback passed as an argument:
 
 ```js
 peg`expr ${({ $propagate }) => $propagate()}`; // pass-through
 peg`expr ${({ $propagate }) => $propagate([1, true, "test"])}`; // propagate custom children
 ```
 
-Great, but `children` are just unlabeled propagated values. Sometimes that's what you want (for example when parsing a phone number list), but more often in semantic actions, you want to be able to grab a specific parser's value by name. This is where *captures* will come in handy.
+If you don't care about emitted `children` and only wanna perform side-effects, then forget about `$propagate` and just don't return any value. Great, but in the end `children` are just unlabeled propagated values. Sometimes that's what you want (typically when you're parsing "list data": a list of phone numbers, a list of operators and operands, a list of arguments to a function, etc.), but more often in semantic actions, you want to be able to grab a specific parser's value by name. This is where *captures* will come in handy.
 
-**A capture expression `<id>a` associates the *value* (the single child) of a parser `a` to an identifier `id`, which can then be used in semantic actions.**
+**A capture expression `<id>a` associates the *value* (the single child) of parser `a` to the identifier `id`, which can then be used in semantic actions.**
 
 There are two things to keep in mind:
 
 - Non-terminals are self-captured, meaning that `id` is equivalent to `<id>id`.
-- Captures are propagated and accumulated upwards just like `children`, but are stopped at non-terminals. I.e. `'[' expr ']'` will just capture `expr`, but not forward the sub-captures done in `expr`.
+- Captures are propagated and accumulated upwards just like `children`, but are stopped at non-terminals. I.e. `'[' expr ']'` will just capture `expr`, but not forward the sub-captures done inside `expr`.
 
-Taking this into consideration, our prefix-to-postfix converter could be rewritten is a clearer way:
+Taking this into consideration, our prefix-to-postfix converter can be rewritten is a slightly nicer and more idiomatic way:
 
 ```js
 const prefix = peg`
@@ -548,6 +549,101 @@ console.log(g.test("aaaaaaa   "));         // true
 ---
 
 ### Tokens
+
+To understand the need for a token concept, let's take a look at a quick example. Let's try and write a grammar to match and extract a coma-separated integer list:
+
+```js
+const intList = peg`
+	list: integer % ','
+  integer @raw: \d+
+`
+```
+
+But this doesn't work. Indeed, as whitespace skipping happens before every `\d`, `\d+` can match any space-separated digit list. Thus, `"23 4, 45"` would be a valid input because `23 4` would be considered *one* integer:
+
+```js
+console.log(intList.children("23 4, 45")); // ["23 4", "45"]
+```
+
+You might intuitively want to disable skipping for the integer rule:
+
+```js
+const intList = peg`
+	list: integer % ','
+  integer @raw @noskip: \d+
+`
+```
+
+But this doesn't work either, because now you don't allow for whitespaces *before* integers. So a simple `"1, 1"` would fail when it should not:
+
+```js
+console.log(intList.parse("1, 1").logs());
+```
+
+```
+(1:3) Failure: Expected /\d/
+
+> 1 | 1, 1
+    |   ^
+```
+
+If you think about it, what we need is to skip whitespaces **before** `integer` but not **inside** it. And that's exactly what a token parser does:
+
+**A token parser wraps around a `Parser` and performs pre-skipping before calling it. Skipping is then disabled inside.**
+
+Essentially, the token parser avoids the need for explicit whitespaces in the grammar *and* for an external tokenizer by treating any arbitrary parsing expression *as if* it were a terminal. Let's try it out and see that it works as expected:
+
+```js
+const intList = peg`
+	list: integer % ','
+  integer @raw @token: \d+
+`
+```
+
+```js
+console.log(intList.parse("23 4, 45").logs());
+```
+
+```
+(1:4) Failure: Expected "," or end of input
+
+> 1 | 23 4, 45
+    |    ^
+```
+
+**A token can be given a *display name* to improve failure logging.**
+
+More often than not, tokens have a lexeme semantic, meaning we want to label them quick and easy and don't much care about their internal syntactical details. This can be done by passing a string as an argument to the `@token` directive:
+
+```js
+const intList = peg`
+	list: integer % ','
+  integer @raw @token("fancy integer"): \d+
+`
+```
+
+```js
+console.log(intList.parse("12,").logs());
+```
+
+```
+(1:4) Failure: Expected fancy integer
+
+> 1 | 12,
+    |    ^
+```
+
+What you will most likely want to write are some `fancyToken @token("fancy token")` rules. That's why Pegase has a shortcut for those: by starting your rule name with a dollar sign, that pattern is automated. The display name is then inferred by transforming pascal case, camel case and/or snake case rule names to space case.
+
+```js
+peg`$myToken: [a-z]+`;
+// is the same as
+peg`myToken @token("my token"): [a-z]+`;
+```
+
+---
+
+### Directives
 
 *Coming soon.*
 
