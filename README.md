@@ -71,16 +71,6 @@ const g = peg`
 `;
 ```
 
-A few early notes here :
-
-- `a % b` is a shortcut for `a (b a)*`, meaning _"any sequence of `a` separated by `b`"_.
-- You can think of parsers as black boxes *emitting* (if they succeed) zero or more values, called `children`. These black boxes can be composed together to form more complex parsers.
-- `@infix` is a directive. It transforms a parser's `children` by treating them as items of an infix expression and reducing them to a single child using the provided callback.
-- `@number` is another directive. It converts the matched substring into a number and emits that number as a single child.
-- By default, whitespace *skipping* is automatically handled without you having to tweak a single thing. It's entirely configurable of course.
-- Rules starting with `$` are *tokens*. Tokens are parsers with special behavior regarding failure reporting and whitespace skipping.
-- Notice how some literals are single-quoted like `')'` or double-quoted like `"+"`. Double-quote literals emit their string match as a single child, while single-quotes are silent. Writing the operators with double quotes allows them to be accumulated and processed in `@infix`.
-
 Let's see how this plays out :
 
 #### `g.value("2 + (17-2*30) *(-5)+2")`
@@ -103,6 +93,16 @@ false
 > 1 | 2* (4 + )/32
     |         ^
 ```
+
+A few early notes here :
+
+- `a % b` is a shortcut for `a (b a)*`, meaning _"any sequence of `a` separated by `b`"_.
+- You can think of parsers as black boxes *emitting* (if they succeed) zero or more values, called `children`. These black boxes can be composed together to form more complex parsers.
+- `@infix` is a directive. It transforms a parser's `children` by treating them as items of an infix expression and reducing them to a single child using the provided callback.
+- `@number` is another directive. It converts the matched substring into a number and emits that number as a single child.
+- By default, whitespace *skipping* is automatically handled without you having to tweak a single thing. It's entirely configurable of course.
+- Rules starting with `$` are *tokens*. Tokens are parsers with special behavior regarding failure reporting and whitespace skipping.
+- Notice how some literals are single-quoted like `')'` or double-quoted like `"+"`. Double-quote literals emit their string match as a single child, while single-quotes are silent. Writing the operators with double quotes allows them to be accumulated and processed in `@infix`.
 
 Don't worry if things aren't so clear yet. The rest of the documentation below is here to go step by step in all the underlying concepts, so that you understand the core philosophy and principles at hand.
 
@@ -693,4 +693,10 @@ const yearIs = peg`
 
 console.log(yearIs.value("2021-08-19")); // "The year is 2021"
 ```
+
+---
+
+### Cut operator
+
+*Coming soon.*
 
