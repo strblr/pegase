@@ -109,7 +109,7 @@ export function resolveDirective(plugins: Array<Plugin>, directive: string) {
   );
   if (!plugin)
     throw new Error(
-      `Couldn't resolve directive "${directive}", you can add support for it via peg.addPlugin`
+      `Couldn't resolve directive "${directive}", you can add support for it via peg.extend`
     );
   return plugin.directives![directive];
 }

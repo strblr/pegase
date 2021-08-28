@@ -58,12 +58,13 @@ export function createTag() {
   peg.trace = false;
   peg.plugins = [defaultPlugin];
 
-  peg.addPlugin = (...plugins: Array<Plugin>) => {
-    peg.plugins = [...[...plugins].reverse(), ...peg.plugins];
+  peg.extend = (...plugins: Array<Plugin>) => {
+    peg.plugins = [...peg.plugins, ...plugins];
   };
 
-  peg.removePlugin = (...plugins: Array<Plugin>) => {
-    peg.plugins = peg.plugins.filter(plugin => !plugins.includes(plugin));
+  peg.unextend = (...plugins: Array<Plugin>) => {
+    const set = new Set(plugins);
+    peg.plugins = peg.plugins.filter(plugin => !set.has(plugin));
   };
 
   return peg;
@@ -516,7 +517,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
           );
           if (!parser)
             throw new Error(
-              "The tag argument is not castable to Parser, you can add support for it via peg.addPlugin"
+              "The tag argument is not castable to Parser, you can add support for it via peg.extend"
             );
           return parser;
         }

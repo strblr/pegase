@@ -214,7 +214,7 @@ export class NonTerminalParser extends Parser {
         options = { ...options, grammar: this.fallback };
       else
         throw new Error(
-          `Couldn't resolve rule "${this.label}", you can add it by merging grammars or via peg.addPlugin`
+          `Couldn't resolve rule "${this.label}", you can add it by merging grammars or via peg.extend`
         );
     options.trace &&
       options.tracer({
