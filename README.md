@@ -334,7 +334,7 @@ Here are the different expressions you can use as building blocks of more comple
     </tr>
     <tr>
       <td><pre>a % b<br/>a %? b<br/>a %{3} b<br/>a %{3,} b</pre>etc.</td>
-      <td>Matches a sequence of <code>a</code>s separated by <code>b</code>. The <code>%</code> operator can be parametrized using the quantifiers described above.</td>
+      <td>Matches a sequence of <code>a</code>s separated by <code>b</code>. The <code>%</code> operator can be parametrized using the quantifiers described above. <code>a % b</code> is equivalent to <code>a (b a)*</code>, <code>a %? b</code> to <code>a (b a)?</code>, etc.</td>
       <td>Forwarded and concatenated from the matched sequence of <code>a</code>s and <code>b</code>s</td>
       <td align="center">5</td>
     </tr>
@@ -375,6 +375,7 @@ Here are the different expressions you can use as building blocks of more comple
     </tr>
   </tbody>
 </table>
+
 Under the hood, parsers are instances and compositions of `Parser` subclasses like `LiteralParser`, `TokenParser`, `SequenceParser`, etc. You can read more about it in the [API > `Parser`](#parser) section.
 
 ---
