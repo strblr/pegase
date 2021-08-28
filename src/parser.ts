@@ -333,19 +333,19 @@ export class GrammarParser extends Parser {
 
 export class TokenParser extends Parser {
   parser: Parser;
-  alias?: string;
+  displayName?: string;
 
-  constructor(parser: Parser, alias?: string) {
+  constructor(parser: Parser, displayName?: string) {
     super();
     this.parser = parser;
-    this.alias = alias;
+    this.displayName = displayName;
   }
 
   exec(options: ParseOptions) {
     const from = skip(options);
     if (from === null) return null;
     options = { ...options, from, skip: false };
-    if (!this.alias) return this.parser.exec(options);
+    if (!this.displayName) return this.parser.exec(options);
     const match = this.parser.exec({
       ...options,
       internals: { ...options.internals, failures: [], committed: [] }
@@ -355,7 +355,7 @@ export class TokenParser extends Parser {
       from,
       to: from,
       type: FailureType.Expectation,
-      expected: [{ type: ExpectationType.Token, alias: this.alias }]
+      expected: [{ type: ExpectationType.Token, displayName: this.displayName }]
     });
     return null;
   }

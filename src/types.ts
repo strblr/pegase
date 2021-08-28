@@ -135,7 +135,7 @@ export type RegExpExpectation = {
 
 export type TokenExpectation = {
   type: ExpectationType.Token;
-  alias: string;
+  displayName: string;
 };
 
 export type MismatchExpectation = {

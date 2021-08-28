@@ -209,7 +209,7 @@ export function log(result: Result, options?: Partial<LogOptions>) {
       case ExpectationType.RegExp:
         return String(expectation.regExp);
       case ExpectationType.Token:
-        return expectation.alias;
+        return expectation.displayName;
       case ExpectationType.Mismatch:
         return `mismatch of "${result.options.input.substring(
           expectation.match.from.index,
@@ -325,7 +325,8 @@ export const defaultPlugin: Plugin = {
     // Other
     action: (parser, action: SemanticAction) =>
       new ActionParser(parser, action),
-    token: (parser, alias?: string) => new TokenParser(parser, alias),
+    token: (parser, displayName?: string) =>
+      new TokenParser(parser, displayName),
     test: parser =>
       new OptionsParser([
         new ActionParser(parser, () => true),
