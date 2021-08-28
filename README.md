@@ -470,13 +470,22 @@ const prefix = peg`
 
 As an exercise, try to rewrite the `prefix` grammar so that its value is the actual result of the calculation.
 
-**When a `RegExp` instance is inserted into a parsing expression, it is converted into a regexp parser. The `children` are the `RegExp`'s *capturing groups*, and its [named capturing groups](https://github.com/tc39/proposal-regexp-named-groups) (when supported by your environment) are transformed into regular Pegase captures.**
+**When a `RegExp` instance is inserted into a parsing expression, it is converted into a regexp parser. The `children` are the `RegExp`'s *capturing groups*:**
 
 ```js
-const rgx = /@(\d+)/;
-const g = peg`${rgx} ${({ $value }) => 2*Number($value)}`;
+const num = /@(\d+)/;
+const g = peg`${num} ${({ $value }) => 2*Number($value)}`;
 
 console.log(g.value("@13")); // 26
+```
+
+**The `RegExp`'s [named capturing groups](https://github.com/tc39/proposal-regexp-named-groups) (when supported by your environment) are transformed into regular Pegase captures:**
+
+```js
+const date = /(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})/;
+const g = peg`${date} ${({ year }) => "The year is " + year}`;
+
+console.log(g.value("2021-08-19")); // "The year is 2021"
 ```
 
 ---
