@@ -483,10 +483,11 @@ const prefix = peg`
 
 As an exercise, try to rewrite the `prefix` grammar so that its value is the actual result of the calculation.
 
-Okay. What if you want to call a semantic action for some side-effects but let the initial `children` propagate through or emit more than one child ? This has to be done explicitly by calling the `$emit` callback passed as an argument:
+Okay. What if you want to call a semantic action for some side-effects but let the initial `children` propagate through, or emit more than one child ? This has to be done explicitly by calling the `$emit` callback passed as an argument:
 
 ```js
-peg`expr ${({ $emit }) => $emit()}`; // pass-through (children are forwarded)
+peg`expr ${() => undefined}`; // expr's children are blocked (emits [])
+peg`expr ${({ $emit }) => $emit()}`; // expr's children are forwarded (pass-through)
 peg`expr ${({ $emit }) => $emit([1, true, "test"])}`; // emit custom children
 ```
 
