@@ -26,6 +26,23 @@ Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
   - [Dataflow](#dataflow)
   - [Handling whitespaces](#handling-whitespaces)
   - [Tokens](#tokens)
+  - [Directives](#directives)
+  - [Dealing with parse results](#dealing-with-parse-results)
+- [Advanced concepts](#advanced-concepts)
+  - [Working with `RegExp`](#working-with-regexp)
+  - [Cut operator](#cut-operator)
+  - [Using TypeScript](#using-typescript)
+  - [Grammar fragments](#grammar-fragments)
+  - [Failure recovery](#failure-recovery)
+  - [Writing a plugin](#writing-a-plugin)
+  - [L-attributed grammars](#l-attributed-grammars)
+- [API](#api)
+  - [`peg`, `createTag`](#peg-createtag)
+  - [`Parser`](#parser)
+  - [Utility functions](#utility-functions)
+  - [Other types](#other-types)
+  - [Metagrammar](#metagrammar)
+- [Bug report and discussion](#bug-report-and-discussion)
 
 ## Overview
 
@@ -48,9 +65,8 @@ function calc(left, op, right) {
 const g = peg`  
   expr: term % ("+" | "-") @infix(${calc})  
   term: fact % ("*" | "/") @infix(${calc})  
-  fact: num | '(' expr ')'
-  num @token("integer"):
-    '-'? [0-9]+ @number
+  fact: integer | '(' expr ')'
+  $integer @number: '-'? [0-9]+
 `;
 ```
 
@@ -60,18 +76,19 @@ A few early notes here :
 - You can think of parsers as black boxes *emitting* (if they succeed) zero or more values, called `children`. These black boxes can be composed together to form more complex parsers.
 - `@infix` is a directive. It transforms a parser's `children` by treating them as items of an infix expression and reducing them to a single child using the provided callback.
 - `@number` is another directive. It converts the matched substring into a number and emits that number as a single child.
-- By default, whitespace skipping is automatically handled without you having to tweak a single thing. It's entirely configurable of course.
+- By default, whitespace *skipping* is automatically handled without you having to tweak a single thing. It's entirely configurable of course.
+- Rules starting with `$` are *tokens*. Tokens are parsers with special behavior regarding failure reporting and whitespace skipping.
 - Notice how some literals are single-quoted like `')'` or double-quoted like `"+"`. Double-quote literals emit their string match as a single child, while single-quotes are silent. Writing the operators with double quotes allows them to be accumulated and processed in `@infix`.
 
 Let's see how this plays out :
 
-#### `g.parse("2 + (17-2*30) *(-5)+2").value`
+#### `g.value("2 + (17-2*30) *(-5)+2")`
 
 ```json
 219
 ```
 
-#### `g.parse("2* (4 + )/32").success`
+#### `g.test("2* (4 + )/32")`
 
 ```json
 false
