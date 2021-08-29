@@ -1,5 +1,6 @@
 import {
   ActionParser,
+  CutParser,
   Directive,
   Expectation,
   ExpectationType,
@@ -188,9 +189,9 @@ export function log(result: Result, options?: Partial<LogOptions>) {
   const stringifyEntry = (entry: Warning | Failure) => {
     switch (entry.type) {
       case WarningType.Message:
-        return ["Warning", entry.message];
+        return `Warning: ${entry.message}`;
       case FailureType.Semantic:
-        return ["Failure", entry.message];
+        return `Failure: ${entry.message}`;
       case FailureType.Expectation:
         const expectations = entry.expected
           .map(expectation => stringifyExpectation(expectation))
@@ -198,7 +199,7 @@ export function log(result: Result, options?: Partial<LogOptions>) {
             (acc, expected, index, { length }) =>
               `${acc}${index === length - 1 ? " or " : ", "}${expected}`
           );
-        return ["Failure", `Expected ${expectations}`];
+        return `Failure: Expected ${expectations}`;
     }
   };
 
@@ -253,8 +254,7 @@ export function log(result: Result, options?: Partial<LogOptions>) {
   return entries
     .map(entry => {
       let acc = `(${entry.from.line}:${entry.from.column}) `;
-      const [type, detail] = stringifyEntry(entry);
-      acc += `${type}: ${detail}`;
+      acc += stringifyEntry(entry);
       if (fullOptions.codeFrames) acc += `\n\n${codeFrame(entry.from)}`;
       return acc;
     })
@@ -326,7 +326,7 @@ export const defaultPlugin: Plugin = {
     test: parser =>
       new OptionsParser([
         new ActionParser(parser, () => true),
-        new ActionParser(new LiteralParser(""), () => false)
+        new ActionParser(new CutParser(), () => false)
       ])
   }
 };
