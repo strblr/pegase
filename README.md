@@ -27,7 +27,7 @@ Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
   - [Handling whitespaces](#handling-whitespaces)
   - [Tokens](#tokens)
   - [Directives](#directives)
-  - [Working with parse results](#working-with-parse-results)
+  - [Results, failures and warnings](#results-failures-and-warnings)
 - [Advanced concepts](#advanced-concepts)
   - [Working with `RegExp`](#working-with-regexp)
   - [Cut operator](#cut-operator)
@@ -541,7 +541,7 @@ const g = peg`
   _: \s+
 `;
 
-console.log(g.test("[1,1,1]", { skip: false })); // false
+console.log(g.test("[1,1,1]", { skip: false }));      // false
 console.log(g.test("[  1,1,1  ]", { skip: false }));  // true
 console.log(g.test("[  1, 1,1  ]", { skip: false })); // false
 ```
@@ -654,20 +654,28 @@ Directives are functions defined in plugins with the following signature:
 **They transform a `Parser` into a new `Parser`.** The first `parser` argument is the parser the directive is applied to. The `args` array are the additional arguments passed to the directive with the bracketed parameter syntax. These arguments can include tag arguments.
 
 ```js
-peg`expr @dir`
+peg`a @dir`
 // is equivalent to
-definitionOfDir(peg`expr`);
+definitionOfDir(peg`a`);
 
-peg`expr @dir("str", ${42})`;
+peg`a @dir("str", ${42})`;
 // is equivalent to
-definitionOfDir(peg`expr`, "str", 42);
+definitionOfDir(peg`a`, "str", 42);
 ```
 
-Directives are used for a wide range of purposes, from wrapping parsers in tokens, making some semantic behavior quickly reusable, toggling whitespace skipping, etc. There are a bunch of standard directives defined in the `defaultPlugin`, like `@omit`, `@raw`, `@number`, `@token`, `@reverse`, etc. See [API > `defaultPlugin`](#defaultplugin) for more infos. You can add support for your own directives by [creating a plugin](#writing-a-plugin).
+Directives are used for a wide range of purposes, from wrapping parsers in tokens, making some semantic behavior quickly reusable, toggling whitespace skipping, etc. There are a bunch of standard directives defined in the `defaultPlugin`, like `@omit`, `@raw`, `@number`, `@token`, `@reverse`, etc. See [API > `defaultPlugin`](#defaultplugin) for more infos. As a quick example, the standard `@test` directive wraps around a `Parser` `a`, and creates a new `Parser` that will always succeed, emitting `true` if `a` succeeds and `false` otherwise. In other words, a definition for `@test` could be:
+
+```js
+function test(a) {
+  return peg`${a} ${() => true} | ^${() => false}`;
+}
+```
+
+(Yes, the cut operator `^` can be used to implement default cases in alternatives). In [creating a plugin](#creating-a-plugin) section, you will learn how such functions are added to plugins, and how plugins are added to the `peg` tag. This will allow you to add support for your **own custom directives**.
 
 ---
 
-### Working with parse results
+### Results, failures and warnings
 
 *Coming soon.*
 
@@ -701,5 +709,27 @@ console.log(yearIs.value("2021-08-19")); // "The year is 2021"
 
 ### Cut operator
 
-*Coming soon.*
+Pegase implements the concept of [cut points](http://ceur-ws.org/Vol-1269/paper232.pdf) in the form of a cut operator: `^`. There are times when, passing a certain point in an alternative, you know *for sure* that every remaining alternatives would also fail and thus don't need to be tried out. That "point" can be marked explicitly by `^` in your parsing expression and has the effect to **commit to the current alternative**: even if it were to fail past that point, the remaining expressions in the *first parent alternative* would not be tried out.
+
+An example will explain it better: let's say you want to write a compiler for a C-like language. You define an `instr` rule that can match an `if` statement, a `while` loop or a `do...while` loop. If the terminal `'if'` successfully matched, then *even* if the rest of the expression fails, there is just no way for an alternative `while` loop or a `do...while` loop to match. That means you can insert a *cut point* right after `'if'`. The same reasoning can be applied to the `'while'` terminal, but is useless for `'do'` since it's already the last alternative.
+
+```js
+peg`
+  instr:
+  | 'if' ^ '(' expr ')' instr
+  | 'while' ^ '(' expr ')' instr
+  | 'do' instr 'while' '(' expr ')'
+`;
+```
+
+Since `^` is implemented as a no-op `Parser` that always succeeds (nothing is consumed nor emitted), it can **also** be used to implement default cases in alternative expressions, with the same effect but more efficient than the empty string:
+
+```js
+peg`
+  size:
+  | 'small' ${() => new SmallSize()}
+  | 'big'   ${() => new BigSize()}
+  | ^       ${() => new DefaultSize()}
+`;
+```
 
