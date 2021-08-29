@@ -576,11 +576,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
           ),
           new LiteralParser("}")
         ]),
-        ({
-          $match: {
-            children: [min, max]
-          }
-        }) => [min, max ?? min]
+        ({ $children: [min, max] }) => [min, max ?? min]
       )
     ])
   ],

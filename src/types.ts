@@ -25,10 +25,12 @@ export type SemanticAction<Context = any> = (
 export type SemanticInfo<Context = any> = {
   $value: any;
   $raw: string;
+  $from: Match["from"];
+  $to: Match["to"];
+  $children: Match["children"];
+  $captures: Match["captures"];
   $options: ParseOptions<Context>;
-  $match: Match;
   $context: Context;
-  $children: Array<any>;
   $commit(): void;
   $warn(message: string): void;
   $expected(expected: Expectation | Array<Expectation>): void;

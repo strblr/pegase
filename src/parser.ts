@@ -508,10 +508,12 @@ export class ActionParser extends Parser {
         ...Object.fromEntries(match.captures),
         $value: inferValue(match.children),
         $raw: options.input.substring(match.from.index, match.to.index),
-        $options: options,
-        $match: match,
-        $context: options.context,
+        $from: match.from,
+        $to: match.to,
         $children: match.children,
+        $captures: match.captures,
+        $options: options,
+        $context: options.context,
         $commit() {
           options.internals.committed.push(
             ...mergeFailures(options.internals.failures)
