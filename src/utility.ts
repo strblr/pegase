@@ -183,7 +183,7 @@ export function log(result: Result, options?: Partial<LogOptions>) {
   };
   const entries = [
     ...(fullOptions.warnings ? result.warnings : []),
-    ...(fullOptions.failures && !result.success ? result.failures : [])
+    ...(fullOptions.failures ? result.failures : [])
   ].sort((a, b) => a.from.index - b.from.index);
 
   const stringifyEntry = (entry: Warning | Failure) => {

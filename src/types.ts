@@ -182,12 +182,12 @@ export type SuccessResult<Value = any, Context = any> = ResultCommon<Context> &
 
 export type FailResult<Context = any> = ResultCommon<Context> & {
   success: false;
-  failures: Array<Failure>;
 };
 
 export type ResultCommon<Context = any> = {
   options: ParseOptions<Context>;
   warnings: Array<Warning>;
+  failures: Array<Failure>;
   logs(options?: Partial<LogOptions>): string;
 };
 

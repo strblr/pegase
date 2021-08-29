@@ -182,6 +182,34 @@ test("L-attributed grammars should be implementable using context", () => {
   expect(g.value("61- 20 -14  -  3")).toBe(24);
 });
 
+test("Failure recovery should work", () => {
+  const g = peg`
+    bitArray: '[' (bit | ^${({ $commit }) => $commit()}) % ...',' ']'
+    bit: 0 | 1
+  `;
+
+  const result = g.parse("[1, 0, 2, 1, 3, 0, 1, 2, 0, 1, 1]");
+
+  expect(result.success).toBe(true);
+  expect(result.logs()).toBe(`(1:8) Failure: Expected "0" or "1"
+
+> 1 | [1, 0, 2, 1, 3, 0, 1, 2, 0, 1, 1]
+    |        ^
+
+
+(1:14) Failure: Expected "0" or "1"
+
+> 1 | [1, 0, 2, 1, 3, 0, 1, 2, 0, 1, 1]
+    |              ^
+
+
+(1:23) Failure: Expected "0" or "1"
+
+> 1 | [1, 0, 2, 1, 3, 0, 1, 2, 0, 1, 1]
+    |                       ^
+`);
+});
+
 test("Math expressions should be correctly calculated", () => {
   function doop(left: number, op: string, right: number) {
     switch (op) {

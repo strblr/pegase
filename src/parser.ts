@@ -87,19 +87,16 @@ export abstract class Parser<Value = any, Context = any> {
     const common: ResultCommon = {
       options: opts,
       warnings: opts.internals.warnings,
+      failures: [
+        ...opts.internals.committed,
+        ...(match ? [] : mergeFailures(opts.internals.failures))
+      ],
       logs(options) {
         return log(result, options);
       }
     };
     const result: Result<Value> = !match
-      ? {
-          ...common,
-          success: false,
-          failures: [
-            ...opts.internals.committed,
-            ...mergeFailures(opts.internals.failures)
-          ]
-        }
+      ? { ...common, success: false }
       : {
           ...common,
           ...match,
