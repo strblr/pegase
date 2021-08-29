@@ -43,7 +43,7 @@ export function createTag() {
     chunks: TemplateStringsArray,
     ...args: Array<Any>
   ): Parser<Value, Context> {
-    const result = metagrammar.parse(
+    return metagrammar.value(
       chunks.raw.reduce((acc, chunk, index) => acc + `~${index - 1}` + chunk),
       {
         skipper: pegSkipper,
@@ -51,8 +51,6 @@ export function createTag() {
         context: { plugins: peg.plugins, args }
       }
     );
-    if (!result.success) throw new Error(result.logs());
-    return result.value;
   }
 
   peg.trace = false;
