@@ -27,7 +27,7 @@ Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
   - [Handling whitespaces](#handling-whitespaces)
   - [Tokens](#tokens)
   - [Directives](#directives)
-  - [Results, failures and warnings](#results-failures-and-warnings)
+  - [Failures and warnings](#failures-and-warnings)
 - [Advanced concepts](#advanced-concepts)
   - [Working with `RegExp`](#working-with-regexp)
   - [Cut operator](#cut-operator)
@@ -486,12 +486,12 @@ As an exercise, try to rewrite the `prefix` grammar so that its value is the act
 Okay. What if you want to call a semantic action for some side-effects but let the initial `children` propagate through, or emit more than one child ? This has to be done explicitly by calling the `$emit` callback passed as an argument:
 
 ```js
-peg`expr ${() => undefined}`; // expr's children are blocked (emits [])
-peg`expr ${({ $emit }) => $emit()}`; // expr's children are forwarded (pass-through)
-peg`expr ${({ $emit }) => $emit([1, true, "test"])}`; // emit custom children
+peg`a ${() => undefined}`; // a's children are blocked (emits [])
+peg`a ${({ $emit }) => $emit()}`; // a's children are forwarded (pass-through)
+peg`a ${({ $emit }) => $emit([1, true, "test"])}`; // emit custom children
 ```
 
-If you don't care about emitted `children` and only wanna perform side-effects, then forget about `$emit` and just don't return any value.
+If you don't care about emitted `children` and *only* wanna perform side-effects, then forget about `$emit` and just don't return any value.
 
 ---
 
@@ -675,15 +675,23 @@ function test(a) {
 
 ---
 
-### Results, failures and warnings
+### Failures and warnings
 
-*Coming soon.*
+Producing accurate error messages is notoriously difficult when it comes to PEG parsing. That's because when a faulty input triggers a parse failure where it should (ex. `"1"` was matched where `"0"` was expected), the parser *backtracks* to all the parent alternatives, tries them out, **fails repetitively**, before ultimately exiting with an error. Thus, a naive implementation would not be able to give you an accurate report: its last recorded failure probably isn't the real *error* you're interested in. You also can't just short-exit on the first failure you encounter, since that would prohibit any backtracking.
+
+**Because of PEG's backtracking capacities, a parse failure isn't necessarily an input error.**
+
+This is well explained in [this paper](http://scg.unibe.ch/archive/masters/Ruef16a.pdf). Other parsing algorithms like `LL` or `LALR` don't suffer from that problem but are also more difficult to implement and more restrictive in the type of grammars and parsing expressions they allow. Fortunately for us, there exists a non-naive method to implement failures in PEG parsing that performs very well at differentiating simple failures from input errors. It's called the **farthest failure heuristic**.
+
+*Coming soon...*
+
+When you call `Parser`'s `parse` method, what you get back is a result object. That result object can either be a success object, or a fail object. Both have some common properties, but some other properties are specific. The common properties are: `options`, `warnings`, `failures` and `logs`.
 
 ## Advanced concepts
 
 ### Working with `RegExp`
 
-When a `RegExp` instance is inserted into a parsing expression via tag argument, it is converted into a regexp parser (an instance of `RegExpParser`). Pegase will then emit its *capturing groups* as `children`:
+When a `RegExp` instance is inserted into a parsing expression via tag argument, it is converted into a regexp parser (an instance of `RegExpParser`, a subclass of `Parser`). Pegase will then emit its *capturing groups* as `children`:
 
 ```js
 const time = /(\d+):(\d+)/;
