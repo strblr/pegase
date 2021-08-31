@@ -535,7 +535,13 @@ export class ActionParser extends Parser {
             from: match.from,
             to: match.to,
             type: FailureType.Expectation,
-            expected
+            expected: expected.map(expected =>
+              typeof expected === "string"
+                ? { type: ExpectationType.Literal, literal: expected }
+                : expected instanceof RegExp
+                ? { type: ExpectationType.RegExp, regExp: expected }
+                : expected
+            )
           });
         },
         $emit(children: Array<any> = match.children) {

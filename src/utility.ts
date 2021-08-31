@@ -216,6 +216,8 @@ export function log(result: Result, options?: Partial<LogOptions>) {
           expectation.match.from.index,
           expectation.match.to.index
         )}"`;
+      case ExpectationType.Custom:
+        return expectation.display;
     }
   };
 

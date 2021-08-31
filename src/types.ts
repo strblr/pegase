@@ -33,7 +33,13 @@ export type SemanticInfo<Context = any> = {
   $context: Context;
   $commit(): void;
   $warn(message: string): void;
-  $expected(expected: Expectation | Array<Expectation>): void;
+  $expected(
+    expected:
+      | string
+      | RegExp
+      | Expectation
+      | Array<string | RegExp | Expectation>
+  ): void;
   $emit(children?: Array<any>): void;
   [capture: string]: any;
 };
@@ -123,7 +129,8 @@ export type Expectation =
   | LiteralExpectation
   | RegExpExpectation
   | TokenExpectation
-  | MismatchExpectation;
+  | MismatchExpectation
+  | CustomExpectation;
 
 export type LiteralExpectation = {
   type: ExpectationType.Literal;
@@ -145,11 +152,18 @@ export type MismatchExpectation = {
   match: Match;
 };
 
+export type CustomExpectation = {
+  type: ExpectationType.Custom;
+  display: string;
+  payload?: any;
+};
+
 export enum ExpectationType {
   Literal = "LITERAL",
   RegExp = "REGEXP",
   Token = "TOKEN",
-  Mismatch = "MISMATCH"
+  Mismatch = "MISMATCH",
+  Custom = "CUSTOM"
 }
 
 export type Match = Range & {
