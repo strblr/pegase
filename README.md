@@ -677,15 +677,71 @@ function test(a) {
 
 ### Failures and warnings
 
-Producing accurate error messages is notoriously difficult when it comes to PEG parsing. That's because when a faulty input triggers a parse failure where it should (ex. `"1"` was matched where `"0"` was expected), the parser *backtracks* to all the parent alternatives, tries them out, **fails repetitively**, before ultimately exiting with an error. Thus, a naive implementation would not be able to give you an accurate report: its last recorded failure probably isn't the real *error* you're interested in. You also can't just short-exit on the first failure you encounter, since that would prohibit any backtracking.
+Producing accurate error messages is notoriously difficult when it comes to PEG parsing. That's because when a faulty input triggers a parse failure where it should (ex. `"1"` was matched where `"0"` was expected), the parser *backtracks* to all the parent alternatives, tries them out, **fails repetitively**, before ultimately exiting with an error. Thus, failures are being emitted way after the one that's relevant. So which one should we display ? A naive implementation would not be able to give you an accurate answer. You also can't just short-exit on the first failure you encounter, since that would prohibit any backtracking and defeat the purpose of PEGs.
 
-**Because of PEG's backtracking capacities, a parse failure isn't necessarily an input error.**
+**Because of PEG's backtracking capacities, a parse failure isn't necessarily an input *error*.**
 
-This is well explained in [this paper](http://scg.unibe.ch/archive/masters/Ruef16a.pdf). Other parsing algorithms like `LL` or `LALR` don't suffer from that problem but are also more difficult to implement and more restrictive in the type of grammars and parsing expressions they allow. Fortunately for us, there exists a non-naive method to implement failures in PEG parsing that performs very well at differentiating simple failures from input errors. It's called the **farthest failure heuristic**.
+This is well explained in [this paper](http://scg.unibe.ch/archive/masters/Ruef16a.pdf) for those who want to dive deeper into the subject matter. Other parsing algorithms like `LL` or `LALR` don't suffer from this problem but are also more difficult to implement and more restrictive in the type of parsing expressions they allow. Fortunately for us, there exists a way out of this. As we've just established, the main problem is to be able to "rank" failures and "guess" which ones are more relevant. By the very design of PEGs, this can never be an exact science and one has to use an approximative method, called **heuristic**, to produce good enough results.
 
-*Coming soon...*
+**Pegase implements the *farthest failure heuristic*, which considers the farthest failure(s) in terms of input position to be the most relevant.**
 
-When you call `Parser`'s `parse` method, what you get back is a result object. That result object can either be a success object, or a fail object. Both have some common properties, but some other properties are specific. The common properties are: `options`, `warnings`, `failures` and `logs`.
+The general idea is that a failure emitted at input position *n* will generally be more relevant than a failure emitted at position *n - x*, where *x* is a positive integer, because *x* more characters have been successfully recognized by the parser at that point.
+
+**In Pegase, there are two types of failures**:
+
+- **Expectation failures**. These are emitted when a literal, a regexp or a token mismatched, or if a portion of the input matched where it should not have (cf. *negative predicates* (`!a`)). These are merged together if they are emitted *from the same input position*. For example:
+
+  ```js
+  const g = peg`'a' ('b' | 'c' | 'd' @token("the awesome letter d") | ![b-e] .)`;
+  console.log(g.parse('ae').logs());
+  ```
+
+  ```
+  (1:2) Failure: Expected "b", "c", the awesome letter d or mismatch of "e"
+  
+  > 1 | ae
+      |  ^
+  ```
+
+  You can also manually emit them in semantic actions using the `$expected` callback:
+
+  ```js
+  const g = peg`'a' ('b' | . ${({ $raw, $expected }) => {
+    if ($raw !== "c" && $raw !== "d") $expected(["c", "d"]);
+  }})`;
+  
+  console.log(g.parse("ae").logs());
+  ```
+
+  ```
+  (1:2) Failure: Expected "b", "c" or "d"
+  
+  > 1 | ae
+      |  ^
+  ```
+
+- **Semantic failures**. These are emitted by *throwing* an `Error` from a semantic action. They're useful when dealing with errors that are not embeddable in the grammar like undeclared identifiers, type errors, `break` statements that are not in a loop or a switch, etc.
+
+  ```js
+  const g = peg`[a-z]+ ${({ $raw, $context }) => {
+      const val = $context.get($raw);
+      if (!val) throw new Error(`Undeclared identifier "${$raw}"`);
+      return val;
+    }}`;
+  
+    const context = new Map([
+      ["foo", 42],
+      ["bar", 18]
+    ]);
+  
+    console.log(g.value("foo", { context }));
+    console.log(g.parse("baz", { context }).logs());
+  ```
+
+If there are *several* failures at the farthest position *n*, they are reduced with the following logic:
+
+- If they're only expectation failures, the expectations are *concatenated* as illustrated above.
+- If there is a semantic failure, *only* that failure will be kept. In case of multiple semantic failures, the last one will win.
 
 ## Advanced concepts
 
