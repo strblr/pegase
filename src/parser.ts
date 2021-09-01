@@ -415,7 +415,6 @@ export class PredicateParser extends Parser {
       ...(!this.polarity && {
         internals: {
           ...options.internals,
-          cut: { active: false },
           warnings: [],
           failures: [],
           committed: []
