@@ -11,6 +11,7 @@ import {
   ParseOptions,
   Result,
   ResultCommon,
+  rewindFailures,
   SemanticAction,
   skip,
   TraceEventType,
@@ -499,12 +500,12 @@ export class ActionParser extends Parser {
   }
 
   exec(options: ParseOptions): Match | null {
+    const saved = [...options.internals.failures];
     const match = this.parser.exec(options);
     if (match === null) return null;
+    let value, emit, failed;
     try {
-      let failed = false,
-        emit = undefined;
-      const value = this.action({
+      value = this.action({
         ...Object.fromEntries(match.captures),
         $value: inferValue(match.children),
         $raw: options.input.substring(match.from.index, match.to.index),
@@ -529,9 +530,9 @@ export class ActionParser extends Parser {
           });
         },
         $expected(expected) {
-          failed = true;
           if (!Array.isArray(expected)) expected = [expected];
-          options.internals.failures.push({
+          failed = true;
+          rewindFailures(options, saved, {
             from: match.from,
             to: match.to,
             type: FailureType.Expectation,
@@ -548,21 +549,19 @@ export class ActionParser extends Parser {
           emit = children.filter(child => child !== undefined);
         }
       });
-      if (failed) return null;
-      return {
-        ...match,
-        children: emit ?? (value === undefined ? [] : [value])
-      };
     } catch (e) {
       if (!(e instanceof Error)) throw e;
-      options.internals.failures.push({
+      failed = true;
+      rewindFailures(options, saved, {
         from: match.from,
         to: match.to,
         type: FailureType.Semantic,
         message: e.message
       });
-      return null;
     }
+    return failed
+      ? null
+      : { ...match, children: emit ?? (value === undefined ? [] : [value]) };
   }
 }
 
