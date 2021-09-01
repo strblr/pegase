@@ -196,12 +196,10 @@ test("Failure recovery should work", () => {
 > 1 | [1, 0, 2, 1, 3, 0, 1, 2, 0, 1, 1]
     |        ^
 
-
 (1:14) Failure: Expected "0" or "1"
 
 > 1 | [1, 0, 2, 1, 3, 0, 1, 2, 0, 1, 1]
     |              ^
-
 
 (1:23) Failure: Expected "0" or "1"
 

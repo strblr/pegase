@@ -275,7 +275,7 @@ export function log(result: Result, options?: Partial<LogOptions>) {
       if (fullOptions.codeFrames) acc += `\n\n${codeFrame(entry.from)}`;
       return acc;
     })
-    .join("\n\n");
+    .join("\n");
 }
 
 // defaultPlugin
