@@ -376,7 +376,7 @@ Here are the different expressions you can use as building blocks of more comple
   </tbody>
 </table>
 
-Under the hood, parsers are instances and compositions of `Parser` subclasses like `LiteralParser`, `TokenParser`, `SequenceParser`, etc. You can read more about it in the [API > `Parser`](#parser) section.
+Under the hood, parsers are instances and compositions of `Parser` subclasses like `LiteralParser`, `TokenParser`, `SequenceParser`, etc. In other words, `Parser`s combine themselves to form higher-order `Parser`s. You can read more about it in the [API > `Parser`](#parser) section.
 
 ---
 
@@ -677,9 +677,9 @@ function test(a) {
 
 ### Failures and warnings
 
-Producing accurate error messages is notoriously difficult when it comes to PEG parsing. That's because when a faulty input triggers a parse failure where it should (ex. `"1"` was matched where `"0"` was expected), the parser *backtracks* to all the parent alternatives, tries them out, **fails repetitively**, before ultimately exiting with an error. Thus, failures are being emitted way after the one that's relevant. So which one should we display ? A naive implementation would not be able to give you an accurate answer. You also can't just short-exit on the first failure you encounter, since that would prohibit any backtracking and defeat the purpose of PEGs.
+Producing accurate error messages is notoriously difficult when it comes to PEG parsing. That's because when a faulty input triggers a parse failure at the place of error, the parser *backtracks* to all the parent alternatives, tries them out, **fails repetitively**, before ultimately exiting with an error. Thus, failures are being emitted way after the one that's relevant. So which one should be displayed ? You also can't just short-exit on the first failure you encounter, since that would prohibit any backtracking and defeat the purpose of PEGs.
 
-**Because of PEG's backtracking capacities, a parse failure isn't necessarily an input *error*.**
+**Because of PEG's backtracking nature, a parse failure isn't necessarily an input *error*.**
 
 This is well explained in [this paper](http://scg.unibe.ch/archive/masters/Ruef16a.pdf) for those who want to dive deeper into the subject matter. Other parsing algorithms like `LL` or `LALR` don't suffer from this problem but are also more difficult to implement and more restrictive in the type of parsing expressions they allow. Fortunately for us, there exists a way out of this. As we've just established, the main problem is to be able to "rank" failures and "guess" which ones are more relevant. By the very design of PEGs, this can never be an exact science and one has to use an approximative method, called **heuristic**, to produce good enough results.
 
@@ -689,7 +689,7 @@ The general idea is that a failure emitted at input position *n* will generally 
 
 **In Pegase, there are two types of failures**:
 
-- **Expectation failures**. These are emitted when a literal, a regexp or a token mismatched, or if a portion of the input matched where it should not have (cf. *negative predicates* (`!a`)). These are merged together if they are emitted *from the same input position*. For example:
+- **Expectation failures**. These are automatically emitted when a literal, a regexp or a token mismatched, or if a portion of the input matched where it should not have (cf. *negative predicates* (`!a`)).
 
   ```js
   const g = peg`'a' ('b' | 'c' | 'd' @token("the awesome letter d") | ![b-e] .)`;
@@ -703,7 +703,7 @@ The general idea is that a failure emitted at input position *n* will generally 
       |  ^
   ```
 
-  You can also manually emit them in semantic actions using the `$expected` callback:
+  You can also manually emit them in semantic actions using the `$expected` callback (please note that this will override any failure emitted from *inside* the parsing expression the action is wrapped around):
 
   ```js
   const g = peg`'a' ('b' | . ${({ $raw, $expected }) => {
@@ -720,28 +720,69 @@ The general idea is that a failure emitted at input position *n* will generally 
       |  ^
   ```
 
-- **Semantic failures**. These are emitted by *throwing* an `Error` from a semantic action. They're useful when dealing with errors that are not embeddable in the grammar like undeclared identifiers, type errors, `break` statements that are not in a loop or a switch, etc.
+- **Semantic failures**. These are emitted by *throwing* an `Error` from a semantic action. They're useful when dealing with errors that can *not* be expressed as missing terminals, like undeclared identifiers, type errors, `break` statements outside of loops, etc. Such errors will also override any failure emitted from *inside* the parsing expression the action is wrapped around.
 
   ```js
   const g = peg`[a-z]+ ${({ $raw, $context }) => {
-      const val = $context.get($raw);
-      if (!val) throw new Error(`Undeclared identifier "${$raw}"`);
-      return val;
-    }}`;
+    if (!$context.has($raw))
+      throw new Error(`Undeclared identifier "${$raw}"`);
+    return $context.get($raw);
+  }}`;
   
-    const context = new Map([
-      ["foo", 42],
-      ["bar", 18]
-    ]);
+  const context = new Map([["foo", 42], ["bar", 18]]);
+  ```
   
-    console.log(g.value("foo", { context }));
-    console.log(g.parse("baz", { context }).logs());
+  ##### `console.log(g.value("foo", { context }))`
+  
+  ```js
+  42
+  ```
+  
+  ##### `console.log(g.parse("baz", { context }).logs())`
+  
+  ```
+  (1:1) Failure: Undeclared identifier "baz"
+  
+  > 1 | baz
+      | ^
   ```
 
 If there are *several* failures at the farthest position *n*, they are reduced with the following logic:
 
-- If they're only expectation failures, the expectations are *concatenated* as illustrated above.
-- If there is a semantic failure, *only* that failure will be kept. In case of multiple semantic failures, the last one will win.
+- If they're only expectation failures, the expectations are *merged* as illustrated above.
+- If there is a semantic failure, it will override everything else. In case of multiple semantic failures at the same position, the last one will win.
+
+If you want to identify multiple input errors at once, you have to do *error recovery*. This is done using failure commits and forward expressions (`...a`). See [Advanced concepts > Failure recovery](#failure-recovery) for more infos.
+
+**Warnings can be emitted in semantic actions using the `$warn` callback**. They are collected in a side-effect manner and don't influence the parsing process:
+
+```js
+const p = peg`
+  declaration:
+    'class'
+    (identifier ${({ $raw, $warn }) => {
+      if (!/^[A-Z]/.test($raw))
+        $warn("Class names should be capitalized");
+    }})
+    '{' '}'
+    
+  $identifier @raw: [a-zA-Z]+
+`;
+
+console.log(p.parse("class test {").logs());
+```
+
+```
+(1:7) Warning: Class names should be capitalized
+
+> 1 | class test {
+    |       ^
+
+(1:13) Failure: Expected "}"
+
+> 1 | class test {
+    |             ^
+```
 
 ## Advanced concepts
 
