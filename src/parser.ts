@@ -8,8 +8,8 @@ import {
   inferValue,
   log,
   Match,
-  mergeFailures,
   ParseOptions,
+  pushFailure,
   Result,
   ResultCommon,
   SemanticAction,
@@ -76,7 +76,7 @@ export abstract class Parser<Value = any, Context = any> {
         indexes,
         cut: { active: false },
         warnings: [],
-        failures: [],
+        failure: { current: null },
         committed: []
       },
       ...options
@@ -90,7 +90,9 @@ export abstract class Parser<Value = any, Context = any> {
       warnings: opts.internals.warnings,
       failures: [
         ...opts.internals.committed,
-        ...(match ? [] : mergeFailures(opts.internals.failures))
+        ...(match || !opts.internals.failure.current
+          ? []
+          : [opts.internals.failure.current])
       ],
       logs(options) {
         return log(result, options);
@@ -137,7 +139,7 @@ export class LiteralParser extends Parser {
         children: this.emit ? [raw] : [],
         captures: new Map()
       };
-    options.internals.failures.push({
+    pushFailure(options, {
       from,
       to: from,
       type: FailureType.Expectation,
@@ -177,7 +179,7 @@ export class RegExpParser extends Parser {
         children: result.slice(1),
         captures: new Map(result.groups ? Object.entries(result.groups) : [])
       };
-    options.internals.failures.push({
+    pushFailure(options, {
       from,
       to: from,
       type: FailureType.Expectation,
@@ -346,10 +348,14 @@ export class TokenParser extends Parser {
     if (!this.displayName) return this.parser.exec(options);
     const match = this.parser.exec({
       ...options,
-      internals: { ...options.internals, failures: [], committed: [] }
+      internals: {
+        ...options.internals,
+        failure: { current: null },
+        committed: []
+      }
     });
     if (match) return match;
-    options.internals.failures.push({
+    pushFailure(options, {
       from,
       to: from,
       type: FailureType.Expectation,
@@ -416,7 +422,7 @@ export class PredicateParser extends Parser {
         internals: {
           ...options.internals,
           warnings: [],
-          failures: [],
+          failure: { current: null },
           committed: []
         }
       })
@@ -429,7 +435,7 @@ export class PredicateParser extends Parser {
     });
     if (this.polarity === Boolean(match)) return success();
     if (match)
-      options.internals.failures.push({
+      pushFailure(options, {
         from: match.from,
         to: match.to,
         type: FailureType.Expectation,
@@ -499,22 +505,18 @@ export class ActionParser extends Parser {
   }
 
   exec(options: ParseOptions): Match | null {
-    const savedFailures = [...options.internals.failures];
+    const savedFailure = options.internals.failure.current;
     const savedCommitted = [...options.internals.committed];
     const match = this.parser.exec(options);
     if (match === null) return null;
     const rewindPush = (failure: Failure) => {
-      options.internals.failures.splice(
-        0,
-        options.internals.failures.length,
-        ...savedFailures,
-        failure
-      );
+      options.internals.failure.current = savedFailure;
       options.internals.committed.splice(
         0,
         options.internals.committed.length,
         ...savedCommitted
       );
+      pushFailure(options, failure);
     };
     let value, emit, failed;
     try {
@@ -529,10 +531,10 @@ export class ActionParser extends Parser {
         $options: options,
         $context: options.context,
         $commit() {
-          options.internals.committed.push(
-            ...mergeFailures(options.internals.failures)
-          );
-          options.internals.failures.length = 0;
+          if (options.internals.failure.current) {
+            options.internals.committed.push(options.internals.failure.current);
+            options.internals.failure.current = null;
+          }
         },
         $warn(message: string) {
           options.internals.warnings.push({

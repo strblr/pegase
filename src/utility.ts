@@ -86,20 +86,19 @@ export function skip(options: ParseOptions) {
   return match && match.to;
 }
 
-// mergeFailures
+// pushFailure
 
-export function mergeFailures(failures: Array<Failure>) {
-  if (failures.length === 0) return [];
-  return [
-    failures.reduce((failure, current) => {
-      if (current.from.index > failure.from.index) return current;
-      if (current.from.index < failure.from.index) return failure;
-      if (current.type === FailureType.Semantic) return current;
-      if (failure.type === FailureType.Semantic) return failure;
-      failure.expected.push(...current.expected);
-      return failure;
-    })
-  ];
+export function pushFailure(options: ParseOptions, failure: Failure) {
+  const state = options.internals.failure;
+  if (!state.current || failure.from.index > state.current.from.index)
+    state.current = failure;
+  else if (failure.from.index === state.current.from.index)
+    if (failure.type === FailureType.Semantic) state.current = failure;
+    else if (state.current.type !== FailureType.Semantic)
+      state.current = {
+        ...state.current,
+        expected: [...state.current.expected, ...failure.expected]
+      };
 }
 
 // resolveDirective

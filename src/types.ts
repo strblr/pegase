@@ -95,7 +95,7 @@ export type Internals = {
   indexes: Array<number>;
   cut: { active: boolean };
   warnings: Array<Warning>;
-  failures: Array<Failure>;
+  failure: { current: Failure | null };
   committed: Array<Failure>;
 };
 
