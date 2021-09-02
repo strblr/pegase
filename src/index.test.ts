@@ -182,6 +182,31 @@ test("L-attributed grammars should be implementable using context", () => {
   expect(g.value("61- 20 -14  -  3")).toBe(24);
 });
 
+test("Warnings should work correctly", () => {
+  const g = peg`
+    class:
+      'class'
+      (identifier ${({ $raw, $warn }) => {
+        if (!/^[A-Z]/.test($raw)) $warn("Class names should be capitalized");
+      }})
+      '{' '}'
+    
+    $identifier @raw: [a-zA-Z]+
+  `;
+
+  expect(g.parse("class test {").logs())
+    .toBe(`(1:7) Warning: Class names should be capitalized
+
+> 1 | class test {
+    |       ^
+
+(1:13) Failure: Expected "}"
+
+> 1 | class test {
+    |             ^
+`);
+});
+
 test("Failure recovery should work", () => {
   const g = peg`
     bitArray: '[' (bit | ^ @commit) % ...',' ']'
@@ -205,6 +230,27 @@ test("Failure recovery should work", () => {
 
 > 1 | [1, 0, 2, 1, 3, 0, 1, 2, 0, 1, 1]
     |                       ^
+`);
+});
+
+test("Failure heuristic should work correctly", () => {
+  const g1 = peg`[a-z]+ ${({ $raw, $context }) => {
+    const val = $context.get($raw);
+    if (!val) throw new Error(`Undeclared identifier "${$raw}"`);
+    return val;
+  }}`;
+
+  const context = new Map([
+    ["foo", 42],
+    ["bar", 18]
+  ]);
+
+  expect(g1.value("foo", { context })).toBe(42);
+  expect(g1.parse("baz", { context }).logs())
+    .toBe(`(1:1) Failure: Undeclared identifier "baz"
+
+> 1 | baz
+    | ^
 `);
 });
 
