@@ -6,6 +6,7 @@
   <img alt="pegase" src="https://raw.githubusercontent.com/ostrebler/pegase/master/img/pegase.png">  
 </p>
 
+> **⚠️ This doc is under active construction. Some passages may change, and more will be added.**
 
 Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
 
@@ -872,7 +873,7 @@ If there are conflicting rule declarations, an exception is thrown.
 ##### `fragment1.js`
 
 ```js
-import peg from `pegase`;
+import peg from "pegase";
 
 export default peg`
   a: "a" b
@@ -883,7 +884,7 @@ export default peg`
 ##### `fragment2.js`
 
 ```js
-import peg from `pegase`;
+import peg from "pegase";
 
 export default peg`
   c: "c" d
