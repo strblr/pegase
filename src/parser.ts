@@ -1,6 +1,7 @@
 import {
   createIndexes,
   createLocation,
+  emitFailure,
   ExpectationType,
   extendFlags,
   Failure,
@@ -9,7 +10,6 @@ import {
   log,
   Match,
   ParseOptions,
-  pushFailure,
   Result,
   ResultCommon,
   SemanticAction,
@@ -74,7 +74,7 @@ export abstract class Parser<Value = any, Context = any> {
       context: undefined as any,
       internals: {
         indexes,
-        cut: { active: false },
+        cut: { current: false },
         warnings: [],
         failure: { current: null },
         committed: []
@@ -139,7 +139,7 @@ export class LiteralParser extends Parser {
         children: this.emit ? [raw] : [],
         captures: new Map()
       };
-    pushFailure(options, {
+    emitFailure(options, {
       from,
       to: from,
       type: FailureType.Expectation,
@@ -179,7 +179,7 @@ export class RegExpParser extends Parser {
         children: result.slice(1),
         captures: new Map(result.groups ? Object.entries(result.groups) : [])
       };
-    pushFailure(options, {
+    emitFailure(options, {
       from,
       to: from,
       type: FailureType.Expectation,
@@ -250,7 +250,7 @@ export class NonTerminalParser extends Parser {
 
 export class CutParser extends Parser {
   exec(options: ParseOptions): Match | null {
-    options.internals.cut.active = true;
+    options.internals.cut.current = true;
     return {
       from: options.from,
       to: options.from,
@@ -273,12 +273,12 @@ export class OptionsParser extends Parser {
   exec(options: ParseOptions) {
     options = {
       ...options,
-      internals: { ...options.internals, cut: { active: false } }
+      internals: { ...options.internals, cut: { current: false } }
     };
     for (const parser of this.parsers) {
       const match = parser.exec(options);
       if (match) return match;
-      if (options.internals.cut.active) break;
+      if (options.internals.cut.current) break;
     }
     return null;
   }
@@ -355,7 +355,7 @@ export class TokenParser extends Parser {
       }
     });
     if (match) return match;
-    pushFailure(options, {
+    emitFailure(options, {
       from,
       to: from,
       type: FailureType.Expectation,
@@ -435,7 +435,7 @@ export class PredicateParser extends Parser {
     });
     if (this.polarity === Boolean(match)) return success();
     if (match)
-      pushFailure(options, {
+      emitFailure(options, {
         from: match.from,
         to: match.to,
         type: FailureType.Expectation,
@@ -516,7 +516,7 @@ export class ActionParser extends Parser {
         options.internals.committed.length,
         ...savedCommitted
       );
-      pushFailure(options, failure);
+      emitFailure(options, failure);
     };
     let value, emit, failed;
     try {
@@ -544,8 +544,7 @@ export class ActionParser extends Parser {
             message
           });
         },
-        $expected(expected) {
-          if (!Array.isArray(expected)) expected = [expected];
+        $expected(...expected) {
           failed = true;
           rewindPush({
             from: match.from,

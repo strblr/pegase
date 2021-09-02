@@ -44,7 +44,6 @@ export function createLocation(
   index: number,
   indexes: Array<number>
 ): Location {
-  // TODO Should this be lazy ? (probably better on big inputs, worse on small inputs)
   let line = 0;
   let n = indexes.length - 1;
   while (line < n) {
@@ -86,9 +85,9 @@ export function skip(options: ParseOptions) {
   return match && match.to;
 }
 
-// pushFailure
+// emitFailure
 
-export function pushFailure(options: ParseOptions, failure: Failure) {
+export function emitFailure(options: ParseOptions, failure: Failure) {
   const state = options.internals.failure;
   if (!state.current || failure.from.index > state.current.from.index)
     state.current = failure;

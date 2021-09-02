@@ -33,13 +33,7 @@ export type SemanticInfo<Context = any> = {
   $context: Context;
   $commit(): void;
   $warn(message: string): void;
-  $expected(
-    expected:
-      | string
-      | RegExp
-      | Expectation
-      | Array<string | RegExp | Expectation>
-  ): void;
+  $expected(...expected: Array<string | RegExp | Expectation>): void;
   $emit(children?: Array<any>): void;
   [capture: string]: any;
 };
@@ -93,7 +87,7 @@ export type TraceCommon<Context = any> = {
 
 export type Internals = {
   indexes: Array<number>;
-  cut: { active: boolean };
+  cut: { current: boolean };
   warnings: Array<Warning>;
   failure: { current: Failure | null };
   committed: Array<Failure>;
