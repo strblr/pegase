@@ -1,8 +1,6 @@
 # Pegase
 
-![NPM](https://img.shields.io/npm/l/pegase)  
-![npm](https://img.shields.io/npm/v/pegase)  
-![npm bundle size](https://img.shields.io/bundlephobia/minzip/pegase?label=gzip)
+![NPM](https://img.shields.io/npm/l/pegase) ![npm](https://img.shields.io/npm/v/pegase) ![npm bundle size](https://img.shields.io/bundlephobia/minzip/pegase?label=gzip)
 
 <p align="center">  
   <img alt="pegase" src="https://raw.githubusercontent.com/ostrebler/pegase/master/img/pegase.png">  
@@ -125,7 +123,7 @@ const parser = peg`your pegase expression`;
 What about a parser that recognizes a binary digit ? That's a simple alternative:
 
 ```js
-const bit = peg`'0' | '1'`;
+const bit = peg`0 | 1`;
 ```
 
 Ok, `bit` is now a `Parser` instance, which has 4 methods : `parse`, `test`, `value` and `children`. Let's take a look at `test`. It takes a string input and returns `true` or `false` (whether the string conforms to the pattern or not).
@@ -138,7 +136,7 @@ if (bit.test("1"))
 What about an array of bits like `[0, 1, 1, 0, 1]` ?
 
 ```js
-const bitArray = peg`'[' ('0' | '1') % ',' ']'`
+const bitArray = peg`'[' (0 | 1) % ',' ']'`
 ```
 
 The `%` operator can be read as "separated by". Let's test it:
@@ -148,14 +146,14 @@ if (bitArray.test(" [ 0,1 ,0  ,  1, 1]  "))
   console.log("It's a match!");
 ```
 
-As you might have spotted, whitespaces are handled automatically by default ([it can be changed](#handling-whitespaces)). The way this works is pretty simple: whitespace characters are parsed and discarded **before every terminal parser** (like `'['`, `'1'`, etc.). This process is called **skipping**. By default, every parser also adds an implicit "end of input" symbol (`$`) at the end of the parsing expression and treats it as a terminal, thus the trailing space is also skipped and the whole string matches.
+As you might have spotted, whitespaces are handled automatically by default ([it can be changed](#handling-whitespaces)). The way this works is pretty simple: whitespace characters are parsed and discarded **before every terminal parser** (like `'['`, `1`, etc.). This process is called **skipping**. By default, every parser also adds an implicit "end of input" symbol (`$`) at the end of the parsing expression and treats it as a terminal, thus the trailing space is also skipped and the whole string matches.
 
 Good, but so far, a `RegExp` could have done the job. Things get interesting when we add in **non-terminals**. A non-terminal is an identifier that refers to a more complex parsing expression which will be invoked every time the identifier is used. You can think of non-terminals as variables whose value is a parser, initialized in what we call `rules`. This allows for recursive patterns. Let's say we want to match possibly infinitely-nested bit arrays:
 
 ```js
 const nestedBitArray = peg`  
   bitArray: '[' (bit | bitArray) % ',' ']'
-  bit: '0' | '1'
+  bit: 0 | 1
 `;
 ```
 
@@ -172,6 +170,8 @@ nestedBitArray.test(" [0, [[0] ]]"); // true
 Fun fact: if we already defined `bit` as a JS variable, we're not obligated to redefine it as a rule. We can simply inject it as a tag argument:
 
 ```js
+const bit = peg`0 | 1`;
+
 const nestedBitArray = peg`  
   bitArray: '[' (${bit} | bitArray) % ',' ']'
 `;
@@ -225,7 +225,7 @@ Here are the different expressions you can use as building blocks of more comple
     </tr>
     <tr>
       <td><pre>ε</pre></td>
-      <td>Matches the empty string. Equivalent to <code>''</code> and always a success. It can be used to implement a default parsing case in an alternative expression.</td>
+      <td>Matches the empty string. Equivalent to <code>''</code> and always a success.</td>
       <td><code>[]</code></td>
     </tr>
     <tr>
@@ -375,6 +375,7 @@ Here are the different expressions you can use as building blocks of more comple
     </tr>
   </tbody>
 </table>
+
 
 Under the hood, parsers are instances and compositions of `Parser` subclasses like `LiteralParser`, `TokenParser`, `SequenceParser`, etc. In other words, `Parser`s combine themselves to form higher-order `Parser`s. You can read more about it in the [API > `Parser`](#parser) section.
 
