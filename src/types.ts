@@ -18,9 +18,9 @@ export type Directives = Record<string, Directive>;
 
 export type Directive = (parser: Parser, ...args: Array<any>) => Parser;
 
-export type SemanticAction<Context = any> = (
+export type SemanticAction<Value = any, Context = any> = (
   info: SemanticInfo<Context>
-) => any;
+) => Value;
 
 export type SemanticInfo<Context = any> = {
   $value: any;
