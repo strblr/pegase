@@ -4,7 +4,6 @@ import {
   emitFailure,
   ExpectationType,
   extendFlags,
-  Failure,
   FailureType,
   inferValue,
   log,
@@ -509,16 +508,16 @@ export class ActionParser extends Parser {
     const savedCommitted = [...options.internals.committed];
     const match = this.parser.exec(options);
     if (match === null) return null;
-    const rewindPush = (failure: Failure) => {
+    let value, emit, failed;
+    const rewind = () => {
+      failed = true;
       options.internals.failure.current = savedFailure;
       options.internals.committed.splice(
         0,
         options.internals.committed.length,
         ...savedCommitted
       );
-      emitFailure(options, failure);
     };
-    let value, emit, failed;
     try {
       value = this.action({
         ...Object.fromEntries(match.captures),
@@ -545,8 +544,8 @@ export class ActionParser extends Parser {
           });
         },
         $expected(...expected) {
-          failed = true;
-          rewindPush({
+          rewind();
+          emitFailure(options, {
             from: match.from,
             to: match.to,
             type: FailureType.Expectation,
@@ -565,8 +564,8 @@ export class ActionParser extends Parser {
       });
     } catch (e) {
       if (!(e instanceof Error)) throw e;
-      failed = true;
-      rewindPush({
+      rewind();
+      emitFailure(options, {
         from: match.from,
         to: match.to,
         type: FailureType.Semantic,
