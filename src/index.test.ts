@@ -72,16 +72,20 @@ test("Captures should work", () => {
   const g4 = peg`<val1>("a" <val2>("b" | "c") "d" @count)`;
   const g5 = peg`a: <val>b c ${({ val, b, c }) => val + c + b} b: "b" c: "c"`;
   const g6 = peg`'a' <val3>(${/(?<val>(?<val1>[bc])(?<val2>[de]))/} @raw) 'f'`;
+  const g7 = peg`&(<val>("0" | "1")) ("0" | "1")`;
 
   expect((g1.parse("a") as SuccessResult).captures.get("val")).toBe("a");
   expect((g2.parse("abc") as SuccessResult).captures.get("val")).toBe("c");
   expect(
     (g3.parse("#@@@°#§¬ba.aps") as SuccessResult).captures.get("val")
   ).toBe("b");
+  expect(g5.value("bc")).toBe("bcb");
+  expect((g7.parse("1") as SuccessResult).captures.get("val")).toBe("1");
+
   const result = g4.parse("acd") as SuccessResult;
   expect(result.captures.get("val1")).toBe(3);
   expect(result.captures.get("val2")).toBe("c");
-  expect(g5.value("bc")).toBe("bcb");
+
   const result2 = g6.parse("a ce f") as SuccessResult;
   expect(result2.captures.get("val")).toBe("ce");
   expect(result2.captures.get("val1")).toBe("c");
