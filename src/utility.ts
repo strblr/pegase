@@ -150,13 +150,20 @@ export function merge<Value = any, Context = any>(
   grammar: Parser<Value, Context>,
   ...grammars: Array<Parser>
 ): Parser<Value, Context> {
-  return new GrammarParser(
-    [grammar, ...grammars].reduce<Array<[string, Parser]>>((acc, parser) => {
-      if (!(parser instanceof GrammarParser))
-        throw new Error("You can only merge grammar parsers");
-      return [...acc, ...parser.rules.entries()];
-    }, [])
-  );
+  return new GrammarParser([
+    ...[grammar, ...grammars]
+      .reduce((acc, parser) => {
+        if (!(parser instanceof GrammarParser))
+          throw new Error("You can only merge grammar parsers");
+        for (const rule of parser.rules.keys())
+          if (acc.has(rule))
+            throw new Error(
+              `Conflicting declaration of rule "${rule}" in grammar merging`
+            );
+        return new Map([...acc, ...parser.rules]);
+      }, new Map<string, Parser>())
+      .entries()
+  ]);
 }
 
 // action
