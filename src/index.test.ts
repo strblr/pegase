@@ -184,7 +184,7 @@ test("L-attributed grammars should be implementable using context", () => {
 
 test("Failure recovery should work", () => {
   const g = peg`
-    bitArray: '[' (bit | ^${({ $commit }) => $commit()}) % ...',' ']'
+    bitArray: '[' (bit | ^ @commit) % ...',' ']'
     bit: 0 | 1
   `;
 
