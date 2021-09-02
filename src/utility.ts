@@ -86,21 +86,6 @@ export function skip(options: ParseOptions) {
   return match && match.to;
 }
 
-// rewindFailures
-
-export function rewindFailures(
-  options: ParseOptions,
-  saved: Array<Failure>,
-  failure: Failure
-) {
-  options.internals.failures.splice(
-    0,
-    options.internals.failures.length,
-    ...saved,
-    failure
-  );
-}
-
 // mergeFailures
 
 export function mergeFailures(failures: Array<Failure>) {

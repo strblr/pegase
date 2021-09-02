@@ -3,6 +3,7 @@ import {
   createLocation,
   ExpectationType,
   extendFlags,
+  Failure,
   FailureType,
   inferValue,
   log,
@@ -11,7 +12,6 @@ import {
   ParseOptions,
   Result,
   ResultCommon,
-  rewindFailures,
   SemanticAction,
   skip,
   TraceEventType,
@@ -499,9 +499,23 @@ export class ActionParser extends Parser {
   }
 
   exec(options: ParseOptions): Match | null {
-    const saved = [...options.internals.failures];
+    const savedFailures = [...options.internals.failures];
+    const savedCommitted = [...options.internals.committed];
     const match = this.parser.exec(options);
     if (match === null) return null;
+    const rewindPush = (failure: Failure) => {
+      options.internals.failures.splice(
+        0,
+        options.internals.failures.length,
+        ...savedFailures,
+        failure
+      );
+      options.internals.committed.splice(
+        0,
+        options.internals.committed.length,
+        ...savedCommitted
+      );
+    };
     let value, emit, failed;
     try {
       value = this.action({
@@ -531,7 +545,7 @@ export class ActionParser extends Parser {
         $expected(expected) {
           if (!Array.isArray(expected)) expected = [expected];
           failed = true;
-          rewindFailures(options, saved, {
+          rewindPush({
             from: match.from,
             to: match.to,
             type: FailureType.Expectation,
@@ -551,7 +565,7 @@ export class ActionParser extends Parser {
     } catch (e) {
       if (!(e instanceof Error)) throw e;
       failed = true;
-      rewindFailures(options, saved, {
+      rewindPush({
         from: match.from,
         to: match.to,
         type: FailureType.Semantic,
