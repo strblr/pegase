@@ -34,6 +34,7 @@ Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
   - [Grammar fragments](#grammar-fragments)
   - [Failure recovery](#failure-recovery)
   - [Writing a plugin](#writing-a-plugin)
+  - [Writing a `Parser` subclass](#writing-a-parser-subclass)
   - [L-attributed grammars](#l-attributed-grammars)
 - [API](#api)
   - [`peg`, `createTag`](#peg-createtag)
@@ -201,7 +202,7 @@ This will output:
 
 **The `peg` tag accepts any valid Pegase expression and always returns a `Parser` instance.**
 
-Here are the different expressions you can use as building blocks of more complex parsing expressions (in the following examples, `a` and `b` represent any parsing expression of higher precedence). Please note that *every expression* in this table and *every arbitrary composition* of them are `Parser`s in and of themselves.
+Pegase parsers follow the *combinator* paradigm: simple parsers are combined to form more complex parsers. You can read more about it in the [API > `Parser`](#parser) section. In the following table are the different expressions you can use as building blocks (in the following examples, `a` and `b` represent any parsing expression of higher precedence). Please note that *every expression* in this table and *every arbitrary composition* of them are `Parser` instances in and of themselves.
 
 <table>
   <thead>
@@ -329,7 +330,7 @@ Here are the different expressions you can use as building blocks of more comple
     </tr>
     <tr>
       <td><pre>...a</pre></td>
-      <td>Skips input character by character until <code>a</code> is matched. This can be used to implement error recovery and is equivalent to <code>(!a .)* a</code>.</td>
+      <td>Skips input character by character until <code>a</code> is matched. This can be used to implement <i>synchronization tokens</i> and is equivalent to <code>(!a .)* a</code>.</td>
       <td>Forwarded from <code>a</code></td>
       <td align="center">4</td>
     </tr>
@@ -376,9 +377,6 @@ Here are the different expressions you can use as building blocks of more comple
     </tr>
   </tbody>
 </table>
-
-
-Under the hood, parsers are instances and compositions of `Parser` subclasses like `LiteralParser`, `TokenParser`, `SequenceParser`, etc. In other words, `Parser`s combine themselves to form higher-order `Parser`s. You can read more about it in the [API > `Parser`](#parser) section.
 
 ---
 
@@ -647,7 +645,7 @@ peg`two_digit_integer @token("two digit integer"): \d{2}`;
 
 ### Directives
 
-Directives are functions defined in plugins with the following signature:
+Directives are higher-order functions defined in plugins with the following signature:
 
 ```ts
 (parser: Parser, ...args: Array<any>) => Parser
@@ -816,7 +814,7 @@ console.log(yearIs.value("2021-08-19")); // "The year is 2021"
 
 ### Cut operator
 
-Pegase implements the concept of [cut points](http://ceur-ws.org/Vol-1269/paper232.pdf) in the form of a cut operator: `^`. There are times when, passing a certain point in an alternative, you know *for sure* that every remaining alternatives would also fail and thus don't need to be tried out. That "point" can be marked explicitly by `^` in your parsing expression and has the effect to **commit to the current alternative**: even if it were to fail past that point, the remaining expressions in the *first parent alternative* would not be tried out.
+Pegase implements the concept of [cut points](http://ceur-ws.org/Vol-1269/paper232.pdf) in the form of a cut operator: `^`. There are times when, passing a certain point in an alternative, you know *for sure* that every remaining alternatives would also fail and thus don't need to be tried out. That "point" can be marked explicitly by `^` in your parsing expression and has the effect to **commit to the current alternative**: even if it were to fail past that point, the *first parent alternatives* would not be tried out. In other words, the cut operator prevents local backtracking.
 
 An example will explain it better: let's say you want to write a compiler for a C-like language. You define an `instr` rule that can match an `if` statement, a `while` loop or a `do...while` loop. If the terminal `'if'` successfully matched, then *even* if the rest of the expression fails, there is just no way for an alternative `while` loop or a `do...while` loop to match. That means you can insert a *cut point* right after `'if'`. The same reasoning can be applied to the `'while'` terminal, but is useless for `'do'` since it's already the last alternative.
 
@@ -902,4 +900,84 @@ import fragment2 from "./fragment1";
 const g = merge(fragment1, fragment2);
 console.log(g.test("abcdabcd")); // true
 ```
+
+---
+
+### Failure recovery
+
+*Coming soon...*
+
+---
+
+### Writing a plugin
+
+*Coming soon...*
+
+---
+
+### Writing a `Parser` subclass
+
+We've seen in section [Basic concepts > Building parsers](#building-parsers) that parsers are combined together to form more complex parsers. In this section, we'll go into more detail about how exactly this composition is done and how you could write your own `Parser` subclass with its own parsing logic. Under the hood, the `Parser` class is derived into two categories of subclasses:
+
+- Leaf classes like `LiteralParser` and `RegExpParser`, which don't hold a reference to other parsers.
+- Composition classes like `SequenceParser`, `TokenParser`, `PredicateParser`, etc. which, on the contrary, reference one or more sub-parsers.
+
+For example, the Pegase expression `'a' | 'b'` is converted by the `peg` tag into `new Options([new LiteralParser("a"), new LiteralParser("b")])`, `!id` is converted into `new PredicateParser(new NonTerminalParser("id"), false)`, etc. You got the idea.
+
+In order to fit in this scheme, your custom class must satisfy two constraints: deriving from the `Parser` class, obviously, and implementing an `exec` method with the following signature:
+
+```ts
+exec(options: ParseOptions<Context>): Match | null;
+```
+
+And that's it. This method will be called when your parser is invoked. It must return a `Match` object on success and `null` on failure (actual failure objects are emitted as side-effects using the `emitFailure` utility). The state of the parsing process at the time of invocation is resumed in the `options` argument with infos like the current position, the input string, the current grammar, the skipping state (on or off), the expected case sensitivity, etc. The exhaustive list is described in [API > Other types > `ParseOptions`](#parseoptions).
+
+Great, but how could you make use of your custom subclass ? There are basically three options depending on your needs:
+
+- You can create an **explicit instance** and inject it into a parsing expression as a tag argument:
+
+  ```js
+  const p = new MyParser();
+  const g = peg`0 | 1 | ${p}`;
+  ```
+
+- If the class depends on some argument, you can make Pegase generate instances automatically by injecting that argument directly into the parsing expression and **casting** it into a `Parser` using a plugin:
+
+  ```js
+  peg.extend({
+    castParser(arg) {
+      if(arg instanceof Set)
+        return new MyParser(arg);
+    }
+  });
+  
+  const g = peg`42 | ${new Set(["a", "b"])}`;
+  ```
+
+- Finally, in case of composition classes, you can define custom directives that generate instances of your subclass:
+
+  ```js
+  peg.extend({
+    directives: {
+      while(parser, predicate) {
+        return new MyWhileParser(parser, predicate);
+      }
+    }
+  });
+  
+  const predicate = payload => { /*...*/ };
+  const g = peg`\d @while(${predicate})`;
+  ```
+
+---
+
+### L-attributed grammars
+
+*Coming soon...*
+
+## API
+
+### `Parser`
+
+
 
