@@ -12,7 +12,7 @@ Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
 
 - **_Inline_**, meaning parsing expressions and grammars are directly expressed in-code as [tagged template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates). No generation step, no CLI. Pegase works in complete symbiosis with JS. As an example, [`RegExp`s](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp) can directly be part of grammars via tag arguments.
 - **_Lightweight_**. Pegase is a _zero-dependency_ package, and weights less than 7kB gzipped.
-- **_Intuitive_**, in that it lets you express complex grammars and semantic actions in simple ways and with excellent error reporting, warnings, error recovery, [cut operator](#cut-operator), grammar fragments, and a lot more.
+- **_Intuitive_**, in that it lets you express complex grammars and semantic actions in simple ways and with excellent error reporting, warnings, parametrized rules, error recovery, [cut operator](#cut-operator), grammar fragments, and a lot more.
 - **_Highly extensible_**: You can define your own `Parser` subclasses, add plugins, write custom directives, etc.
 
 ## Table of Contents
@@ -28,6 +28,7 @@ Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
   - [Directives](#directives)
   - [Failures and warnings](#failures-and-warnings)
 - [Advanced concepts](#advanced-concepts)
+  - [Parametrized rules](#parametrized-rules)
   - [Working with `RegExp`](#working-with-regexp)
   - [Cut operator](#cut-operator)
   - [Using TypeScript](#using-typescript)
@@ -786,9 +787,15 @@ console.log(p.parse("class test {").logs());
 
 ## Advanced concepts
 
+### Parametrized rules
+
+*Coming soon...*
+
+---
+
 ### Working with `RegExp`
 
-When a `RegExp` instance is inserted into a parsing expression via tag argument, it is converted into a regexp parser (an instance of `RegExpParser`, a subclass of `Parser`). Pegase will then emit its *capturing groups* as `children`:
+When a `RegExp` instance is inserted into a parsing expression via tag argument, it is converted into a regexp parser (an instance of `RegExpParser`, a subclass of `Parser`). At invocation, the parsing is automatically delegated to `RegExp.prototype.exec`. On success, Pegase will then emit its *capturing groups* as `children`:
 
 ```js
 const time = /(\d+):(\d+)/;
