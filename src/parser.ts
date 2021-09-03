@@ -192,24 +192,22 @@ export class RegExpParser extends Parser {
 
 export class NonTerminalParser extends Parser {
   label: string;
-  fallback?: Parser;
+  fallback?: GrammarParser;
 
   constructor(label: string, fallback?: Parser) {
     super();
     this.label = label;
+    if (!(fallback instanceof GrammarParser))
+      throw new Error(
+        `A non-terminal's fallback parser can only be a grammar parser`
+      );
     this.fallback = fallback;
   }
 
   exec(options: ParseOptions): Match | null {
-    let parser = (options.grammar as GrammarParser | undefined)?.rules?.get(
-      this.label
-    );
+    let parser = options.grammar?.rules?.get(this.label);
     if (!parser)
-      if (
-        (parser = (this.fallback as GrammarParser | undefined)?.rules?.get(
-          this.label
-        ))
-      )
+      if ((parser = this.fallback?.rules?.get(this.label)))
         options = { ...options, grammar: this.fallback };
       else
         throw new Error(

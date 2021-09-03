@@ -1,4 +1,4 @@
-import { Parser } from ".";
+import { GrammarParser, Parser } from ".";
 
 // Related to parser generation
 
@@ -43,7 +43,7 @@ export type SemanticInfo<Context = any> = {
 export type ParseOptions<Context = any> = {
   input: string;
   from: Location;
-  grammar?: Parser<any, Context>;
+  grammar?: GrammarParser;
   complete: boolean;
   skipper: Parser<any, Context>;
   skip: boolean;
