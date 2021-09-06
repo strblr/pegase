@@ -328,6 +328,11 @@ export const defaultPlugin: Plugin = {
     // Other
     action: (parser, action: SemanticAction) =>
       new ActionParser(parser, action),
+    echo: (parser, output) =>
+      new ActionParser(parser, ({ $emit }) => {
+        console.log(output);
+        $emit();
+      }),
     token: (parser, displayName?: string) =>
       new TokenParser(parser, displayName),
     commit: parser => new ActionParser(parser, ({ $commit }) => $commit()),
