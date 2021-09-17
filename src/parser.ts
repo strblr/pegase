@@ -1,4 +1,5 @@
 import {
+  applyVisitor,
   castArray,
   ExpectationType,
   extendFlags,
@@ -69,6 +70,7 @@ export abstract class Parser<Value = any, Context = any> {
       tracer: defaultTracer,
       trace: false,
       context: undefined as any,
+      visit: [],
       cut: { current: false },
       logger,
       ...options
@@ -82,11 +84,15 @@ export abstract class Parser<Value = any, Context = any> {
       logger.commit();
       return { ...common, success: false };
     }
+    const value = castArray(opts.visit).reduce(
+      (value, visitor) => applyVisitor(value, visitor, opts),
+      inferValue(match.children)
+    );
     return {
       ...common,
       ...match,
       success: true,
-      value: inferValue(match.children),
+      value,
       raw: input.substring(match.from.index, match.to.index),
       complete: match.to.index === input.length
     };

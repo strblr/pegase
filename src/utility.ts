@@ -15,7 +15,8 @@ import {
   SequenceParser,
   TokenParser,
   Tracer,
-  TweakParser
+  TweakParser,
+  Visitor
 } from ".";
 
 // extendFlags
@@ -123,6 +124,16 @@ export function merge<Value = any, Context = any>(
       }, new Map<string, Parser>())
       .entries()
   ]);
+}
+
+// applyVisitor
+
+export function applyVisitor<Value, Context>(
+  node: Node,
+  visitor: Visitor<Value, Context>,
+  options: ParseOptions<Context>
+) {
+  return node;
 }
 
 // action

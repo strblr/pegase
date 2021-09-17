@@ -16,6 +16,29 @@ export type Plugin = {
 
 export type Directive = (parser: Parser, ...args: Array<any>) => Parser;
 
+// Related to parsing processing
+
+export type ParseOptions<Context = any> = {
+  input: string;
+  from: Location;
+  grammar?: Parser;
+  complete: boolean;
+  skipper: Parser<any, Context>;
+  skip: boolean;
+  ignoreCase: boolean;
+  tracer: Tracer<Context>;
+  trace: boolean;
+  context: Context;
+  visit: UncastArray<Visitor>;
+  cut: { current: boolean };
+  logger: Logger;
+};
+
+export type Match = Range & {
+  children: Array<any>;
+  captures: Map<string, any>;
+};
+
 export type SemanticAction<Value = any, Context = any> = (
   info: SemanticInfo<Context>
 ) => Value;
@@ -43,22 +66,22 @@ export type Node = {
   [field: string]: any;
 };
 
-// Related to parsing processing
+export type Visitor<Value = any, Context = any> = Record<
+  string,
+  (node: Node, info: VisitorInfo<Value, Context>) => Value
+>;
 
-export type ParseOptions<Context = any> = {
-  input: string;
-  from: Location;
-  grammar?: Parser;
-  complete: boolean;
-  skipper: Parser<any, Context>;
-  skip: boolean;
-  ignoreCase: boolean;
-  tracer: Tracer<Context>;
-  trace: boolean;
-  context: Context;
-  cut: { current: boolean };
-  logger: Logger;
+export type VisitorInfo<Value = any, Context = any> = {
+  $node: Node;
+  $options: ParseOptions<Context>;
+  $context: Context;
+  $warn(message: string): void;
+  $fail(message: string): void;
+  $expected(expected: UncastArray<string | RegExp | Expectation>): void;
+  $visit(node: Node, options?: Partial<ParseOptions<Context>>): Value;
 };
+
+// Related to tracing
 
 export type Tracer<Context = any> = (event: TraceEvent<Context>) => void;
 
@@ -89,6 +112,16 @@ export enum TraceEventType {
 export type TraceCommon<Context = any> = {
   rule: string;
   options: ParseOptions<Context>;
+};
+
+// Related to logging
+
+export type LogOptions = {
+  warnings: boolean;
+  failures: boolean;
+  codeFrames: boolean;
+  linesBefore: number;
+  linesAfter: number;
 };
 
 export type Warning = Range & {
@@ -158,22 +191,6 @@ export enum ExpectationType {
   Custom = "CUSTOM"
 }
 
-export type Match = Range & {
-  children: Array<any>;
-  captures: Map<string, any>;
-};
-
-export type Range = {
-  from: Location;
-  to: Location;
-};
-
-export type Location = {
-  index: number;
-  line: number;
-  column: number;
-};
-
 // Related to parsing results
 
 export type Result<Value = any, Context = any> =
@@ -197,12 +214,17 @@ export type ResultCommon<Context = any> = {
   logger: Logger;
 };
 
-export type LogOptions = {
-  warnings: boolean;
-  failures: boolean;
-  codeFrames: boolean;
-  linesBefore: number;
-  linesAfter: number;
+// Shared
+
+export type Range = {
+  from: Location;
+  to: Location;
+};
+
+export type Location = {
+  index: number;
+  line: number;
+  column: number;
 };
 
 // Helpers
