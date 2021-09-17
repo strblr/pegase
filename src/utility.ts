@@ -2,65 +2,21 @@ import {
   ActionParser,
   CutParser,
   Directive,
-  Expectation,
-  ExpectationType,
-  Failure,
-  FailureType,
   GrammarParser,
   LiteralParser,
-  Location,
-  LogOptions,
   OptionsParser,
   ParseOptions,
   Parser,
   Plugin,
   RegExpParser,
   RepetitionParser,
-  Result,
   SemanticAction,
   SemanticInfo,
   SequenceParser,
   TokenParser,
   Tracer,
-  TweakParser,
-  Warning,
-  WarningType
+  TweakParser
 } from ".";
-
-// createIndexes
-
-export function createIndexes(input: string) {
-  let acc = 0;
-  return input.split(/[\r\n]/).map(chunk => {
-    const start = acc;
-    acc += chunk.length + 1;
-    return start;
-  });
-}
-
-// createLocation
-
-export function createLocation(
-  index: number,
-  indexes: Array<number>
-): Location {
-  let line = 0;
-  let n = indexes.length - 1;
-  while (line < n) {
-    const k = line + ((n - line) >> 1);
-    if (index < indexes[k]) n = k - 1;
-    else if (index >= indexes[k + 1]) line = k + 1;
-    else {
-      line = k;
-      break;
-    }
-  }
-  return {
-    index,
-    line: line + 1,
-    column: index - indexes[line] + 1
-  };
-}
 
 // extendFlags
 
@@ -77,27 +33,18 @@ export function spaceCase(input: string) {
     .toLowerCase();
 }
 
+// castArray
+
+export function castArray<T>(value: T | Array<T>) {
+  return Array.isArray(value) ? value : [value];
+}
+
 // skip
 
 export function skip(options: ParseOptions) {
   if (!options.skip) return options.from;
   const match = options.skipper.exec({ ...options, skip: false });
   return match && match.to;
-}
-
-// emitFailure
-
-export function emitFailure(options: ParseOptions, failure: Failure) {
-  const state = options.internals.failure;
-  if (!state.current || failure.from.index > state.current.from.index)
-    state.current = failure;
-  else if (failure.from.index === state.current.from.index)
-    if (failure.type === FailureType.Semantic) state.current = failure;
-    else if (state.current.type !== FailureType.Semantic)
-      state.current = {
-        ...state.current,
-        expected: [...state.current.expected, ...failure.expected]
-      };
 }
 
 // resolveDirective
@@ -173,99 +120,6 @@ export function action(
 ): Directive {
   return (parser, ...args) =>
     new ActionParser(parser, info => callback(info, ...args));
-}
-
-// log
-
-export function log(result: Result, options?: Partial<LogOptions>) {
-  const fullOptions: LogOptions = {
-    warnings: true,
-    failures: true,
-    codeFrames: true,
-    linesBefore: 2,
-    linesAfter: 2,
-    ...options
-  };
-  const entries = [
-    ...(fullOptions.warnings ? result.warnings : []),
-    ...(fullOptions.failures ? result.failures : [])
-  ].sort((a, b) => a.from.index - b.from.index);
-
-  const stringifyEntry = (entry: Warning | Failure) => {
-    switch (entry.type) {
-      case WarningType.Message:
-        return `Warning: ${entry.message}`;
-      case FailureType.Semantic:
-        return `Failure: ${entry.message}`;
-      case FailureType.Expectation:
-        const expectations = entry.expected
-          .map(expectation => stringifyExpectation(expectation))
-          .reduce(
-            (acc, expected, index, { length }) =>
-              `${acc}${index === length - 1 ? " or " : ", "}${expected}`
-          );
-        return `Failure: Expected ${expectations}`;
-    }
-  };
-
-  const stringifyExpectation = (expectation: Expectation) => {
-    switch (expectation.type) {
-      case ExpectationType.Literal:
-        return `"${expectation.literal}"`;
-      case ExpectationType.RegExp:
-        return String(expectation.regExp);
-      case ExpectationType.Token:
-        return expectation.displayName;
-      case ExpectationType.Mismatch:
-        return `mismatch of "${result.options.input.substring(
-          expectation.match.from.index,
-          expectation.match.to.index
-        )}"`;
-      case ExpectationType.Custom:
-        return expectation.display;
-    }
-  };
-
-  function codeFrame(location: Location) {
-    const indexes = result.options.internals.indexes;
-    const start = Math.max(1, location.line - fullOptions.linesBefore);
-    const end = Math.min(
-      indexes.length,
-      location.line + fullOptions.linesAfter
-    );
-    const maxLineNum = String(end).length;
-    const padding = " ".repeat(maxLineNum);
-    let acc = "";
-    for (let i = start; i !== end + 1; i++) {
-      const lineNum = (padding + i).slice(-maxLineNum);
-      const current = result.options.input.substring(
-        indexes[i - 1],
-        (indexes[i] ?? result.options.input.length + 1) - 1
-      );
-      const normalized = current.replace(/\t+/, tabs =>
-        "  ".repeat(tabs.length)
-      );
-      if (i !== location.line) acc += `  ${lineNum} | ${normalized}\n`;
-      else {
-        const count = Math.max(
-          0,
-          normalized.length - current.length + location.column - 1
-        );
-        acc += `> ${lineNum} | ${normalized}\n`;
-        acc += `  ${padding} | ${" ".repeat(count)}^\n`;
-      }
-    }
-    return acc;
-  }
-
-  return entries
-    .map(entry => {
-      let acc = `(${entry.from.line}:${entry.from.column}) `;
-      acc += stringifyEntry(entry);
-      if (fullOptions.codeFrames) acc += `\n\n${codeFrame(entry.from)}`;
-      return acc;
-    })
-    .join("\n");
 }
 
 // defaultPlugin

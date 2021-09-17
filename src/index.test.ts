@@ -115,10 +115,7 @@ test("Modulos in grammars should work", () => {
   expect(g4.test(" 2, 1, 1 | 1")).toBe(false);
   expect(g4.test("  1 ,1,1 |1,1,  1,1|1 |1,1   ")).toBe(true);
   expect(g4.children("1 ,1,1 |1,1, 1  ,   1,1|1 |   1,1 ")).toEqual([
-    3,
-    5,
-    1,
-    2
+    3, 5, 1, 2
   ]);
 });
 
@@ -198,7 +195,7 @@ test("Warnings should work correctly", () => {
     $identifier @raw: [a-zA-Z]+
   `;
 
-  expect(g.parse("class test {").logs())
+  expect(g.parse("class test {").logger.humanize())
     .toBe(`(1:7) Warning: Class names should be capitalized
 
 > 1 | class test {
@@ -220,7 +217,7 @@ test("Failure recovery should work", () => {
   const result = g.parse("[1, 0, 2, 1, 3, 0, 1, 2, 0, 1, 1]");
 
   expect(result.success).toBe(true);
-  expect(result.logs()).toBe(`(1:8) Failure: Expected "0" or "1"
+  expect(result.logger.humanize()).toBe(`(1:8) Failure: Expected "0" or "1"
 
 > 1 | [1, 0, 2, 1, 3, 0, 1, 2, 0, 1, 1]
     |        ^
@@ -250,7 +247,7 @@ test("Failure heuristic should work correctly", () => {
   ]);
 
   expect(g1.value("foo", { context })).toBe(42);
-  expect(g1.parse("baz", { context }).logs())
+  expect(g1.parse("baz", { context }).logger.humanize())
     .toBe(`(1:1) Failure: Undeclared identifier "baz"
 
 > 1 | baz

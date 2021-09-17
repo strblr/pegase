@@ -1,4 +1,4 @@
-import { GrammarParser, Parser } from ".";
+import { Logger, Parser } from ".";
 
 // Related to parser generation
 
@@ -11,10 +11,8 @@ export type Plugin = {
   name?: string;
   grammar?: Parser;
   castParser?(arg: any): Parser | undefined;
-  directives?: Directives;
+  directives?: Record<string, Directive>;
 };
-
-export type Directives = Record<string, Directive>;
 
 export type Directive = (parser: Parser, ...args: Array<any>) => Parser;
 
@@ -33,7 +31,7 @@ export type SemanticInfo<Context = any> = {
   $context: Context;
   $commit(): void;
   $warn(message: string): void;
-  $expected(...expected: Array<string | RegExp | Expectation>): void;
+  $expected(expected: UncastArray<string | RegExp | Expectation>): void;
   $emit(children?: Array<any>): void;
   [capture: string]: any;
 };
@@ -43,7 +41,7 @@ export type SemanticInfo<Context = any> = {
 export type ParseOptions<Context = any> = {
   input: string;
   from: Location;
-  grammar?: GrammarParser;
+  grammar?: Parser;
   complete: boolean;
   skipper: Parser<any, Context>;
   skip: boolean;
@@ -51,7 +49,8 @@ export type ParseOptions<Context = any> = {
   tracer: Tracer<Context>;
   trace: boolean;
   context: Context;
-  internals: Internals;
+  cut: { current: boolean };
+  logger: Logger;
 };
 
 export type Tracer<Context = any> = (event: TraceEvent<Context>) => void;
@@ -83,14 +82,6 @@ export enum TraceEventType {
 export type TraceCommon<Context = any> = {
   label: string;
   options: ParseOptions<Context>;
-};
-
-export type Internals = {
-  indexes: Array<number>;
-  cut: { current: boolean };
-  warnings: Array<Warning>;
-  failure: { current: Failure | null };
-  committed: Array<Failure>;
 };
 
 export type Warning = Range & {
@@ -196,9 +187,7 @@ export type FailResult<Context = any> = ResultCommon<Context> & {
 
 export type ResultCommon<Context = any> = {
   options: ParseOptions<Context>;
-  warnings: Array<Warning>;
-  failures: Array<Failure>;
-  logs(options?: Partial<LogOptions>): string;
+  logger: Logger;
 };
 
 export type LogOptions = {
@@ -208,3 +197,7 @@ export type LogOptions = {
   linesBefore: number;
   linesAfter: number;
 };
+
+// Helpers
+
+type UncastArray<T> = T | Array<T>;

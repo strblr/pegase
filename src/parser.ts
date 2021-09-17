@@ -1,12 +1,10 @@
 import {
-  createIndexes,
-  createLocation,
-  emitFailure,
+  castArray,
   ExpectationType,
   extendFlags,
   FailureType,
   inferValue,
-  log,
+  Logger,
   Match,
   ParseOptions,
   Result,
@@ -46,13 +44,13 @@ export abstract class Parser<Value = any, Context = any> {
 
   value(input: string, options?: Partial<ParseOptions<Context>>) {
     const result = this.parse(input, options);
-    if (!result.success) throw new Error(result.logs());
+    if (!result.success) throw new Error(result.logger.humanize());
     return result.value;
   }
 
   children(input: string, options?: Partial<ParseOptions<Context>>) {
     const result = this.parse(input, options);
-    if (!result.success) throw new Error(result.logs());
+    if (!result.success) throw new Error(result.logger.humanize());
     return result.children;
   }
 
@@ -60,10 +58,10 @@ export abstract class Parser<Value = any, Context = any> {
     input: string,
     options?: Partial<ParseOptions<Context>>
   ): Result<Value, Context> {
-    const indexes = createIndexes(input);
+    const logger = new Logger(input);
     const opts: ParseOptions<Context> = {
       input,
-      from: createLocation(0, indexes),
+      from: logger.at(0),
       complete: true,
       skipper: defaultSkipper,
       skip: true,
@@ -71,43 +69,27 @@ export abstract class Parser<Value = any, Context = any> {
       tracer: defaultTracer,
       trace: false,
       context: undefined as any,
-      internals: {
-        indexes,
-        cut: { current: false },
-        warnings: [],
-        failure: { current: null },
-        committed: []
-      },
+      cut: { current: false },
+      logger,
       ...options
     };
     const parser = opts.complete
       ? new SequenceParser([this, endOfInput])
       : this;
     const match = parser.exec(opts);
-    const common: ResultCommon = {
-      options: opts,
-      warnings: opts.internals.warnings,
-      failures: [
-        ...opts.internals.committed,
-        ...(match || !opts.internals.failure.current
-          ? []
-          : [opts.internals.failure.current])
-      ],
-      logs(options) {
-        return log(result, options);
-      }
+    const common: ResultCommon = { options: opts, logger };
+    if (!match) {
+      logger.commit();
+      return { ...common, success: false };
+    }
+    return {
+      ...common,
+      ...match,
+      success: true,
+      value: inferValue(match.children),
+      raw: input.substring(match.from.index, match.to.index),
+      complete: match.to.index === input.length
     };
-    const result: Result<Value> = !match
-      ? { ...common, success: false }
-      : {
-          ...common,
-          ...match,
-          success: true,
-          value: inferValue(match.children),
-          raw: input.substring(match.from.index, match.to.index),
-          complete: match.to.index === input.length
-        };
-    return result;
   }
 }
 
@@ -134,11 +116,11 @@ export class LiteralParser extends Parser {
     if (result)
       return {
         from,
-        to: createLocation(to, options.internals.indexes),
+        to: options.logger.at(to),
         children: this.emit ? [raw] : [],
         captures: new Map()
       };
-    emitFailure(options, {
+    options.logger.hang({
       from,
       to: from,
       type: FailureType.Expectation,
@@ -171,14 +153,11 @@ export class RegExpParser extends Parser {
     if (result !== null)
       return {
         from,
-        to: createLocation(
-          from.index + result[0].length,
-          options.internals.indexes
-        ),
+        to: options.logger.at(from.index + result[0].length),
         children: result.slice(1),
         captures: new Map(result.groups ? Object.entries(result.groups) : [])
       };
-    emitFailure(options, {
+    options.logger.hang({
       from,
       to: from,
       type: FailureType.Expectation,
@@ -192,22 +171,24 @@ export class RegExpParser extends Parser {
 
 export class NonTerminalParser extends Parser {
   label: string;
-  fallback?: GrammarParser;
+  fallback?: Parser;
 
   constructor(label: string, fallback?: Parser) {
     super();
     this.label = label;
-    if (!(fallback instanceof GrammarParser))
-      throw new Error(
-        `A non-terminal's fallback parser can only be a grammar parser`
-      );
     this.fallback = fallback;
   }
 
   exec(options: ParseOptions): Match | null {
-    let parser = options.grammar?.rules?.get(this.label);
+    let parser = (options.grammar as GrammarParser | undefined)?.rules?.get(
+      this.label
+    );
     if (!parser)
-      if ((parser = this.fallback?.rules?.get(this.label)))
+      if (
+        (parser = (this.fallback as GrammarParser | undefined)?.rules?.get(
+          this.label
+        ))
+      )
         options = { ...options, grammar: this.fallback };
       else
         throw new Error(
@@ -247,7 +228,7 @@ export class NonTerminalParser extends Parser {
 
 export class CutParser extends Parser {
   exec(options: ParseOptions): Match | null {
-    options.internals.cut.current = true;
+    options.cut.current = true;
     return {
       from: options.from,
       to: options.from,
@@ -268,14 +249,11 @@ export class OptionsParser extends Parser {
   }
 
   exec(options: ParseOptions) {
-    options = {
-      ...options,
-      internals: { ...options.internals, cut: { current: false } }
-    };
+    options = { ...options, cut: { current: false } };
     for (const parser of this.parsers) {
       const match = parser.exec(options);
       if (match) return match;
-      if (options.internals.cut.current) break;
+      if (options.cut.current) break;
     }
     return null;
   }
@@ -345,14 +323,10 @@ export class TokenParser extends Parser {
     if (!this.displayName) return this.parser.exec(options);
     const match = this.parser.exec({
       ...options,
-      internals: {
-        ...options.internals,
-        failure: { current: null },
-        committed: []
-      }
+      logger: options.logger.fork()
     });
     if (match) return match;
-    emitFailure(options, {
+    options.logger.hang({
       from,
       to: from,
       type: FailureType.Expectation,
@@ -415,14 +389,7 @@ export class PredicateParser extends Parser {
   exec(options: ParseOptions): Match | null {
     const match = this.parser.exec({
       ...options,
-      ...(!this.polarity && {
-        internals: {
-          ...options.internals,
-          warnings: [],
-          failure: { current: null },
-          committed: []
-        }
-      })
+      ...(!this.polarity && { logger: options.logger.fork() })
     });
     const success = () => ({
       from: options.from,
@@ -432,7 +399,7 @@ export class PredicateParser extends Parser {
     });
     if (this.polarity === Boolean(match)) return success();
     if (match)
-      emitFailure(options, {
+      options.logger.hang({
         from: match.from,
         to: match.to,
         type: FailureType.Expectation,
@@ -502,19 +469,13 @@ export class ActionParser extends Parser {
   }
 
   exec(options: ParseOptions): Match | null {
-    const savedFailure = options.internals.failure.current;
-    const savedCommitted = [...options.internals.committed];
+    const save = options.logger.fork();
     const match = this.parser.exec(options);
     if (match === null) return null;
     let value, emit, failed;
     const rewind = () => {
       failed = true;
-      options.internals.failure.current = savedFailure;
-      options.internals.committed.splice(
-        0,
-        options.internals.committed.length,
-        ...savedCommitted
-      );
+      options.logger.sync(save);
     };
     try {
       value = this.action({
@@ -528,26 +489,23 @@ export class ActionParser extends Parser {
         $options: options,
         $context: options.context,
         $commit() {
-          if (options.internals.failure.current) {
-            options.internals.committed.push(options.internals.failure.current);
-            options.internals.failure.current = null;
-          }
+          options.logger.commit();
         },
         $warn(message: string) {
-          options.internals.warnings.push({
+          options.logger.warn({
             from: match.from,
             to: match.to,
             type: WarningType.Message,
             message
           });
         },
-        $expected(...expected) {
+        $expected(expected) {
           rewind();
-          emitFailure(options, {
+          options.logger.hang({
             from: match.from,
             to: match.to,
             type: FailureType.Expectation,
-            expected: expected.map(expected =>
+            expected: castArray(expected).map(expected =>
               typeof expected === "string"
                 ? { type: ExpectationType.Literal, literal: expected }
                 : expected instanceof RegExp
@@ -563,7 +521,7 @@ export class ActionParser extends Parser {
     } catch (e) {
       if (!(e instanceof Error)) throw e;
       rewind();
-      emitFailure(options, {
+      options.logger.hang({
         from: match.from,
         to: match.to,
         type: FailureType.Semantic,
