@@ -198,6 +198,9 @@ export const defaultPlugin: Plugin = {
       new ActionParser(parser, () => {
         console.log(output);
       }),
+    node: action((info, label, fields = Object.fromEntries(info.$captures)) =>
+      info.$node(label, typeof fields === "function" ? fields(info) : fields)
+    ),
     token: (parser, displayName?: string) =>
       new TokenParser(parser, displayName),
     commit: parser =>
