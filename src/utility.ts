@@ -47,6 +47,18 @@ export function skip(options: ParseOptions) {
   return match && match.to;
 }
 
+// resolveCast
+
+export function resolveCast(plugins: Array<Plugin>, value: any) {
+  let parser: Parser | undefined;
+  plugins.some(plugin => (parser = plugin.castParser?.(value)));
+  if (!parser)
+    throw new Error(
+      "Couldn't cast value to Parser, you can add support for it via peg.extend"
+    );
+  return parser;
+}
+
 // resolveDirective
 
 export function resolveDirective(plugins: Array<Plugin>, directive: string) {

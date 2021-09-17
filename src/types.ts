@@ -80,7 +80,7 @@ export enum TraceEventType {
 }
 
 export type TraceCommon<Context = any> = {
-  label: string;
+  rule: string;
   options: ParseOptions<Context>;
 };
 

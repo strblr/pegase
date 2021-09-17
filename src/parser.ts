@@ -170,34 +170,34 @@ export class RegExpParser extends Parser {
 // NonTerminalParser
 
 export class NonTerminalParser extends Parser {
-  label: string;
+  rule: string;
   fallback?: Parser;
 
-  constructor(label: string, fallback?: Parser) {
+  constructor(rule: string, fallback?: Parser) {
     super();
-    this.label = label;
+    this.rule = rule;
     this.fallback = fallback;
   }
 
   exec(options: ParseOptions): Match | null {
     let parser = (options.grammar as GrammarParser | undefined)?.rules?.get(
-      this.label
+      this.rule
     );
     if (!parser)
       if (
         (parser = (this.fallback as GrammarParser | undefined)?.rules?.get(
-          this.label
+          this.rule
         ))
       )
         options = { ...options, grammar: this.fallback };
       else
         throw new Error(
-          `Couldn't resolve rule "${this.label}", you can add it by merging grammars or via peg.extend`
+          `Couldn't resolve rule "${this.rule}", you can add it by merging grammars or via peg.extend`
         );
     options.trace &&
       options.tracer({
         type: TraceEventType.Enter,
-        label: this.label,
+        rule: this.rule,
         options
       });
     const match = parser.exec(options);
@@ -205,7 +205,7 @@ export class NonTerminalParser extends Parser {
       options.trace &&
         options.tracer({
           type: TraceEventType.Fail,
-          label: this.label,
+          rule: this.rule,
           options
         });
       return null;
@@ -213,13 +213,13 @@ export class NonTerminalParser extends Parser {
     options.trace &&
       options.tracer({
         type: TraceEventType.Match,
-        label: this.label,
+        rule: this.rule,
         options,
         match
       });
     return {
       ...match,
-      captures: new Map([[this.label, inferValue(match.children)]])
+      captures: new Map([[this.rule, inferValue(match.children)]])
     };
   }
 }
@@ -564,5 +564,5 @@ export const defaultTracer: Tracer = event => {
       complement = `at (${at.line}:${at.column})`;
       break;
   }
-  console.log(adjective, `"${event.label}"`, complement);
+  console.log(adjective, `"${event.rule}"`, complement);
 };

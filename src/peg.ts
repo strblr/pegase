@@ -3,7 +3,6 @@ import {
   CaptureParser,
   CutParser,
   defaultPlugin,
-  Directive,
   GrammarParser,
   LiteralParser,
   MetaContext,
@@ -17,6 +16,7 @@ import {
   PredicateParser,
   RegExpParser,
   RepetitionParser,
+  resolveCast,
   resolveDirective,
   SequenceParser,
   spaceCase,
@@ -205,28 +205,16 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
       ),
       ({ $context, $children }) =>
         new GrammarParser(
-          $children.map(
-            ([label, directives, parser]: [
-              string,
-              Array<[Directive, Array<any>]>,
-              Parser
-            ]) => {
-              if (label.startsWith("$")) {
-                label = label.substring(1);
-                directives = [
-                  ...directives,
-                  [
-                    resolveDirective(
-                      ($context as MetaContext).plugins,
-                      "token"
-                    ),
-                    [spaceCase(label)]
-                  ]
-                ];
-              }
-              return [label, pipeDirectives(parser, directives)];
+          $children.map(([rule, directives, parser]) => {
+            if (rule.startsWith("$")) {
+              rule = rule.substring(1);
+              directives = [
+                ...directives,
+                [resolveDirective($context.plugins, "token"), [spaceCase(rule)]]
+              ];
             }
-          )
+            return [rule, pipeDirectives(parser, directives)];
+          })
         )
     )
   ],
@@ -508,17 +496,8 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new TokenParser(
       new ActionParser(
         new NonTerminalParser("tagArgument"),
-        ({ tagArgument, $context }) => {
-          let parser: Parser | undefined;
-          ($context as MetaContext).plugins.some(
-            plugin => (parser = plugin.castParser?.(tagArgument))
-          );
-          if (!parser)
-            throw new Error(
-              "The tag argument is not castable to Parser, you can add support for it via peg.extend"
-            );
-          return parser;
-        }
+        ({ tagArgument, $context }) =>
+          resolveCast($context.plugins, tagArgument)
       ),
       "castable tag argument"
     )
@@ -565,10 +544,10 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
             new SequenceParser([
               new LiteralParser(","),
               new ActionParser(
-                new RepetitionParser(new NonTerminalParser("repetitionCount"), [
-                  0,
-                  1
-                ]),
+                new RepetitionParser(
+                  new NonTerminalParser("repetitionCount"),
+                  [0, 1]
+                ),
                 ({ repetitionCount }) => repetitionCount ?? Infinity
               )
             ]),
@@ -608,13 +587,13 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
               "directive"
             ),
             ({ identifier, $context }) =>
-              resolveDirective(($context as MetaContext).plugins, identifier)
+              resolveDirective($context.plugins, identifier)
           ),
           new ActionParser(
-            new RepetitionParser(new NonTerminalParser("directiveArguments"), [
-              0,
-              1
-            ]),
+            new RepetitionParser(
+              new NonTerminalParser("directiveArguments"),
+              [0, 1]
+            ),
             ({ directiveArguments }) => directiveArguments ?? []
           )
         ]),
@@ -623,7 +602,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
       new ActionParser(
         new NonTerminalParser("actionTagArgument"),
         ({ actionTagArgument, $context }) => [
-          resolveDirective(($context as MetaContext).plugins, "action"),
+          resolveDirective($context.plugins, "action"),
           [actionTagArgument]
         ]
       )
