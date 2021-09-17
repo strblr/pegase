@@ -516,6 +516,9 @@ export class ActionParser extends Parser {
         },
         $emit(children: Array<any> = match.children) {
           emit = children.filter(child => child !== undefined);
+        },
+        $node(label, fields) {
+          return { $label: label, $match: match, ...fields };
         }
       });
     } catch (e) {

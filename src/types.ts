@@ -33,7 +33,14 @@ export type SemanticInfo<Context = any> = {
   $warn(message: string): void;
   $expected(expected: UncastArray<string | RegExp | Expectation>): void;
   $emit(children?: Array<any>): void;
+  $node(label: string, fields: Record<string, any>): Node;
   [capture: string]: any;
+};
+
+export type Node = {
+  $label: string;
+  $match: Match;
+  [field: string]: any;
 };
 
 // Related to parsing processing

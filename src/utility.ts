@@ -201,7 +201,11 @@ export const defaultPlugin: Plugin = {
       }),
     token: (parser, displayName?: string) =>
       new TokenParser(parser, displayName),
-    commit: parser => new ActionParser(parser, ({ $commit }) => $commit()),
+    commit: parser =>
+      new ActionParser(parser, ({ $commit, $emit }) => {
+        $commit();
+        $emit();
+      }),
     test: parser =>
       new OptionsParser([
         new ActionParser(parser, () => true),
