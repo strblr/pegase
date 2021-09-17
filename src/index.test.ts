@@ -163,6 +163,7 @@ test("L-attributed grammars should be implementable using context", () => {
         $context.acc = num;
       }})
       exprRest
+        ${({ $context }) => $context.acc}
         @context(${{ acc: 0 }})
     
     exprRest:
@@ -170,7 +171,7 @@ test("L-attributed grammars should be implementable using context", () => {
       $context.acc -= num;
     }})
       exprRest
-    | ε ${({ $context }) => $context.acc}
+    | ε
     
     num @number @token("number"):
       [0-9]+

@@ -156,7 +156,7 @@ export const defaultPlugin: Plugin = {
     notrace: parser => new TweakParser(parser, { trace: false }),
     context: (parser, context: any) => new TweakParser(parser, { context }),
     // Children transforms
-    omit: action(() => undefined),
+    omit: action(({ $emit }) => $emit([])),
     raw: action(({ $raw }) => $raw),
     length: action(({ $raw }) => $raw.length),
     number: action(({ $raw }) => Number($raw)),
@@ -195,16 +195,14 @@ export const defaultPlugin: Plugin = {
     action: (parser, action: SemanticAction) =>
       new ActionParser(parser, action),
     echo: (parser, output) =>
-      new ActionParser(parser, ({ $emit }) => {
+      new ActionParser(parser, () => {
         console.log(output);
-        $emit();
       }),
     token: (parser, displayName?: string) =>
       new TokenParser(parser, displayName),
     commit: parser =>
-      new ActionParser(parser, ({ $commit, $emit }) => {
+      new ActionParser(parser, ({ $commit }) => {
         $commit();
-        $emit();
       }),
     test: parser =>
       new OptionsParser([

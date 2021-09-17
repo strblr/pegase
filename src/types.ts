@@ -32,7 +32,7 @@ export type SemanticInfo<Context = any> = {
   $commit(): void;
   $warn(message: string): void;
   $expected(expected: UncastArray<string | RegExp | Expectation>): void;
-  $emit(children?: Array<any>): void;
+  $emit(children: Array<any>): void;
   $node(label: string, fields: Record<string, any>): Node;
   [capture: string]: any;
 };

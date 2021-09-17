@@ -362,7 +362,7 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
     <tr>
       <td><pre>a ${func}</pre></td>
       <td>Semantic action. <code>func</code> is a js function passed as tag argument. It will be called if <code>a</code> succeeds. This is in fact a shortcut for the <code>@action</code> directive and can thus be chained with other directives as described above.</td>
-      <td><code>[&lt;return value of func&gt;]</code> if that value is different than <code>undefined</code>, <code>[]</code> otherwise</td>
+      <td><code>[&lt;return value of func&gt;]</code> if that value is different than <code>undefined</code>, otherwise forwarded from <code>a</code></td>
     </tr>
     <tr>
       <td><pre>a | b<br/>a / b</pre></td>
@@ -379,13 +379,14 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
   </tbody>
 </table>
 
+
 ---
 
 ### Semantic actions and dataflow
 
 Differentiating between faulty and correct inputs is generally only part of the job we expect from a parser. Another big part is to **run routines** and **generate data** as a side-effect. In this section, we'll talk *semantic actions*, *dataflow*, *parse children* and *captures*.
 
-PEG parsers are top-down parsers, meaning the parsing expressions are recursively traversed (or *"called"*) in a depth-first manner, guided by a left-to-right input read. This traversal process can be represented as a tree, called syntax tree. Let's illustrate that with the following grammar:
+PEG parsers are top-down parsers, meaning the parsing expressions are recursively invoked (or *"called"*) in a depth-first manner, guided by a left-to-right input read. This process can be represented as a tree, called concrete syntax tree. Let's illustrate that with the following grammar:
 
 ```js
 const prefix = peg`
@@ -398,9 +399,9 @@ The input `"+ 5 * 2 6"` would generate the following syntax tree:
 
 ![Parse tree](https://raw.githubusercontent.com/ostrebler/pegase/master/img/dataflow-1.png)
 
-**To handle semantic values, Pegase implements a mechanism by which every individual parser can emit an array of values called `children`**.
+**Pegase implements a mechanism by which every individual parser can emit an array of values called `children`**.
 
-For example, in the `op` rule, `'+'` is a parser in and of itself who will succeed if a *plus* character can be read from the input. It's called a *literal* parser. You can make every literal parser emit the substring they matched as a single child by using double quotes instead of single quotes. More generally, you can make **any** parser emit the substring they matched as a single child by using the `@raw` directive. So `\d @raw` will emit the exact character it just matched.
+For example, in the `op` rule, `'+'` is a parser in and of itself who will succeed if a *plus* character can be read from the input. It's called a *literal* parser. You can make every literal parser emit the substring they matched as a single child by using double quotes instead of single quotes. More generally, you can make **any** parser emit the substring they matched as a single child by using the `@raw` directive. So `\d @raw` will emit the exact digit character it just matched.
 
 **`children` can be collected and processed in parent parsers through composition**.
 
@@ -428,7 +429,7 @@ console.log(prefix.children("+ 5 * 2 6"));       // ["+", "5", "*", "2", "6"]
 
 That can already be pretty useful, but what you usually want to do is to process these `children` in certain ways at strategic steps during parse time in order to incrementally build your desired output. This is where *semantic actions* come into play.
 
-**A semantic action wraps around a `Parser` and calls a callback on success. This callback will be given `children`, captures, matched substring and more. If it returns `undefined`, no child will be emitted. Any other return value will be emitted as a single child.**
+**A semantic action wraps around a `Parser` and calls a callback on success. This callback will be given `children`, captures, matched substring and more. If it returns `undefined`, children will be forwarded. Any other return value will be emitted as a single child.**
 
 Let's take our `prefix` grammar and say we want to make it generate the input expression in postfix notation (operators *after* operands). All we need to do is wrap a semantic action around `op expr expr`, reorder its `children` to postfix order, join them into a string and emit that string as a single child.
 
@@ -470,7 +471,7 @@ There are two things to keep in mind:
 - Non-terminals are self-captured, meaning that `id` is equivalent to `<id>id`.
 - Captures are propagated and accumulated upwards just like `children`, but are stopped at non-terminals. I.e. `'[' expr ']'` will just capture `expr`, but not forward the sub-captures done inside `expr`.
 
-Taking this into consideration, our prefix-to-postfix converter can be rewritten in a slightly nicer and more idiomatic way:
+Taking this into consideration, our prefix-to-postfix converter can be rewritten in a slightly nicer way:
 
 ```js
 const prefix = peg`
@@ -484,15 +485,16 @@ const prefix = peg`
 
 As an exercise, try to rewrite the `prefix` grammar so that its value is the actual result of the calculation.
 
-Okay. What if you want to call a semantic action for some side-effects but let the initial `children` propagate through, or emit more than one child ? This has to be done explicitly by calling the `$emit` callback passed as an argument:
+What if you want to emit more than one child, or no child at all, from a semantic action ? This has to be done explicitly by calling the `$emit` callback passed as an argument:
 
 ```js
-peg`a ${() => undefined}`; // a's children are blocked (emits [])
-peg`a ${({ $emit }) => $emit()}`; // a's children are forwarded (pass-through)
-peg`a ${({ $emit }) => $emit([1, true, "test"])}`; // emit custom children
+peg`a ${() => {}}`; // a's children are forwarded (pass-through)
+peg`a ${() => 5}`; // emits a single child (5)
+peg`a ${({ $emit }) => $emit([])}`; // no child is emitted
+peg`a ${({ $emit }) => $emit([1, true, "test"])}`; // emits multiple children
 ```
 
-If you don't care about emitted `children` and *only* wanna perform side-effects, then forget about `$emit` and just don't return any value.
+If you don't care about emitted `children` and *only* wanna perform side-effects, then you don't have to think about it.
 
 ---
 

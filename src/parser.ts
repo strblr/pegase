@@ -473,10 +473,6 @@ export class ActionParser extends Parser {
     const match = this.parser.exec(options);
     if (match === null) return null;
     let value, emit, failed;
-    const rewind = () => {
-      failed = true;
-      options.logger.sync(save);
-    };
     try {
       value = this.action({
         ...Object.fromEntries(match.captures),
@@ -500,7 +496,8 @@ export class ActionParser extends Parser {
           });
         },
         $expected(expected) {
-          rewind();
+          failed = true;
+          options.logger.sync(save);
           options.logger.hang({
             from: match.from,
             to: match.to,
@@ -514,7 +511,7 @@ export class ActionParser extends Parser {
             )
           });
         },
-        $emit(children: Array<any> = match.children) {
+        $emit(children: Array<any>) {
           emit = children.filter(child => child !== undefined);
         },
         $node(label, fields) {
@@ -523,7 +520,8 @@ export class ActionParser extends Parser {
       });
     } catch (e) {
       if (!(e instanceof Error)) throw e;
-      rewind();
+      failed = true;
+      options.logger.sync(save);
       options.logger.hang({
         from: match.from,
         to: match.to,
@@ -533,7 +531,10 @@ export class ActionParser extends Parser {
     }
     return failed
       ? null
-      : { ...match, children: emit ?? (value === undefined ? [] : [value]) };
+      : {
+          ...match,
+          children: emit ?? (value === undefined ? match.children : [value])
+        };
   }
 }
 
