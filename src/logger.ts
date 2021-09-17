@@ -77,15 +77,30 @@ export class Logger {
     }
   }
 
+  fresh() {
+    const clone = Object.create(Logger.prototype);
+    clone.warnings = [];
+    clone.failures = [];
+    clone.pending = null;
+    clone.input = this.input;
+    clone.indexes = this.indexes;
+    return clone;
+  }
+
   fork() {
-    return Object.assign(Object.create(Logger.prototype), this, {
-      warnings: this.warnings.slice(),
-      failures: this.failures.slice()
-    });
+    const clone = Object.create(Logger.prototype);
+    clone.warnings = this.warnings.concat();
+    clone.failures = this.failures.concat();
+    clone.pending = this.pending;
+    clone.input = this.input;
+    clone.indexes = this.indexes;
+    return clone;
   }
 
   sync(logger: Logger) {
-    Object.assign(this, logger);
+    this.warnings = logger.warnings;
+    this.failures = logger.failures;
+    this.pending = logger.pending;
   }
 
   humanize(options?: Partial<LogOptions>) {
@@ -170,8 +185,9 @@ export class Logger {
 
     return entries
       .map(entry => {
-        let acc = `(${entry.from.line}:${entry.from.column}) `;
-        acc += stringifyEntry(entry);
+        let acc = `(${entry.from.line}:${entry.from.column}) ${stringifyEntry(
+          entry
+        )}`;
         if (opts.codeFrames) acc += `\n\n${codeFrame(entry.from)}`;
         return acc;
       })
