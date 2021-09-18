@@ -4,6 +4,7 @@ import peg, {
   $fail,
   $raw,
   $value,
+  $visit,
   $warn,
   LiteralParser,
   RegExpParser,
@@ -235,11 +236,18 @@ test("AST and visitors should work", () => {
     | <>integer @node('INT')
     | <>op <a>expr <b>expr @node('OP')
     
-    $integer @number: \d+
-    op: "+" | "-"
+    $integer @raw: \d+
+    op: "+"
   `;
 
-  echo(g.value("+ 12 + 42 3"));
+  expect(
+    g.value("+ 12 + 42 3", {
+      visit: {
+        INT: node => Number(node.integer),
+        OP: node => $visit(node.a) + $visit(node.b)
+      }
+    })
+  ).toBe(57);
 });
 
 test("Failure recovery should work", () => {
