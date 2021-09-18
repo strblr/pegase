@@ -49,20 +49,7 @@ export type Node = {
   [field: string]: any;
 };
 
-export type Visitor<Value = any, Context = any> = Record<
-  string,
-  (node: Node, info: VisitorInfo<Value, Context>) => Value
->;
-
-export type VisitorInfo<Value = any, Context = any> = {
-  $node: Node;
-  $options: ParseOptions<Context>;
-  $context: Context;
-  $warn(message: string): void;
-  $fail(message: string): void;
-  $expected(expected: UncastArray<string | RegExp | Expectation>): void;
-  $visit(node: Node, options?: Partial<ParseOptions<Context>>): Value;
-};
+export type Visitor<Value = any> = Record<string, (node: Node) => Value>;
 
 export type Hooks = {
   options: () => ParseOptions;
@@ -79,6 +66,7 @@ export type Hooks = {
   commit(): void;
   emit(children: Match["children"]): void;
   node(label: string, fields: Record<string, any>): Node;
+  visit(node: Node, options?: Partial<ParseOptions>): any;
 };
 
 // Related to tracing

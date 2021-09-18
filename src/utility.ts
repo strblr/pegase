@@ -40,6 +40,8 @@ export const $commit: Hooks["commit"] = () => hooks.commit();
 export const $emit: Hooks["emit"] = children => hooks.emit(children);
 export const $node: Hooks["node"] = (label, fields) =>
   hooks.node(label, fields);
+export const $visit: Hooks["visit"] = (node, options) =>
+  hooks.visit(node, options);
 
 // extendFlags
 
@@ -152,7 +154,7 @@ export function merge<Value = any, Context = any>(
 
 export function applyVisitor<Value, Context>(
   node: Node,
-  visitor: Visitor<Value, Context>,
+  visitor: Visitor<Value>,
   options: ParseOptions<Context>
 ) {
   return node;
