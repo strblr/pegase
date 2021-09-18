@@ -1,6 +1,7 @@
 import {
   applyVisitor,
   castArray,
+  castExpectation,
   ExpectationType,
   extendFlags,
   FailureType,
@@ -480,23 +481,23 @@ export class ActionParser extends Parser {
     const match = this.parser.exec(options);
     if (match === null) return null;
     let emit, failed;
-    hooks.value = () => inferValue(match.children);
-    hooks.raw = () => options.input.substring(match.from.index, match.to.index);
-    hooks.from = () => match.from;
-    hooks.to = () => match.to;
-    hooks.children = () => match.children;
-    hooks.captures = () => match.captures;
-    hooks.options = () => options;
-    hooks.context = () => options.context;
-    hooks.warn = message => {
+    hooks.$from = () => match.from;
+    hooks.$to = () => match.to;
+    hooks.$children = () => match.children;
+    hooks.$captures = () => match.captures;
+    hooks.$value = () => inferValue(match.children);
+    hooks.$raw = () =>
+      options.input.substring(match.from.index, match.to.index);
+    hooks.$options = () => options;
+    hooks.$context = () => options.context;
+    hooks.$warn = message =>
       options.logger.warn({
         from: match.from,
         to: match.to,
         type: WarningType.Message,
         message
       });
-    };
-    hooks.fail = message => {
+    hooks.$fail = message => {
       failed = true;
       options.logger.sync(save);
       options.logger.hang({
@@ -506,27 +507,21 @@ export class ActionParser extends Parser {
         message
       });
     };
-    hooks.expected = expected => {
+    hooks.$expected = expected => {
       failed = true;
       options.logger.sync(save);
       options.logger.hang({
         from: match.from,
         to: match.to,
         type: FailureType.Expectation,
-        expected: castArray(expected).map(expected =>
-          typeof expected === "string"
-            ? { type: ExpectationType.Literal, literal: expected }
-            : expected instanceof RegExp
-            ? { type: ExpectationType.RegExp, regExp: expected }
-            : expected
-        )
+        expected: castExpectation(castArray(expected))
       });
     };
-    hooks.commit = () => options.logger.commit();
-    hooks.emit = (children: Array<any>) => {
+    hooks.$commit = () => options.logger.commit();
+    hooks.$emit = children => {
       emit = children.filter(child => child !== undefined);
     };
-    hooks.node = (label, fields) => ({
+    hooks.$node = (label, fields) => ({
       $label: label,
       $match: match,
       ...fields

@@ -52,21 +52,21 @@ export type Node = {
 export type Visitor<Value = any> = Record<string, (node: Node) => Value>;
 
 export type Hooks = {
-  options: () => ParseOptions;
-  context: () => any;
-  from: () => Location;
-  to: () => Location;
-  children: () => Match["children"];
-  captures: () => Match["captures"];
-  value: () => any;
-  raw: () => string;
-  warn(message: string): void;
-  fail(message: string): void;
-  expected(expected: UncastArray<string | RegExp | Expectation>): void;
-  commit(): void;
-  emit(children: Match["children"]): void;
-  node(label: string, fields: Record<string, any>): Node;
-  visit(node: Node, options?: Partial<ParseOptions>): any;
+  $from(): Match["from"];
+  $to(): Match["to"];
+  $children(): Match["children"];
+  $captures(): Match["captures"];
+  $value(): any;
+  $raw(): string;
+  $options(): ParseOptions;
+  $context(): any;
+  $warn(message: string): void;
+  $fail(message: string): void;
+  $expected(expected: UncastArray<string | RegExp | Expectation>): void;
+  $commit(): void;
+  $emit(children: Match["children"]): void;
+  $node(label: string, fields: Record<string, any>): Node;
+  $visit(node: Node, options?: Partial<ParseOptions>): any;
 };
 
 // Related to tracing

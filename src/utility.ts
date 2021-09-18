@@ -2,6 +2,9 @@ import {
   ActionParser,
   CutParser,
   Directive,
+  Expectation,
+  ExpectationType,
+  FailureType,
   GrammarParser,
   Hooks,
   LiteralParser,
@@ -17,31 +20,32 @@ import {
   TokenParser,
   Tracer,
   TweakParser,
-  Visitor
+  Visitor,
+  WarningType
 } from ".";
 
 // Hooks
 
 export const hooks: Hooks = Object.create(null);
 
-export const $options = () => hooks.options();
-export const $context = () => hooks.context();
-export const $from = () => hooks.from();
-export const $to = () => hooks.to();
-export const $children = () => hooks.children();
-export const $captures = () => hooks.captures();
-export const $value = () => hooks.value();
-export const $raw = () => hooks.raw();
-export const $warn: Hooks["warn"] = message => hooks.warn(message);
-export const $fail: Hooks["fail"] = message => hooks.fail(message);
-export const $expected: Hooks["expected"] = expected =>
-  hooks.expected(expected);
-export const $commit: Hooks["commit"] = () => hooks.commit();
-export const $emit: Hooks["emit"] = children => hooks.emit(children);
-export const $node: Hooks["node"] = (label, fields) =>
-  hooks.node(label, fields);
-export const $visit: Hooks["visit"] = (node, options) =>
-  hooks.visit(node, options);
+export const $from = () => hooks.$from();
+export const $to = () => hooks.$to();
+export const $children = () => hooks.$children();
+export const $captures = () => hooks.$captures();
+export const $value = () => hooks.$value();
+export const $raw = () => hooks.$raw();
+export const $options = () => hooks.$options();
+export const $context = () => hooks.$context();
+export const $warn: Hooks["$warn"] = message => hooks.$warn(message);
+export const $fail: Hooks["$fail"] = message => hooks.$fail(message);
+export const $expected: Hooks["$expected"] = expected =>
+  hooks.$expected(expected);
+export const $commit = () => hooks.$commit();
+export const $emit: Hooks["$emit"] = children => hooks.$emit(children);
+export const $node: Hooks["$node"] = (label, fields) =>
+  hooks.$node(label, fields);
+export const $visit: Hooks["$visit"] = (node, options) =>
+  hooks.$visit(node, options);
 
 // extendFlags
 
@@ -62,6 +66,20 @@ export function spaceCase(input: string) {
 
 export function castArray<T>(value: T | Array<T>) {
   return Array.isArray(value) ? value : [value];
+}
+
+// castExpectation
+
+export function castExpectation(
+  expected: Array<string | RegExp | Expectation>
+): Array<Expectation> {
+  return expected.map(expected =>
+    typeof expected === "string"
+      ? { type: ExpectationType.Literal, literal: expected }
+      : expected instanceof RegExp
+      ? { type: ExpectationType.RegExp, regExp: expected }
+      : expected
+  );
 }
 
 // skip
@@ -157,7 +175,38 @@ export function applyVisitor<Value, Context>(
   visitor: Visitor<Value>,
   options: ParseOptions<Context>
 ) {
-  return node;
+  const { from, to } = node.$match;
+  hooks.$from = () => from;
+  hooks.$to = () => to;
+  hooks.$children = () => node.$match.children;
+  hooks.$captures = () => node.$match.captures;
+  hooks.$value = () => inferValue(node.$match.children);
+  hooks.$raw = () => options.input.substring(from.index, to.index);
+  hooks.$options = () => options;
+  hooks.$context = () => options.context;
+  hooks.$warn = message =>
+    options.logger.warn({ from, to, type: WarningType.Message, message });
+  hooks.$fail = message =>
+    options.logger.fail({ from, to, type: FailureType.Semantic, message });
+  hooks.$expected = expected =>
+    options.logger.fail({
+      from,
+      to,
+      type: FailureType.Expectation,
+      expected: castExpectation(castArray(expected))
+    });
+  hooks.$node = (label, fields) => ({
+    $label: label,
+    $match: node.$match,
+    ...fields
+  });
+  hooks.$visit = (node, opts) =>
+    applyVisitor(node, visitor, { ...options, ...opts });
+  if (visitor.hasOwnProperty(node.$label)) return visitor[node.$label](node);
+  if (visitor.hasOwnProperty("$default")) return visitor.$default(node);
+  throw new Error(
+    `Missing visitor callback for "${node.$label}" labeled nodes`
+  );
 }
 
 // action
