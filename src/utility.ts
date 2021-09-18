@@ -27,7 +27,7 @@ import {
 // Hooks
 
 export const hooks: Hooks = Object.create(null);
-
+// TODO: rewrite using forward utility
 export const $from = () => hooks.$from();
 export const $to = () => hooks.$to();
 export const $children = () => hooks.$children();

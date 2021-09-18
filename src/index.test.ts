@@ -3,6 +3,7 @@ import peg, {
   $context,
   $fail,
   $raw,
+  $value,
   $warn,
   LiteralParser,
   RegExpParser,
@@ -18,6 +19,8 @@ function echo(entity: any) {
         if (val instanceof RegExp) return val.toString();
         if (val instanceof Function) return val.toString();
         if (val === Infinity) return "Infinity";
+        if (val instanceof Object && val.hasOwnProperty("$label"))
+          return (({ $match, ...rest }) => rest)(val);
         return val;
       },
       2
@@ -79,7 +82,8 @@ test("Captures should work", () => {
   const g2 = peg`${g1}*`;
   const g3 = peg`...<val>("a" | "b"){1} .*`;
   const g4 = peg`<val1>("a" <val2>("b" | "c") "d" @count)`;
-  const g5 = peg`a: <val>b c ${({ val, b, c }) => val + c + b} b: "b" c: "c"`;
+  const g5 = peg`a: <val>(<>b) <>c ${({ val, b, c }) =>
+    val + c + b} b: "b" c: "c"`;
   const g6 = peg`'a' <val3>(${/(?<val>(?<val1>[bc])(?<val2>[de]))/} @raw) 'f'`;
   const g7 = peg`&(<val>("0" | "1")) ("0" | "1")`;
 
@@ -100,6 +104,17 @@ test("Captures should work", () => {
   expect(result2.captures.get("val1")).toBe("c");
   expect(result2.captures.get("val2")).toBe("e");
   expect(result2.captures.get("val3")).toBe("ce");
+
+  try {
+    peg`<>"a"`;
+  } catch (e: any) {
+    expect(e.message)
+      .toBe(`(1:1) Failure: Auto-captures can only be applied to non-terminals
+
+> 1 | <>"a"
+    | ^
+`);
+  }
 });
 
 test("Modulos in grammars should work", () => {
@@ -132,7 +147,7 @@ test("Prefix math expressions should be correctly converted to postfix", () => {
   const g = peg`
     expr:
     | number
-    | operator <e1>expr <e2>expr ${({ operator, e1, e2 }) =>
+    | <>operator <e1>expr <e2>expr ${({ operator, e1, e2 }) =>
       [e1, e2, operator].join(" ")}
 
     operator:
@@ -168,17 +183,13 @@ test("The cut operator should work correctly", () => {
 test("L-attributed grammars should be implementable using context", () => {
   const g = peg<number>`
     expr:
-      (num ${({ num }) => {
-        $context().acc = num;
-      }})
+      (num ${() => ($context().acc = $value())})
       exprRest
         ${() => $context().acc}
         @context(${{ acc: 0 }})
     
     exprRest:
-    | ('-' num ${({ num }) => {
-      $context().acc -= num;
-    }})
+    | ('-' num ${() => ($context().acc -= $value())})
       exprRest
     | ε
     
@@ -216,6 +227,19 @@ test("Warnings should work correctly", () => {
 > 1 | class test {
     |             ^
 `);
+});
+
+test("AST and visitors should work", () => {
+  const g = peg`
+    expr:
+    | <>integer @node('INT')
+    | <>op <a>expr <b>expr @node('OP')
+    
+    $integer @number: \d+
+    op: "+" | "-"
+  `;
+
+  echo(g.value("+ 12 + 42 3"));
 });
 
 test("Failure recovery should work", () => {

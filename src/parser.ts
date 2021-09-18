@@ -225,10 +225,7 @@ export class NonTerminalParser extends Parser {
         options,
         match
       });
-    return {
-      ...match,
-      captures: new Map([[this.rule, inferValue(match.children)]])
-    };
+    return { ...match, captures: new Map() };
   }
 }
 
