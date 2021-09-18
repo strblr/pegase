@@ -8,7 +8,8 @@ import peg, {
   $warn,
   LiteralParser,
   RegExpParser,
-  SuccessResult
+  SuccessResult,
+  Visitor
 } from ".";
 
 function echo(entity: any) {
@@ -240,14 +241,39 @@ test("AST and visitors should work", () => {
     op: "+"
   `;
 
-  expect(
-    g.value("+ 12 + 42 3", {
-      visit: {
-        INT: node => Number(node.integer),
-        OP: node => $visit(node.a) + $visit(node.b)
-      }
-    })
-  ).toBe(57);
+  const double: Visitor = {
+    OP: node => ($visit(node.a), $visit(node.b), node),
+    INT: node => ((node.integer *= 2), node)
+  };
+
+  const fold: Visitor = {
+    OP: node => $visit(node.a) + $visit(node.b),
+    INT: node => Number(node.integer)
+  };
+
+  const logDemo: Visitor = {
+    OP: node => ($visit(node.a), $visit(node.b), node),
+    INT: node => {
+      if (node.integer === "42") $warn("The number 42 is dangerous");
+      if (node.integer === "3") $fail("The number 3 is forbidden");
+      return node;
+    }
+  };
+
+  expect(g.value("+ 12 + 42 3 ", { visit: fold })).toBe(57);
+  expect(g.value("+ 12 + 42 3 ", { visit: [double, fold] })).toBe(114);
+  expect(g.value("+ 12 + 42 3 ", { visit: [double, double, fold] })).toBe(228);
+  expect(g.parse("+ 12 + 42 3 ", { visit: logDemo }).logger.humanize())
+    .toBe(`(1:8) Warning: The number 42 is dangerous
+
+> 1 | + 12 + 42 3 
+    |        ^
+
+(1:11) Failure: The number 3 is forbidden
+
+> 1 | + 12 + 42 3 
+    |           ^
+`);
 });
 
 test("Failure recovery should work", () => {
