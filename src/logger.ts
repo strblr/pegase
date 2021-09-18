@@ -50,6 +50,14 @@ export class Logger {
     };
   }
 
+  hasWarnings() {
+    return this.warnings.length !== 0;
+  }
+
+  hasFailures() {
+    return this.failures.length !== 0;
+  }
+
   warn(warning: Warning) {
     this.warnings.push(warning);
   }
