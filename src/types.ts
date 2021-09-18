@@ -104,7 +104,7 @@ export type TraceCommon<Context = any> = {
 
 // Related to logging
 
-export type LogOptions = {
+export type HumanizeOptions = {
   warnings: boolean;
   failures: boolean;
   codeFrames: boolean;

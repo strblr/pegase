@@ -3,8 +3,8 @@ import {
   ExpectationType,
   Failure,
   FailureType,
+  HumanizeOptions,
   Location,
-  LogOptions,
   Warning,
   WarningType
 } from ".";
@@ -103,8 +103,8 @@ export class Logger {
     this.pending = logger.pending;
   }
 
-  humanize(options?: Partial<LogOptions>) {
-    const opts: LogOptions = {
+  humanize(options?: Partial<HumanizeOptions>) {
+    const opts: HumanizeOptions = {
       warnings: true,
       failures: true,
       codeFrames: true,
