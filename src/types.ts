@@ -39,26 +39,9 @@ export type Match = Range & {
   captures: Map<string, any>;
 };
 
-export type SemanticAction<Value = any, Context = any> = (
-  info: SemanticInfo<Context>
+export type SemanticAction<Value = any> = (
+  captures: Record<string, any>
 ) => Value;
-
-export type SemanticInfo<Context = any> = {
-  $value: any;
-  $raw: string;
-  $from: Match["from"];
-  $to: Match["to"];
-  $children: Match["children"];
-  $captures: Match["captures"];
-  $options: ParseOptions<Context>;
-  $context: Context;
-  $commit(): void;
-  $warn(message: string): void;
-  $expected(expected: UncastArray<string | RegExp | Expectation>): void;
-  $emit(children: Array<any>): void;
-  $node(label: string, fields: Record<string, any>): Node;
-  [capture: string]: any;
-};
 
 export type Node = {
   $label: string;
@@ -79,6 +62,23 @@ export type VisitorInfo<Value = any, Context = any> = {
   $fail(message: string): void;
   $expected(expected: UncastArray<string | RegExp | Expectation>): void;
   $visit(node: Node, options?: Partial<ParseOptions<Context>>): Value;
+};
+
+export type Hooks = {
+  options: () => ParseOptions;
+  context: () => any;
+  from: () => Location;
+  to: () => Location;
+  children: () => Match["children"];
+  captures: () => Match["captures"];
+  value: () => any;
+  raw: () => string;
+  warn(message: string): void;
+  fail(message: string): void;
+  expected(expected: UncastArray<string | RegExp | Expectation>): void;
+  commit(): void;
+  emit(children: Match["children"]): void;
+  node(label: string, fields: Record<string, any>): Node;
 };
 
 // Related to tracing
@@ -229,4 +229,4 @@ export type Location = {
 
 // Helpers
 
-type UncastArray<T> = T | Array<T>;
+export type UncastArray<T> = T | Array<T>;

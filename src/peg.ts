@@ -1,4 +1,9 @@
 import {
+  $children,
+  $context,
+  $fail,
+  $raw,
+  $value,
   ActionParser,
   CaptureParser,
   CutParser,
@@ -76,7 +81,7 @@ export function createTag() {
  *   grammarParser | optionsParser
  *
  * grammarParser:  => Parser
- *   (identifier directives ':' optionsParser)+
+ *   (identifier directives ':' ^ optionsParser)+
  *
  * optionsParser:  => Parser
  *   ('|' | '/')? directiveParser % ('|' | '/')
@@ -110,7 +115,7 @@ export function createTag() {
  * | '$' - identifier
  * | 'ε'
  * | '^'
- * | '(' parser ')'
+ * | '(' ^ parser ')'
  * | nonTerminal !(directives ':')
  * | numberLiteral
  * | stringLiteral
@@ -139,7 +144,7 @@ export function createTag() {
  * escapedMeta:  => RegExp
  *   $escapedMeta
  *
- * tagArgument:  => any
+ * tagArgument:  => [any]
  *   $tagArgument
  *
  * castableTagArgument:  => Parser
@@ -197,25 +202,23 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
             new NonTerminalParser("identifier"),
             new NonTerminalParser("directives"),
             new LiteralParser(":"),
+            new CutParser(),
             new NonTerminalParser("optionsParser")
           ]),
-          ({ $children }) => $children
+          () => {
+            let [rule, directives, parser] = $children();
+            if (rule.startsWith("$")) {
+              rule = rule.substring(1);
+              const tokenDir = resolveDirective($context().plugins, "token");
+              if (!tokenDir) return;
+              directives = [...directives, [tokenDir, [spaceCase(rule)]]];
+            }
+            return [rule, pipeDirectives(parser, directives)];
+          }
         ),
         [1, Infinity]
       ),
-      ({ $context, $children }) =>
-        new GrammarParser(
-          $children.map(([rule, directives, parser]) => {
-            if (rule.startsWith("$")) {
-              rule = rule.substring(1);
-              directives = [
-                ...directives,
-                [resolveDirective($context.plugins, "token"), [spaceCase(rule)]]
-              ];
-            }
-            return [rule, pipeDirectives(parser, directives)];
-          })
-        )
+      () => new GrammarParser($children())
     )
   ],
   [
@@ -231,8 +234,10 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
           new OptionsParser([new LiteralParser("|"), new LiteralParser("/")])
         )
       ]),
-      ({ $children }) =>
-        $children.length === 1 ? $children[0] : new OptionsParser($children)
+      () =>
+        $children().length === 1
+          ? $children()[0]
+          : new OptionsParser($children())
     )
   ],
   [
@@ -250,16 +255,18 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     "sequenceParser",
     new ActionParser(
       new RepetitionParser(new NonTerminalParser("minusParser"), [1, Infinity]),
-      ({ $children }) =>
-        $children.length === 1 ? $children[0] : new SequenceParser($children)
+      () =>
+        $children().length === 1
+          ? $children()[0]
+          : new SequenceParser($children())
     )
   ],
   [
     "minusParser",
     new ActionParser(
       modulo(new NonTerminalParser("moduloParser"), new LiteralParser("-")),
-      ({ $children }) =>
-        ($children as Array<Parser>).reduce(
+      () =>
+        ($children() as Array<Parser>).reduce(
           (acc, not) =>
             new SequenceParser([new PredicateParser(not, false), acc])
         )
@@ -278,9 +285,9 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
           ])
         ])
       ),
-      ({ $children }) =>
-        $children.reduce((acc, rep, index) =>
-          index % 2 ? modulo(acc, $children[index + 1], rep) : acc
+      () =>
+        $children().reduce((acc, rep, index) =>
+          index % 2 ? modulo(acc, $children()[index + 1], rep) : acc
         )
     )
   ],
@@ -291,8 +298,8 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         new RepetitionParser(new LiteralParser("...", true), [0, 1]),
         new NonTerminalParser("captureParser")
       ]),
-      ({ captureParser, $children }) => {
-        if ($children.length === 1) return captureParser;
+      ({ captureParser }) => {
+        if ($children().length === 1) return captureParser;
         return new SequenceParser([
           new RepetitionParser(
             new SequenceParser([
@@ -320,10 +327,10 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         ),
         new NonTerminalParser("predicateParser")
       ]),
-      ({ predicateParser, $children }) =>
-        $children.length === 1
+      ({ predicateParser }) =>
+        $children().length === 1
           ? predicateParser
-          : new CaptureParser(predicateParser, $children[0])
+          : new CaptureParser(predicateParser, $children()[0])
     )
   ],
   [
@@ -339,10 +346,10 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         ),
         new NonTerminalParser("repetitionParser")
       ]),
-      ({ repetitionParser, $children }) =>
-        $children.length === 1
+      ({ repetitionParser }) =>
+        $children().length === 1
           ? repetitionParser
-          : new PredicateParser(repetitionParser, $children[0] === "&")
+          : new PredicateParser(repetitionParser, $children()[0] === "&")
     )
   ],
   [
@@ -377,6 +384,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
       new ActionParser(new LiteralParser("^"), () => new CutParser()),
       new SequenceParser([
         new LiteralParser("("),
+        new CutParser(),
         new NonTerminalParser("parser"),
         new LiteralParser(")")
       ]),
@@ -423,10 +431,10 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new TokenParser(
       new ActionParser(
         new NonTerminalParser("identifier"),
-        ({ identifier, $context }) =>
+        ({ identifier }) =>
           new NonTerminalParser(
             identifier,
-            ($context as MetaContext).plugins.find(plugin =>
+            ($context() as MetaContext).plugins.find(plugin =>
               (plugin.grammar as GrammarParser | undefined)?.rules?.get(
                 identifier
               )
@@ -439,8 +447,8 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "numberLiteral",
     new TokenParser(
-      new ActionParser(new RegExpParser(/[0-9]+\.?[0-9]*/), ({ $raw }) =>
-        Number($raw)
+      new ActionParser(new RegExpParser(/[0-9]+\.?[0-9]*/), () =>
+        Number($raw())
       ),
       "number literal"
     )
@@ -449,12 +457,12 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     "stringLiteral",
     new TokenParser(
       new OptionsParser([
-        new ActionParser(new RegExpParser(/'(?:[^\\']|\\.)*'/), ({ $raw }) => [
-          JSON.parse(`"${$raw.substring(1, $raw.length - 1)}"`),
+        new ActionParser(new RegExpParser(/'(?:[^\\']|\\.)*'/), () => [
+          JSON.parse(`"${$raw().substring(1, $raw().length - 1)}"`),
           false
         ]),
-        new ActionParser(new RegExpParser(/"(?:[^\\"]|\\.)*"/), ({ $raw }) => [
-          JSON.parse($raw),
+        new ActionParser(new RegExpParser(/"(?:[^\\"]|\\.)*"/), () => [
+          JSON.parse($raw()),
           true
         ])
       ]),
@@ -466,7 +474,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new TokenParser(
       new ActionParser(
         new RegExpParser(/\[(?:[^\\\]]|\\.)*]/),
-        ({ $raw }) => new RegExp($raw)
+        () => new RegExp($raw())
       ),
       "character class"
     )
@@ -476,7 +484,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new TokenParser(
       new ActionParser(
         new RegExpParser(/\\[a-zA-Z0-9]+/),
-        ({ $raw }) => new RegExp($raw)
+        () => new RegExp($raw())
       ),
       "escaped metacharacter"
     )
@@ -484,10 +492,9 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "tagArgument",
     new TokenParser(
-      new ActionParser(
-        new RegExpParser(/~\d+/),
-        ({ $raw, $context }) => $context.args[$raw.substring(1)]
-      ),
+      new ActionParser(new RegExpParser(/~\d+/), () => [
+        $context().args[$raw().substring(1)]
+      ]),
       "tag argument"
     )
   ],
@@ -496,8 +503,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new TokenParser(
       new ActionParser(
         new NonTerminalParser("tagArgument"),
-        ({ tagArgument, $context }) =>
-          resolveCast($context.plugins, tagArgument)
+        ({ tagArgument: [arg] }) => resolveCast($context().plugins, arg)
       ),
       "castable tag argument"
     )
@@ -507,10 +513,10 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new TokenParser(
       new ActionParser(
         new NonTerminalParser("tagArgument"),
-        ({ tagArgument }) => {
-          if (typeof tagArgument !== "function")
-            throw new Error("The tag argument is not a function");
-          return tagArgument;
+        ({ tagArgument: [arg] }) => {
+          if (typeof arg !== "function")
+            $fail("The tag argument is not a function");
+          return arg;
         }
       ),
       "action tag argument"
@@ -521,10 +527,10 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new TokenParser(
       new ActionParser(
         new NonTerminalParser("tagArgument"),
-        ({ tagArgument }) => {
-          if (typeof tagArgument !== "number")
-            throw new Error("The tag argument is not a number");
-          return tagArgument;
+        ({ tagArgument: [arg] }) => {
+          if (typeof arg !== "number")
+            $fail("The tag argument is not a number");
+          return arg;
         }
       ),
       "number tag argument"
@@ -555,7 +561,10 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
           ),
           new LiteralParser("}")
         ]),
-        ({ $children: [min, max] }) => [min, max ?? min]
+        () => {
+          const [min, max] = $children();
+          return [min, max ?? min];
+        }
       )
     ])
   ],
@@ -570,7 +579,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     "directives",
     new ActionParser(
       new RepetitionParser(new NonTerminalParser("directive"), [0, Infinity]),
-      ({ $children }) => $children
+      () => $children()
     )
   ],
   [
@@ -586,8 +595,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
               ]),
               "directive"
             ),
-            ({ identifier, $context }) =>
-              resolveDirective($context.plugins, identifier)
+            ({ identifier }) => resolveDirective($context().plugins, identifier)
           ),
           new ActionParser(
             new RepetitionParser(
@@ -597,12 +605,12 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
             ({ directiveArguments }) => directiveArguments ?? []
           )
         ]),
-        ({ $children }) => $children
+        () => $children()
       ),
       new ActionParser(
         new NonTerminalParser("actionTagArgument"),
-        ({ actionTagArgument, $context }) => [
-          resolveDirective($context.plugins, "action"),
+        ({ actionTagArgument }) => [
+          resolveDirective($context().plugins, "action"),
           [actionTagArgument]
         ]
       )
@@ -619,25 +627,27 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         ),
         new LiteralParser(")")
       ]),
-      ({ $children }) => $children.flat()
+      () => $children().flat()
     )
   ],
   [
     "directiveArgument",
-    new ActionParser(
-      new OptionsParser([
-        new NonTerminalParser("nonTerminal"),
-        new NonTerminalParser("numberLiteral"),
-        new ActionParser(
-          new NonTerminalParser("stringLiteral"),
-          ({ stringLiteral: [value] }) => value
-        ),
-        new NonTerminalParser("characterClass"),
-        new NonTerminalParser("escapedMeta"),
-        new NonTerminalParser("tagArgument")
-      ]),
-      ({ $value }) => [$value]
-    )
+    new OptionsParser([
+      new NonTerminalParser("tagArgument"),
+      new ActionParser(
+        new OptionsParser([
+          new NonTerminalParser("nonTerminal"),
+          new NonTerminalParser("numberLiteral"),
+          new ActionParser(
+            new NonTerminalParser("stringLiteral"),
+            ({ stringLiteral: [value] }) => value
+          ),
+          new NonTerminalParser("characterClass"),
+          new NonTerminalParser("escapedMeta")
+        ]),
+        () => [$value()]
+      )
+    ])
   ]
 ]);
 

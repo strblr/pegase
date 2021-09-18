@@ -3,7 +3,9 @@ import {
   CutParser,
   Directive,
   GrammarParser,
+  Hooks,
   LiteralParser,
+  Node,
   OptionsParser,
   ParseOptions,
   Parser,
@@ -11,13 +13,33 @@ import {
   RegExpParser,
   RepetitionParser,
   SemanticAction,
-  SemanticInfo,
   SequenceParser,
   TokenParser,
   Tracer,
   TweakParser,
   Visitor
 } from ".";
+
+// Hooks
+
+export const hooks: Hooks = Object.create(null);
+
+export const $options = () => hooks.options();
+export const $context = () => hooks.context();
+export const $from = () => hooks.from();
+export const $to = () => hooks.to();
+export const $children = () => hooks.children();
+export const $captures = () => hooks.captures();
+export const $value = () => hooks.value();
+export const $raw = () => hooks.raw();
+export const $warn: Hooks["warn"] = message => hooks.warn(message);
+export const $fail: Hooks["fail"] = message => hooks.fail(message);
+export const $expected: Hooks["expected"] = expected =>
+  hooks.expected(expected);
+export const $commit: Hooks["commit"] = () => hooks.commit();
+export const $emit: Hooks["emit"] = children => hooks.emit(children);
+export const $node: Hooks["node"] = (label, fields) =>
+  hooks.node(label, fields);
 
 // extendFlags
 
@@ -54,10 +76,10 @@ export function resolveCast(plugins: Array<Plugin>, value: any) {
   let parser: Parser | undefined;
   plugins.some(plugin => (parser = plugin.castParser?.(value)));
   if (!parser)
-    throw new Error(
+    $fail(
       "Couldn't cast value to Parser, you can add support for it via peg.extend"
     );
-  return parser;
+  else return parser;
 }
 
 // resolveDirective
@@ -67,10 +89,10 @@ export function resolveDirective(plugins: Array<Plugin>, directive: string) {
     plugin.directives?.hasOwnProperty(directive)
   );
   if (!plugin)
-    throw new Error(
+    $fail(
       `Couldn't resolve directive "${directive}", you can add support for it via peg.extend`
     );
-  return plugin.directives![directive];
+  else return plugin.directives![directive];
 }
 
 // pipeDirectives
@@ -139,10 +161,10 @@ export function applyVisitor<Value, Context>(
 // action
 
 export function action(
-  callback: (info: SemanticInfo, ...args: Array<any>) => any
+  callback: (captures: Record<string, any>, ...args: Array<any>) => any
 ): Directive {
   return (parser, ...args) =>
-    new ActionParser(parser, info => callback(info, ...args));
+    new ActionParser(parser, captures => callback(captures, ...args));
 }
 
 // defaultPlugin
@@ -167,41 +189,35 @@ export const defaultPlugin: Plugin = {
     notrace: parser => new TweakParser(parser, { trace: false }),
     context: (parser, context: any) => new TweakParser(parser, { context }),
     // Children transforms
-    omit: action(({ $emit }) => $emit([])),
-    raw: action(({ $raw }) => $raw),
-    length: action(({ $raw }) => $raw.length),
-    number: action(({ $raw }) => Number($raw)),
-    index: action(({ $from }) => $from.index),
-    children: action(({ $children }) => $children),
-    count: action(({ $children }) => $children.length),
-    every: action(({ $children }, predicate) => $children.every(predicate)),
-    filter: action(({ $children, $emit }, predicate) =>
-      $emit($children.filter(predicate))
-    ),
-    find: action(({ $children }, predicate, defaultValue?) => {
-      const result = $children.find(predicate);
+    omit: action(() => $emit([])),
+    raw: action(() => $raw()),
+    length: action(() => $raw().length),
+    number: action(() => Number($raw())),
+    index: action(() => $from().index),
+    children: action(() => $children()),
+    count: action(() => $children().length),
+    every: action((_, predicate) => $children().every(predicate)),
+    filter: action((_, predicate) => $emit($children().filter(predicate))),
+    find: action((_, predicate, defaultValue?) => {
+      const result = $children().find(predicate);
       return result === undefined ? defaultValue : result;
     }),
-    flat: action(({ $children, $emit }, depth = 1) =>
-      $emit($children.flat(depth))
-    ),
-    forEach: action(({ $children }, callback) => $children.forEach(callback)),
-    join: action(({ $children }, separator = ",") => $children.join(separator)),
-    map: action(({ $children, $emit }, mapper) => $emit($children.map(mapper))),
-    reduce: action(({ $children }, ...args) =>
-      ($children.reduce as Function)(...args)
-    ),
-    infix: action(({ $children }, reducer, ltr = true) =>
+    flat: action((_, depth = 1) => $emit($children().flat(depth))),
+    forEach: action((_, callback) => $children().forEach(callback)),
+    join: action((_, separator = ",") => $children().join(separator)),
+    map: action((_, mapper) => $emit($children().map(mapper))),
+    reduce: action((_, ...args) => ($children().reduce as Function)(...args)),
+    infix: action((_, reducer, ltr = true) =>
       ltr
-        ? $children.reduce((acc, op, index) =>
-            index % 2 ? reducer(acc, op, $children[index + 1]) : acc
+        ? $children().reduce((acc, op, index) =>
+            index % 2 ? reducer(acc, op, $children()[index + 1]) : acc
           )
-        : $children.reduceRight((acc, op, index) =>
-            index % 2 ? reducer($children[index - 1], op, acc) : acc
+        : $children().reduceRight((acc, op, index) =>
+            index % 2 ? reducer($children()[index - 1], op, acc) : acc
           )
     ),
-    reverse: action(({ $children, $emit }) => $emit([...$children].reverse())),
-    some: action(({ $children }, predicate) => $children.some(predicate)),
+    reverse: action(() => $emit([...$children()].reverse())),
+    some: action((_, predicate) => $children().some(predicate)),
     // Other
     action: (parser, action: SemanticAction) =>
       new ActionParser(parser, action),
@@ -209,15 +225,12 @@ export const defaultPlugin: Plugin = {
       new ActionParser(parser, () => {
         console.log(output);
       }),
-    node: action((info, label, fields = Object.fromEntries(info.$captures)) =>
-      info.$node(label, typeof fields === "function" ? fields(info) : fields)
+    node: action((captures, label, fields = captures) =>
+      $node(label, typeof fields === "function" ? fields(captures) : fields)
     ),
     token: (parser, displayName?: string) =>
       new TokenParser(parser, displayName),
-    commit: parser =>
-      new ActionParser(parser, ({ $commit }) => {
-        $commit();
-      }),
+    commit: action(() => $commit()),
     test: parser =>
       new OptionsParser([
         new ActionParser(parser, () => true),

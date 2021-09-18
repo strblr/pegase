@@ -4,6 +4,7 @@ import {
   ExpectationType,
   extendFlags,
   FailureType,
+  hooks,
   inferValue,
   Logger,
   Match,
@@ -478,63 +479,59 @@ export class ActionParser extends Parser {
     const save = options.logger.fork();
     const match = this.parser.exec(options);
     if (match === null) return null;
-    let value, emit, failed;
-    try {
-      value = this.action({
-        ...Object.fromEntries(match.captures),
-        $value: inferValue(match.children),
-        $raw: options.input.substring(match.from.index, match.to.index),
-        $from: match.from,
-        $to: match.to,
-        $children: match.children,
-        $captures: match.captures,
-        $options: options,
-        $context: options.context,
-        $commit() {
-          options.logger.commit();
-        },
-        $warn(message: string) {
-          options.logger.warn({
-            from: match.from,
-            to: match.to,
-            type: WarningType.Message,
-            message
-          });
-        },
-        $expected(expected) {
-          failed = true;
-          options.logger.sync(save);
-          options.logger.hang({
-            from: match.from,
-            to: match.to,
-            type: FailureType.Expectation,
-            expected: castArray(expected).map(expected =>
-              typeof expected === "string"
-                ? { type: ExpectationType.Literal, literal: expected }
-                : expected instanceof RegExp
-                ? { type: ExpectationType.RegExp, regExp: expected }
-                : expected
-            )
-          });
-        },
-        $emit(children: Array<any>) {
-          emit = children.filter(child => child !== undefined);
-        },
-        $node(label, fields) {
-          return { $label: label, $match: match, ...fields };
-        }
+    let emit, failed;
+    hooks.value = () => inferValue(match.children);
+    hooks.raw = () => options.input.substring(match.from.index, match.to.index);
+    hooks.from = () => match.from;
+    hooks.to = () => match.to;
+    hooks.children = () => match.children;
+    hooks.captures = () => match.captures;
+    hooks.options = () => options;
+    hooks.context = () => options.context;
+    hooks.warn = message => {
+      options.logger.warn({
+        from: match.from,
+        to: match.to,
+        type: WarningType.Message,
+        message
       });
-    } catch (e) {
-      if (!(e instanceof Error)) throw e;
+    };
+    hooks.fail = message => {
       failed = true;
       options.logger.sync(save);
       options.logger.hang({
         from: match.from,
         to: match.to,
         type: FailureType.Semantic,
-        message: e.message
+        message
       });
-    }
+    };
+    hooks.expected = expected => {
+      failed = true;
+      options.logger.sync(save);
+      options.logger.hang({
+        from: match.from,
+        to: match.to,
+        type: FailureType.Expectation,
+        expected: castArray(expected).map(expected =>
+          typeof expected === "string"
+            ? { type: ExpectationType.Literal, literal: expected }
+            : expected instanceof RegExp
+            ? { type: ExpectationType.RegExp, regExp: expected }
+            : expected
+        )
+      });
+    };
+    hooks.commit = () => options.logger.commit();
+    hooks.emit = (children: Array<any>) => {
+      emit = children.filter(child => child !== undefined);
+    };
+    hooks.node = (label, fields) => ({
+      $label: label,
+      $match: match,
+      ...fields
+    });
+    const value = this.action(Object.fromEntries(match.captures));
     return failed
       ? null
       : {

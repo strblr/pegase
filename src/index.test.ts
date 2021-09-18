@@ -1,4 +1,13 @@
-import peg, { LiteralParser, RegExpParser, SuccessResult } from ".";
+import peg, {
+  $children,
+  $context,
+  $fail,
+  $raw,
+  $warn,
+  LiteralParser,
+  RegExpParser,
+  SuccessResult
+} from ".";
 
 function echo(entity: any) {
   console.log(
@@ -159,16 +168,16 @@ test("The cut operator should work correctly", () => {
 test("L-attributed grammars should be implementable using context", () => {
   const g = peg<number>`
     expr:
-      (num ${({ num, $context }) => {
-        $context.acc = num;
+      (num ${({ num }) => {
+        $context().acc = num;
       }})
       exprRest
-        ${({ $context }) => $context.acc}
+        ${() => $context().acc}
         @context(${{ acc: 0 }})
     
     exprRest:
-    | ('-' num ${({ num, $context }) => {
-      $context.acc -= num;
+    | ('-' num ${({ num }) => {
+      $context().acc -= num;
     }})
       exprRest
     | ε
@@ -188,8 +197,8 @@ test("Warnings should work correctly", () => {
   const g = peg`
     class:
       'class'
-      (identifier ${({ $raw, $warn }) => {
-        if (!/^[A-Z]/.test($raw)) $warn("Class names should be capitalized");
+      (identifier ${() => {
+        if (!/^[A-Z]/.test($raw())) $warn("Class names should be capitalized");
       }})
       '{' '}'
     
@@ -236,9 +245,9 @@ test("Failure recovery should work", () => {
 });
 
 test("Failure heuristic should work correctly", () => {
-  const g1 = peg`[a-z]+ ${({ $raw, $context }) => {
-    const val = $context.get($raw);
-    if (!val) throw new Error(`Undeclared identifier "${$raw}"`);
+  const g1 = peg`[a-z]+ ${() => {
+    const val = $context().get($raw());
+    if (!val) $fail(`Undeclared identifier "${$raw()}"`);
     return val;
   }}`;
 
@@ -343,22 +352,22 @@ test("JSON.parse should be correctly reproduced", () => {
     | 'true' ${() => true}
     | 'false' ${() => false}
     | 'null' ${() => null}
-    | '[' (value % ',')? ']' ${({ $children }) => $children}
+    | '[' (value % ',')? ']' ${() => $children()}
     | '{' ((string ':' value) % ',')? '}'
-        ${({ $children }) => {
+        ${() => {
           const result: any = {};
-          for (let i = 0; i < $children.length; i += 2)
-            result[$children[i]] = $children[i + 1];
+          for (let i = 0; i < $children().length; i += 2)
+            result[$children()[i]] = $children()[i + 1];
           return result;
         }}
     
     string @token:
       '\"' ([^\"] | '\\'.)* '\"'
-        ${({ $raw }) => $raw.substring(1, $raw.length - 1)}
+        ${() => $raw().substring(1, $raw().length - 1)}
       
     number @token:
       '-'? \d+ ('.' \d*)?
-        ${({ $raw }) => Number($raw)}
+        ${() => Number($raw())}
   `;
 
   expect(json.value(`"test"`)).toBe("test");
