@@ -233,8 +233,8 @@ test("Warnings should work correctly", () => {
 test("AST and visitors should work", () => {
   const g = peg`
     expr:
-    | <>integer @node('INT')
-    | <>op <a>expr <b>expr @node('OP')
+    | <>integer => 'INT'
+    | <>op <a>expr <b>expr => 'OP'
     
     $integer @raw: \d+
     op: "+"
