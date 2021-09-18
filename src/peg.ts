@@ -457,8 +457,8 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     "stringLiteral",
     new TokenParser(
       new OptionsParser([
-        new ActionParser(new RegExpParser(/'(?:[^\\']|\\.)*'/), () => [
-          JSON.parse(`"${$raw().substring(1, $raw().length - 1)}"`),
+        new ActionParser(new RegExpParser(/'((?:[^\\']|\\.)*)'/), () => [
+          JSON.parse(`"${$value()}"`),
           false
         ]),
         new ActionParser(new RegExpParser(/"(?:[^\\"]|\\.)*"/), () => [
@@ -492,8 +492,8 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "tagArgument",
     new TokenParser(
-      new ActionParser(new RegExpParser(/~\d+/), () => [
-        $context().args[$raw().substring(1)]
+      new ActionParser(new RegExpParser(/~(\d+)/), () => [
+        $context().args[$value()]
       ]),
       "tag argument"
     )
