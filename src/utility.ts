@@ -26,26 +26,28 @@ import {
 
 // Hooks
 
+function hook<K extends keyof Hooks>(key: K): Hooks[K] {
+  return function () {
+    return (hooks[key] as Function).apply(null, arguments);
+  };
+}
+
 export const hooks: Hooks = Object.create(null);
-// TODO: rewrite using forward utility
-export const $from = () => hooks.$from();
-export const $to = () => hooks.$to();
-export const $children = () => hooks.$children();
-export const $captures = () => hooks.$captures();
-export const $value = () => hooks.$value();
-export const $raw = () => hooks.$raw();
-export const $options = () => hooks.$options();
-export const $context = () => hooks.$context();
-export const $warn: Hooks["$warn"] = message => hooks.$warn(message);
-export const $fail: Hooks["$fail"] = message => hooks.$fail(message);
-export const $expected: Hooks["$expected"] = expected =>
-  hooks.$expected(expected);
-export const $commit = () => hooks.$commit();
-export const $emit: Hooks["$emit"] = children => hooks.$emit(children);
-export const $node: Hooks["$node"] = (label, fields) =>
-  hooks.$node(label, fields);
-export const $visit: Hooks["$visit"] = (node, options) =>
-  hooks.$visit(node, options);
+export const $from = hook("$from");
+export const $to = hook("$to");
+export const $children = hook("$children");
+export const $captures = hook("$captures");
+export const $value = hook("$value");
+export const $raw = hook("$raw");
+export const $options = hook("$options");
+export const $context = hook("$context");
+export const $warn = hook("$warn");
+export const $fail = hook("$fail");
+export const $expected = hook("$expected");
+export const $commit = hook("$commit");
+export const $emit = hook("$emit");
+export const $node = hook("$node");
+export const $visit = hook("$visit");
 
 // extendFlags
 
