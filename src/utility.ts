@@ -259,10 +259,9 @@ export const defaultPlugin: Plugin = {
     count: action(() => $children().length),
     every: action((_, predicate) => $children().every(predicate)),
     filter: action((_, predicate) => $emit($children().filter(predicate))),
-    find: action((_, predicate, defaultValue?) => {
-      const result = $children().find(predicate);
-      return result === undefined ? defaultValue : result;
-    }),
+    find: action((_, predicate, defaultValue?) =>
+      $emit([$children().find(predicate) ?? defaultValue])
+    ),
     flat: action((_, depth = 1) => $emit($children().flat(depth))),
     forEach: action((_, callback) => $children().forEach(callback)),
     join: action((_, separator = ",") => $children().join(separator)),
@@ -279,13 +278,13 @@ export const defaultPlugin: Plugin = {
     ),
     reverse: action(() => $emit([...$children()].reverse())),
     some: action((_, predicate) => $children().some(predicate)),
+    reorder: action((_, ...indexes) =>
+      $emit(indexes.map(index => $children()[index]))
+    ),
     // Other
     action: (parser, action: SemanticAction) =>
       new ActionParser(parser, action),
-    echo: (parser, output) =>
-      new ActionParser(parser, () => {
-        console.log(output);
-      }),
+    echo: action((_, message) => console.log(message)),
     node: action((captures, label, fields = captures) =>
       $node(label, typeof fields === "function" ? fields(captures) : fields)
     ),
