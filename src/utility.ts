@@ -92,6 +92,14 @@ export function skip(options: ParseOptions) {
   return match && match.to;
 }
 
+// resolveFallback
+
+export function resolveFallback(plugins: Array<Plugin>, rule: string) {
+  return plugins.find(plugin =>
+    (plugin.grammar as GrammarParser | undefined)?.rules?.get(rule)
+  )?.grammar;
+}
+
 // resolveCast
 
 export function resolveCast(plugins: Array<Plugin>, value: any) {

@@ -23,6 +23,7 @@ import {
   RepetitionParser,
   resolveCast,
   resolveDirective,
+  resolveFallback,
   SequenceParser,
   spaceCase,
   TokenParser
@@ -209,9 +210,9 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
             let [rule, directives, parser] = $children();
             if (rule.startsWith("$")) {
               rule = rule.substring(1);
-              const tokenDir = resolveDirective($context().plugins, "token");
-              if (!tokenDir) return;
-              directives = [...directives, [tokenDir, [spaceCase(rule)]]];
+              const token = resolveDirective($context().plugins, "token");
+              if (!token) return;
+              directives = [...directives, [token, [spaceCase(rule)]]];
             }
             return [rule, pipeDirectives(parser, directives)];
           }
@@ -442,11 +443,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         () =>
           new NonTerminalParser(
             $children()[0],
-            ($context() as MetaContext).plugins.find(plugin =>
-              (plugin.grammar as GrammarParser | undefined)?.rules?.get(
-                $children()[0]
-              )
-            )?.grammar
+            resolveFallback($context().plugins, $children()[0])
           )
       ),
       "non-terminal"
