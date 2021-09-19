@@ -858,11 +858,54 @@ const prefix = peg`
 
   $integer @raw: \d+
 `;
+
+const ast = prefix.value("+ 12 + 42 3");
 ```
 
-The input `+ 12 + 42 3` will generate the following AST:
+The input `+ 12 + 42 3` generates the following AST:
 
 ![AST](https://raw.githubusercontent.com/ostrebler/pegase/master/img/ast-1.png)
+
+You may have noticed that the custom node fields are the captures. This is actually a very common practice and Pegase offers a shortcut for it: the standard `@node` directive. This directive takes the node label as an argument, and automatically emits a `Node` whose custom fields *are* the captures. In other words, the following is *strictly equivalent* to the previous example:
+
+```ts
+const prefix = peg`
+  expr:
+  | <>integer @node('INT')
+  | '+' <a>expr <b>expr @node('PLUS')
+
+  $integer @raw: \d+
+`;
+```
+
+But it gets even better. Just like `$` rules are syntactic sugar for `@token` rules, the `=>` operator is syntactic sugar for `@node`:
+
+```ts
+const prefix = peg`
+  expr:
+  | <>integer => 'INT'
+  | '+' <a>expr <b>expr => 'PLUS'
+
+  $integer @raw: \d+
+`;
+```
+
+What if you still want to tweak some fields before setting up the `Node` ? Well, the `@node` directive can take as a second argument a function that maps the captures to custom fields. These fields will be merged to the existing captures and the result will be set as the `Node`'s custom fields. It gives you the flexibility of an explicit call to the `$node` hook, with the brevity and expressivity of the directive.
+
+To illustrate that, let's parse complex numbers written in the form *"a + bi"*. The imaginary part is optional, so the `i` capture may be `undefined`. If that's indeed the case, we want our `i` node field to default to zero:
+
+```ts
+const complex = peg`
+  complex:
+    <r>num <i>('+' num 'i')?
+      @node('COMPLEX', ${({ i }) => ({ i: i || 0 })})
+
+  $num @number: \d+
+`;
+
+complex.value("13+6i"); // { $label: "COMPLEX", $match: (...), r: 13, i: 6 }
+complex.value("42");    // { $label: "COMPLEX", $match: (...), r: 42, i: 0 }
+```
 
 ---
 
