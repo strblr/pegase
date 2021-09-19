@@ -285,8 +285,8 @@ export const defaultPlugin: Plugin = {
     action: (parser, action: SemanticAction) =>
       new ActionParser(parser, action),
     echo: action((_, message) => console.log(message)),
-    node: action((captures, label, fields = captures) =>
-      $node(label, typeof fields === "function" ? fields(captures) : fields)
+    node: action((captures, label, fields = () => ({})) =>
+      $node(label, { ...captures, ...fields(captures) })
     ),
     token: (parser, displayName?: string) =>
       new TokenParser(parser, displayName),
