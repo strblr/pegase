@@ -26,7 +26,7 @@ import {
  * | RegExpParser
  * | NonTerminalParser
  * | CutParser
- * | OptionsParser
+ * | AlternativeParser
  * | SequenceParser
  * | GrammarParser
  * | TokenParser
@@ -188,12 +188,12 @@ export class NonTerminalParser extends Parser {
   }
 
   exec(options: ParseOptions): Match | null {
-    let parser = (options.grammar as GrammarParser | undefined)?.rules?.get(
+    let parser = (options.grammar as GrammarParser | undefined)?.rules.get(
       this.rule
     );
     if (!parser)
       if (
-        (parser = (this.fallback as GrammarParser | undefined)?.rules?.get(
+        (parser = (this.fallback as GrammarParser | undefined)?.rules.get(
           this.rule
         ))
       )
@@ -243,9 +243,9 @@ export class CutParser extends Parser {
   }
 }
 
-// OptionsParser
+// AlternativeParser
 
-export class OptionsParser extends Parser {
+export class AlternativeParser extends Parser {
   parsers: Array<Parser>;
 
   constructor(parsers: Array<Parser>) {

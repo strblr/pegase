@@ -1,5 +1,6 @@
 import {
   ActionParser,
+  AlternativeParser,
   CutParser,
   Directive,
   Expectation,
@@ -9,7 +10,6 @@ import {
   Hooks,
   LiteralParser,
   Node,
-  OptionsParser,
   ParseOptions,
   Parser,
   Plugin,
@@ -22,7 +22,7 @@ import {
   TweakParser,
   Visitor,
   WarningType
-} from ".";
+} from "."; // Hooks
 
 // Hooks
 
@@ -292,7 +292,7 @@ export const defaultPlugin: Plugin = {
       new TokenParser(parser, displayName),
     commit: action(() => $commit()),
     test: parser =>
-      new OptionsParser([
+      new AlternativeParser([
         new ActionParser(parser, () => true),
         new ActionParser(new CutParser(), () => false)
       ])

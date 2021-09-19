@@ -5,6 +5,7 @@ import {
   $raw,
   $value,
   ActionParser,
+  AlternativeParser,
   CaptureParser,
   CutParser,
   defaultPlugin,
@@ -13,7 +14,6 @@ import {
   MetaContext,
   modulo,
   NonTerminalParser,
-  OptionsParser,
   Parser,
   pegSkipper,
   pipeDirectives,
@@ -184,7 +184,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   // Main rules :
   [
     "parser",
-    new OptionsParser([
+    new AlternativeParser([
       new NonTerminalParser("grammarParser"),
       new NonTerminalParser("optionsParser")
     ])
@@ -222,18 +222,24 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new ActionParser(
       new SequenceParser([
         new RepetitionParser(
-          new OptionsParser([new LiteralParser("|"), new LiteralParser("/")]),
+          new AlternativeParser([
+            new LiteralParser("|"),
+            new LiteralParser("/")
+          ]),
           [0, 1]
         ),
         modulo(
           new NonTerminalParser("directiveParser"),
-          new OptionsParser([new LiteralParser("|"), new LiteralParser("/")])
+          new AlternativeParser([
+            new LiteralParser("|"),
+            new LiteralParser("/")
+          ])
         )
       ]),
       () =>
         $children().length === 1
           ? $children()[0]
-          : new OptionsParser($children())
+          : new AlternativeParser($children())
     )
   ],
   [
@@ -274,7 +280,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         new NonTerminalParser("forwardParser"),
         new SequenceParser([
           new LiteralParser("%"),
-          new OptionsParser([
+          new AlternativeParser([
             new NonTerminalParser("repetitionRange"),
             new ActionParser(new LiteralParser(""), () => [0, Infinity])
           ])
@@ -315,7 +321,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         new RepetitionParser(
           new SequenceParser([
             new LiteralParser("<"),
-            new OptionsParser([
+            new AlternativeParser([
               new NonTerminalParser("identifier"),
               new ActionParser(new CutParser(), () => null)
             ]),
@@ -342,7 +348,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new ActionParser(
       new SequenceParser([
         new RepetitionParser(
-          new OptionsParser([
+          new AlternativeParser([
             new LiteralParser("&", true),
             new LiteralParser("!", true)
           ]),
@@ -371,7 +377,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   ],
   [
     "primaryParser",
-    new OptionsParser([
+    new AlternativeParser([
       new ActionParser(new LiteralParser("."), () => new RegExpParser(/./)),
       new ActionParser(
         new SequenceParser([
@@ -455,7 +461,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "stringLiteral",
     new TokenParser(
-      new OptionsParser([
+      new AlternativeParser([
         new ActionParser(new RegExpParser(/'((?:[^\\']|\\.)*)'/), () => [
           JSON.parse(`"${$value()}"`),
           false
@@ -520,7 +526,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   ],
   [
     "repetitionRange",
-    new OptionsParser([
+    new AlternativeParser([
       new ActionParser(new LiteralParser("?"), () => [0, 1]),
       new ActionParser(new LiteralParser("+"), () => [1, Infinity]),
       new ActionParser(new LiteralParser("*"), () => [0, Infinity]),
@@ -558,7 +564,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   ],
   [
     "directive",
-    new OptionsParser([
+    new AlternativeParser([
       new ActionParser(
         new SequenceParser([
           new LiteralParser("@"),
@@ -600,13 +606,13 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   ],
   [
     "value",
-    new OptionsParser([
+    new AlternativeParser([
       new NonTerminalParser("tagArgument"),
       new ActionParser(new NonTerminalParser("stringLiteral"), () => [
         $children()[0][0]
       ]),
       new ActionParser(
-        new OptionsParser([
+        new AlternativeParser([
           new NonTerminalParser("numberLiteral"),
           new NonTerminalParser("nonTerminal"),
           new NonTerminalParser("characterClass"),
