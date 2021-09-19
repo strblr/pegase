@@ -32,6 +32,7 @@ Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
   - [AST and visitors](#ast-and-visitors)
   - [Working with `RegExp`](#working-with-regexp)
   - [Cut operator](#cut-operator)
+  - [Debugging with tracers](#debugging-with-tracers)
   - [Using TypeScript](#using-typescript)
   - [Grammar fragments](#grammar-fragments)
   - [Failure recovery](#failure-recovery)
@@ -880,6 +881,12 @@ peg`
   | ^       ${() => new DefaultSize()}
 `;
 ```
+
+---
+
+### Debugging with tracers
+
+Coming soon.
 
 ---
 
