@@ -41,12 +41,12 @@ Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
   - [L-attributed grammars](#l-attributed-grammars)
 - [API](#api)
   - [`peg`, `createTag`](#peg-createtag)
-  - [Hooks](#hooks)
   - [`Parser`](#parser)
   - [`Logger`](#logger)
   - [`defaultPlugin`](#defaultplugin)
+  - [Hooks](#hooks)
   - [Utility functions](#utility-functions)
-  - [Other types](#other-types)
+  - [TypeScript types](#typescript-types)
   - [Metagrammar](#metagrammar)
 - [Bug report and discussion](#bug-report-and-discussion)
 
@@ -339,7 +339,7 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
     </tr>
     <tr>
       <td><pre>...a</pre></td>
-      <td>Skips input character by character until <code>a</code> is matched. This can be used to implement <i>synchronization</i> to recover from errors and is equivalent to <code>(!a .)* a</code>. Write <code>...&amp;a</code> if you want sync to <code>a</code> without consuming it. See <a href="#failure-recovery">Failure recovery</a>.</td>
+      <td>Skips input character by character until <code>a</code> is matched. This can be used to implement <i>synchronization</i> to recover from errors and is equivalent to <code>(!a .)* a</code>. Write <code>...&amp;a</code> if you want to sync to <code>a</code> without consuming <code>a</code>. See <a href="#failure-recovery">Failure recovery</a>.</td>
       <td>Forwarded from <code>a</code></td>
       <td align="center">4</td>
     </tr>
@@ -718,7 +718,7 @@ This is well explained in [this paper](http://scg.unibe.ch/archive/masters/Ruef1
 
 The general idea is that a failure emitted at input position *n* will generally be more relevant than a failure emitted at position *n - x*, where *x* is a positive integer, because *x* more characters have been successfully recognized by the parser at that point.
 
-Failures and warnings are tracked using a `Logger` instance, which is just a special object. This logger is attached to the parse result.
+Failures and warnings (called *log events*) are tracked using a [`Logger`](#logger) instance, which is just a special object. The logger is attached to the parse result, whether the match fails or succeeds (a successful match can produce failures, see [Advanced concepts > Failure recovery](#failure-recovery)).
 
 **In Pegase, there are two types of failures**:
 
@@ -817,13 +817,52 @@ console.log(p.parse("class test {").logger.print());
     |             ^
 ```
 
-If you want to do more elaborated stuff than to simply pretty-print the logs, like processing them programmatically, you have direct access using `logger.warnings` and `logger.failures`. These are just arrays of objects describing the log events. Please see [API > `Logger`](#logger) for more details.
+- If you want to do more elaborated stuff than to simply pretty-print the logs, like processing them programmatically, you have direct access using `logger.warnings` and `logger.failures`. These are just arrays of objects describing the log events. Please see [API > `Logger`](#logger) for more details.
+- Warnings and failures can also be emitted during AST visits. See [Advanced concepts > AST and visitors](#ast-and-visitors).
 
 ## Advanced concepts
 
 ### AST and visitors
 
-*Coming soon...*
+We saw in [Basic concepts > Semantic actions and dataflow](#semantic-actions-and-dataflow) that a parsing process can be represented as an invocation tree, called *concrete syntax tree*. This tree doesn't actually exist except temporarily in the JS call stack, thus semantic processes you want to fire at some "nodes" have to be executed at parse time. This is what semantic actions are for. You can do a lot with that, but it might not be always sufficient or practical. For example, most real-life compilers do several traversals of the syntax tree, some dependent on the previous ones, with a clear separation of concerns. For the tree to be traversed multiple times, it has to be **generated** and **kept** in memory. You generally don't want to generate the whole concrete syntax tree which might have lots of parts only relevant to the syntax analysis but irrelevant in later stages. The actual tree you care about has custom nodes and is called *abstract syntax tree*.
+
+**Pegase provides a clean and elegant way to generate ASTs: the `$node` hook.**
+
+This hook can be called from semantic actions and has the following signature:
+
+```ts
+(label: string, fields: Record<string, any>) => Node
+```
+
+Given a label to distinguish between node types and some custom fields, it builds and returns a `Node` object with the following signature:
+
+```ts
+{
+  $label: string;
+  $match: Match;
+  [field: string]: any;
+}
+```
+
+The `$label` field and the custom fields simply correspond to `$node`'s arguments. The `$match` key is *automatically* set and stores the success match object that was returned by the parser your semantic action is wrapped around. It contains the keys `from` (where the match started), `to` (where the match ended), `children` and `captures`. This means that you don't have to set these information yourself as custom fields, they're attached by default to every `Node` object.
+
+**Nodes might then be emitted, propagated and captured during the parsing process just like any `children`.**
+
+The specifics of how this happens is totally up to you (see [Basic concepts > Semantic actions and dataflow](#semantic-actions-and-dataflow)). Here is an example of a grammar generating an AST for sums written in prefix notation:
+
+```ts
+const prefix = peg`
+  expr:
+  | <>integer ${({ integer }) => $node("INT", { integer })}
+  | '+' <a>expr <b>expr ${({ a, b }) => $node("PLUS", { a, b })}
+
+  $integer @raw: \d+
+`;
+```
+
+The input `+ 12 + 42 3` will generate the following AST:
+
+![AST](https://raw.githubusercontent.com/ostrebler/pegase/master/img/ast-1.png)
 
 ---
 

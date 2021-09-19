@@ -3,6 +3,7 @@ import peg, {
   $context,
   $emit,
   $fail,
+  $node,
   $raw,
   $value,
   $visit,
@@ -253,25 +254,24 @@ test("Warnings should work correctly", () => {
 test("AST and visitors should work", () => {
   const g = peg`
     expr:
-    | <>integer => 'INT'
-    | <>op <a>expr <b>expr => 'OP'
-    
+    | <>integer ${({ integer }) => $node("INT", { integer })}
+    | "+" <a>expr <b>expr ${({ a, b }) => $node("PLUS", { a, b })}
+
     $integer @raw: \d+
-    op: "+"
   `;
 
   const double: Visitor = {
-    OP: node => ($visit(node.a), $visit(node.b), node),
+    PLUS: node => ($visit(node.a), $visit(node.b), node),
     INT: node => ((node.integer *= 2), node)
   };
 
   const fold: Visitor = {
-    OP: node => $visit(node.a) + $visit(node.b),
+    PLUS: node => $visit(node.a) + $visit(node.b),
     INT: node => Number(node.integer)
   };
 
   const logDemo: Visitor = {
-    OP: node => ($visit(node.a), $visit(node.b), node),
+    PLUS: node => ($visit(node.a), $visit(node.b), node),
     INT: node => {
       if (node.integer === "42") $warn("The number 42 is dangerous");
       if (node.integer === "3") $fail("The number 3 is forbidden");

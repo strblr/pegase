@@ -121,7 +121,7 @@ export class LiteralParser extends Parser {
     const to = from.index + this.literal.length;
     const raw = options.input.substring(from.index, to);
     const result = options.ignoreCase
-      ? this.literal.toUpperCase() === raw.toUpperCase()
+      ? this.literal.toLowerCase() === raw.toLowerCase()
       : this.literal === raw;
     if (result)
       return {

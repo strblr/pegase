@@ -585,7 +585,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         new ActionParser(new NonTerminalParser("value"), () =>
           typeof $children()[0] !== "string"
             ? $fail("A node label can only be a string")
-            : [resolveDirective($context().plugins, "node"), [$children()[0]]]
+            : [resolveDirective($context().plugins, "node"), $children()]
         )
       ])
     ])
