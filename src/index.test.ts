@@ -1,6 +1,7 @@
 import peg, {
   $children,
   $context,
+  $emit,
   $fail,
   $raw,
   $value,
@@ -180,6 +181,24 @@ test("The cut operator should work correctly", () => {
   expect(g1.test("ad")).toBe(true);
   expect(g2.test("ad")).toBe(false);
   expect(g3.test("ad")).toBe(true);
+});
+
+test("Semantic actions must correctly propagate children (including undefined)", () => {
+  const g = peg`(
+    | 0 ${() => $emit([undefined])}
+    | 1 ${() => 1}
+    | 2 ${() => undefined}
+  ) % ','`;
+
+  expect(g.children("0,1,1,2,0,0,1,2,0")).toEqual([
+    undefined,
+    1,
+    1,
+    undefined,
+    undefined,
+    1,
+    undefined
+  ]);
 });
 
 test("L-attributed grammars should be implementable using context", () => {

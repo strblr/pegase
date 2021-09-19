@@ -1,6 +1,7 @@
 import {
   $children,
   $context,
+  $emit,
   $fail,
   $raw,
   $value,
@@ -145,7 +146,7 @@ export function createTag() {
  * escapedMeta:  => RegExp
  *   $escapedMeta
  *
- * tagArgument:  => [any]
+ * tagArgument:  => any
  *   $tagArgument
  *
  * castableTagArgument:  => Parser
@@ -171,7 +172,7 @@ export function createTag() {
  * directiveArguments:  => any[]
  *   ('(' value % ',' ')')?
  *
- * value:  => [any]
+ * value:  => any
  * | tagArgument
  * | stringLiteral
  * | numberLiteral
@@ -497,9 +498,9 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "tagArgument",
     new TokenParser(
-      new ActionParser(new RegExpParser(/~(\d+)/), () => [
-        $context().args[$children()[0]]
-      ]),
+      new ActionParser(new RegExpParser(/~(\d+)/), () =>
+        $emit([$context().args[$children()[0]]])
+      ),
       "tag argument"
     )
   ],
@@ -507,7 +508,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     "castableTagArgument",
     new TokenParser(
       new ActionParser(new NonTerminalParser("tagArgument"), () =>
-        resolveCast($context().plugins, $children()[0][0])
+        resolveCast($context().plugins, $children()[0])
       ),
       "castable tag argument"
     )
@@ -516,10 +517,9 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     "actionTagArgument",
     new TokenParser(
       new ActionParser(new NonTerminalParser("tagArgument"), () => {
-        const [arg] = $children()[0];
-        if (typeof arg !== "function")
+        if (typeof $children()[0] !== "function")
           return $fail("The tag argument is not a function");
-        return arg;
+        return $children()[0];
       }),
       "action tag argument"
     )
@@ -539,7 +539,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
               new LiteralParser(","),
               new ActionParser(
                 new RepetitionParser(new NonTerminalParser("value"), [0, 1]),
-                () => $children()[0] ?? [Infinity]
+                () => ($children().length === 0 ? Infinity : undefined)
               )
             ]),
             [0, 1]
@@ -547,10 +547,10 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
           new LiteralParser("}")
         ]),
         () => {
-          const [[min], [max] = [min]] = $children();
+          const [min, max = min] = $children();
           if (typeof min !== "number" || typeof max !== "number")
             return $fail("A repetition range can be defined by numbers only");
-          return [min, max ?? min];
+          return [min, max];
         }
       )
     ])
@@ -583,9 +583,9 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
       new SequenceParser([
         new LiteralParser("=>"),
         new ActionParser(new NonTerminalParser("value"), () =>
-          typeof $children()[0][0] !== "string"
+          typeof $children()[0] !== "string"
             ? $fail("A node label can only be a string")
-            : [resolveDirective($context().plugins, "node"), $children()[0]]
+            : [resolveDirective($context().plugins, "node"), [$children()[0]]]
         )
       ])
     ])
@@ -601,25 +601,21 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         ]),
         [0, 1]
       ),
-      () => $children().flat()
+      () => $children()
     )
   ],
   [
     "value",
     new AlternativeParser([
       new NonTerminalParser("tagArgument"),
-      new ActionParser(new NonTerminalParser("stringLiteral"), () => [
-        $children()[0][0]
-      ]),
       new ActionParser(
-        new AlternativeParser([
-          new NonTerminalParser("numberLiteral"),
-          new NonTerminalParser("nonTerminal"),
-          new NonTerminalParser("characterClass"),
-          new NonTerminalParser("escapedMeta")
-        ]),
-        () => $children()
-      )
+        new NonTerminalParser("stringLiteral"),
+        () => $children()[0][0]
+      ),
+      new NonTerminalParser("numberLiteral"),
+      new NonTerminalParser("nonTerminal"),
+      new NonTerminalParser("characterClass"),
+      new NonTerminalParser("escapedMeta")
     ])
   ]
 ]);

@@ -519,7 +519,7 @@ export class ActionParser extends Parser {
     };
     hooks.$commit = () => options.logger.commit();
     hooks.$emit = children => {
-      emit = children.filter(child => child !== undefined);
+      emit = children;
     };
     hooks.$node = (label, fields) => ({
       $label: label,
