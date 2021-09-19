@@ -39,6 +39,8 @@ import {
  */
 
 export abstract class Parser<Value = any, Context = any> {
+  defaultOptions: Partial<ParseOptions<Context>> = {};
+
   abstract exec(options: ParseOptions<Context>): Match | null;
 
   test(input: string, options?: Partial<ParseOptions<Context>>) {
@@ -47,13 +49,13 @@ export abstract class Parser<Value = any, Context = any> {
 
   value(input: string, options?: Partial<ParseOptions<Context>>) {
     const result = this.parse(input, options);
-    if (!result.success) throw new Error(result.logger.humanize());
+    if (!result.success) throw new Error(result.logger.print());
     return result.value;
   }
 
   children(input: string, options?: Partial<ParseOptions<Context>>) {
     const result = this.parse(input, options);
-    if (!result.success) throw new Error(result.logger.humanize());
+    if (!result.success) throw new Error(result.logger.print());
     return result.children;
   }
 
@@ -75,6 +77,7 @@ export abstract class Parser<Value = any, Context = any> {
       visit: [],
       cut: { current: false },
       logger,
+      ...this.defaultOptions,
       ...options
     };
     const parser = opts.complete
