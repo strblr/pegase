@@ -339,7 +339,7 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
     </tr>
     <tr>
       <td><pre>...a</pre></td>
-      <td>Skips input character by character until <code>a</code> is matched. This can be used to implement <i>synchronization tokens</i> and is equivalent to <code>(!a .)* a</code>. Write <code>...&amp;a</code> if you wanna sync with <code>a</code> without consuming it. See <a href="#failure-recovery">Failure recovery</a>.</td>
+      <td>Skips input character by character until <code>a</code> is matched. This can be used to implement <i>synchronization</i> to recover from errors and is equivalent to <code>(!a .)* a</code>. Write <code>...&amp;a</code> if you want sync to <code>a</code> without consuming it. See <a href="#failure-recovery">Failure recovery</a>.</td>
       <td>Forwarded from <code>a</code></td>
       <td align="center">4</td>
     </tr>
@@ -391,6 +391,7 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
     </tr>
   </tbody>
 </table>
+
 
 
 ---
