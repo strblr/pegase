@@ -39,7 +39,9 @@ export type Match = Range & {
   captures: Map<string, any>;
 };
 
-export type SemanticAction = (captures: Record<string, any>) => any;
+export type SemanticAction<Value = any> = (
+  captures: Record<string, any>
+) => Value;
 
 export type Node = {
   $label: string;

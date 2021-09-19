@@ -88,15 +88,17 @@ export abstract class Parser<Value = any, Context = any> {
       logger.commit();
       return { ...common, success: false };
     }
-    const value = castArray(opts.visit).reduce(
-      (value, visitor) => applyVisitor(value, visitor, opts),
-      inferValue(match.children)
+    match.children = match.children.map(child =>
+      castArray(opts.visit).reduce(
+        (value, visitor) => applyVisitor(value, visitor, opts),
+        child
+      )
     );
     return {
       ...common,
       ...match,
       success: true,
-      value,
+      value: inferValue(match.children),
       raw: input.substring(match.from.index, match.to.index),
       complete: match.to.index === input.length
     };
