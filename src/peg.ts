@@ -572,18 +572,16 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
       ),
       new ActionParser(new NonTerminalParser("actionTagArgument"), () => [
         resolveDirective($context().plugins, "action"),
-        [$children()[0]]
+        $children()
       ]),
-      new ActionParser(
-        new SequenceParser([
-          new LiteralParser("=>"),
-          new NonTerminalParser("value")
-        ]),
-        () =>
+      new SequenceParser([
+        new LiteralParser("=>"),
+        new ActionParser(new NonTerminalParser("value"), () =>
           typeof $children()[0][0] !== "string"
             ? $fail("A node label can only be a string")
             : [resolveDirective($context().plugins, "node"), $children()[0]]
-      )
+        )
+      ])
     ])
   ],
   [
@@ -614,7 +612,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
           new NonTerminalParser("characterClass"),
           new NonTerminalParser("escapedMeta")
         ]),
-        () => [$children()[0]]
+        () => $children()
       )
     ])
   ]
