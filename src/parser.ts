@@ -35,7 +35,6 @@ import {
  * | TweakParser
  * | CaptureParser
  * | ActionParser
- *
  */
 
 export abstract class Parser<Value = any, Context = any> {
@@ -145,20 +144,20 @@ export class LiteralParser extends Parser {
 
 export class RegExpParser extends Parser {
   regExp: RegExp;
-  withCase: RegExp;
-  withoutCase: RegExp;
+  cased: RegExp;
+  uncased: RegExp;
 
   constructor(regExp: RegExp) {
     super();
     this.regExp = regExp;
-    this.withCase = extendFlags(regExp, "y");
-    this.withoutCase = extendFlags(regExp, "iy");
+    this.cased = extendFlags(regExp, "y");
+    this.uncased = extendFlags(regExp, "iy");
   }
 
   exec(options: ParseOptions): Match | null {
     const from = skip(options);
     if (from === null) return null;
-    const regExp = options.ignoreCase ? this.withoutCase : this.withCase;
+    const regExp = this[options.ignoreCase ? "uncased" : "cased"];
     regExp.lastIndex = from.index;
     const result = regExp.exec(options.input);
     if (result !== null)
@@ -174,7 +173,7 @@ export class RegExpParser extends Parser {
       type: FailureType.Expectation,
       expected: [{ type: ExpectationType.RegExp, regExp: this.regExp }]
     });
-    return result;
+    return null;
   }
 }
 
