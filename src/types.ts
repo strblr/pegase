@@ -166,7 +166,7 @@ export type MismatchExpectation = {
 export type CustomExpectation = {
   type: ExpectationType.Custom;
   display: string;
-  payload?: any;
+  [field: string]: any;
 };
 
 export enum ExpectationType {
