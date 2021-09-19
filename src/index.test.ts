@@ -278,8 +278,10 @@ test("AST and visitors should work", () => {
 
 test("Failure recovery should work", () => {
   const g = peg`
-    bitArray: '[' (bit | ^ @commit) % ...',' ']'
+    bitArray: '[' (bit | (^ @commit) sync) % ',' ']'
     bit: 0 | 1
+    
+    sync: ...&(',' | ']')
   `;
 
   const result = g.parse("[1, 0, 2, 1, 3, 0, 1, 2, 0, 1, 1]");
