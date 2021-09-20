@@ -8,7 +8,6 @@ import {
   ActionParser,
   AlternativeParser,
   CaptureParser,
-  castArray,
   CutParser,
   defaultPlugin,
   GrammarParser,
@@ -19,7 +18,6 @@ import {
   Parser,
   pegSkipper,
   pipeDirectives,
-  Plugin,
   PredicateParser,
   RegExpParser,
   RepetitionParser,
@@ -28,8 +26,7 @@ import {
   resolveFallback,
   SequenceParser,
   spaceCase,
-  TokenParser,
-  UncastArray
+  TokenParser
 } from "."; // The parser creator factory
 
 // The parser creator factory
@@ -64,16 +61,6 @@ export function createTag() {
 
   peg.trace = false;
   peg.plugins = [defaultPlugin];
-
-  peg.extend = (plugins: UncastArray<Plugin>) => {
-    peg.plugins = [...peg.plugins, ...castArray(plugins)];
-  };
-
-  peg.unextend = (plugins: UncastArray<Plugin>) => {
-    const set = new Set(castArray(plugins));
-    peg.plugins = peg.plugins.filter(plugin => !set.has(plugin));
-  };
-
   return peg;
 }
 

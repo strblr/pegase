@@ -1185,7 +1185,7 @@ Great, but how could you make use of your custom subclass ? There are basically 
 - If the class depends on some argument, you can make Pegase generate instances automatically by injecting that argument directly into the peg expression and **casting** it into a `Parser` using a plugin:
 
   ```js
-  peg.extend({
+  peg.plugins.push({
     castParser(arg) {
       if(arg instanceof Set)
         return new MyParser(arg);
@@ -1198,7 +1198,7 @@ Great, but how could you make use of your custom subclass ? There are basically 
 - Finally, in case of composition classes, you can define custom directives that generate instances of your subclass:
 
   ```js
-  peg.extend({
+  peg.plugins.push({
     directives: {
       while(parser, predicate) {
         return new MyWhileParser(parser, predicate);
@@ -1226,9 +1226,7 @@ Great, but how could you make use of your custom subclass ? There are basically 
 | ----------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | *Call via template tag* | `<Value = any, Context = any>(chunks: TemplateStringsArray, ...args: any[]) => Parser<Value, Context>` | Generates a `Parser` instance based on a peg expression      |
 | `trace`                 | `boolean`                                                    | Activates tracing during peg expression parsing (called *meta-parsing*) |
-| `plugins`               | `Plugin[]`                                                   | The list of plugins attached to the tag (order matters: in case of conflicts, the first plugin wins) |
-| `extend`                | <code>(plugins: Plugin &vert; Plugin[]) => void</code>       | Appends the given plugins onto the tag's plugin list (order is preserved) |
-| `unextend`              | <code>(plugins: Plugin &vert; Plugin[]) => void</code>       | Removes the given plugins from the tag's plugin list (based on reference equality) |
+| `plugins`               | `Plugin[]`                                                   | The list of plugins attached to the tag (order matters: in case of conflicts, the first plugin wins). Can be mutated or replaced. |
 
 ##### `createTag` (function)
 
