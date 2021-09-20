@@ -462,7 +462,9 @@ const prefix = peg`
 `;
 ```
 
-`$children` is a hook. Hooks are global functions updated during the parsing process to provide contextual information and operations in semantic actions, like reading `children`, emitting warnings or failures, getting the current position, etc. See the [Hooks](#hooks) section for more details.
+`$children` is a hook.
+
+**Hooks are global functions that provide contextual information and operations in semantic actions**, like reading `children`, emitting warnings or failures, getting the current position, etc. Please refer to the [Hooks](#hooks) section for a list of all available hooks.
 
 Recursively, this process will transform the entire input from prefix to postfix:
 
@@ -906,6 +908,25 @@ const complex = peg`
 complex.value("13+6i"); // { $label: "COMPLEX", $match: (...), r: 13, i: 6 }
 complex.value("42");    // { $label: "COMPLEX", $match: (...), r: 42, i: 0 }
 ```
+
+Once an AST is generated, the next step is obviously to implement traversals procedures. The possibilities are nearly infinite: performing semantic checks (like type checks), fine-tuning a syntactic analysis, mutating the tree (like [Babel plugins](https://github.com/jamiebuilds/babel-handbook/blob/master/translations/en/plugin-handbook.md)), folding the tree to some output value, etc. To implement traversals of ASTs, Pegase ships with its own [visitor pattern](#https://en.wikipedia.org/wiki/Visitor_pattern#Use_case_example).
+
+**A Pegase visitor is an object whose keys are node labels and whose values are callbacks taking a `Node` as single argument:**
+
+```ts
+{ [label: string]: (node: Node) => any }
+```
+
+The *result* of a visitor for a given node `n` is the return value of the callback associated with the label of `n`. Visitors are directly passed via the `visit` option to a parser's `parse`, `test`, `value` or `children` method, either as a single visitor or as an array of visitors forming a visitor pipe.
+
+**After the parsing is done, the final `children` array will be mapped through the visitor pipe.**
+
+Every `children` item will individually be sent down the visitor pipe. Each visitor feeds its result to next one. The result of the final visitor will replace the initial child item. This mechanism implies two things:
+
+- `children` never changes size as a result of visits, thus parsers who produce a `value` (ie. a single child) keep producing a `value` no matter how many visitors you stack.
+- Only the last visitor can return a non-`Node` result, since each visitor has to be fed with a `Node` value.
+
+![AST](https://raw.githubusercontent.com/ostrebler/pegase/master/img/ast-2.png)
 
 ---
 
