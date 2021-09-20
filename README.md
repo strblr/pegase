@@ -362,7 +362,7 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
       <td align="center">7</td>
     </tr>
     <tr>
-      <td><pre>a @dir<br/>a @dir(x, y)<br/>a @dir(x, ${arg})<br/>a @dir @other</pre>etc.</td>
+      <td><pre>a @dir<br/>a @dir(x, y)<br/>a @dir(x, ${y})<br/>a @dir @other</pre>etc.</td>
       <td>Applies the directive(s) to the parser <code>a</code>. Directives are functions that take a parser and return a new parser. They can take additional arguments and can be chained.</td>
       <td>Directives generate new parsers. So <code>children</code> depends on whatever parser is generated.</td>
       <td align="center" rowspan="3">8</td>
@@ -391,6 +391,7 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
     </tr>
   </tbody>
 </table>
+
 
 
 
@@ -1221,62 +1222,19 @@ Great, but how could you make use of your custom subclass ? There are basically 
 
 ##### `peg` (function / template tag)
 
-<table>
-  <thead>
-    <tr>
-      <th>Property</th>
-      <th>Type</th>
-      <th>Description</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><i>Call via template tag</i></td>
-      <td><pre>&lt;Value = any, Context = any&gt;(chunks: TemplateStringsArray, ...args: any[]) => Parser&lt;Value, Context&gt;</pre></td>
-      <td>Generates a <code>Parser</code> instance based on a peg expression</td>
-    </tr>
-    <tr>
-      <td><pre>trace</pre></td>
-      <td><pre>boolean</pre></td>
-      <td>Activates tracing during peg expression parsing (called <i>meta-parsing</i>)</td>
-    </tr>
-    <tr>
-      <td><pre>plugins</pre></td>
-      <td><pre>Plugin[]</pre></td>
-      <td>The list of plugins attached to the tag (order matters: in case of conflicts, the first plugin wins)</td>
-    </tr>
-    <tr>
-      <td><pre>extend</pre></td>
-      <td><pre>(...plugins: Plugin[]) => void</pre></td>
-      <td>Appends the given plugins onto the tag's plugin list (order is preserved)</td>
-    </tr>
-    <tr>
-      <td><pre>unextend</pre></td>
-      <td><pre>(...plugins: Plugin[]) => void</pre></td>
-      <td>Removes the given plugins from the tag's plugin list (based on reference equality)</td>
-    </tr>
-  </tbody>
-</table>
+| Property                | Type                                                         | Description                                                  |
+| ----------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| *Call via template tag* | `<Value = any, Context = any>(chunks: TemplateStringsArray, ...args: any[]) => Parser<Value, Context>` | Generates a `Parser` instance based on a peg expression      |
+| `trace`                 | `boolean`                                                    | Activates tracing during peg expression parsing (called *meta-parsing*) |
+| `plugins`               | `Plugin[]`                                                   | The list of plugins attached to the tag (order matters: in case of conflicts, the first plugin wins) |
+| `extend`                | `(...plugins: Plugin[]) => void`                             | Appends the given plugins onto the tag's plugin list (order is preserved) |
+| `unextend`              | `(...plugins: Plugin[]) => void`                             | Removes the given plugins from the tag's plugin list (based on reference equality) |
 
 ##### `createTag` (function)
 
-<table>
-  <thead>
-    <tr>
-      <th>Property</th>
-      <th>Type</th>
-      <th>Description</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><i>Call</i></td>
-      <td><pre>() => typeof peg</pre></td>
-      <td>Generates a new peg-like tag. This is usefull is you need different <code>peg</code> tags with different plugins at the same time.</td>
-    </tr>
-  </tbody>
-</table>
-
+| Property | Type               | Description                                                  |
+| -------- | ------------------ | ------------------------------------------------------------ |
+| *Call*   | `() => typeof peg` | Generates a new peg-like tag. This is useful is you need different <code>peg</code> tags with different plugins at the same time. |
 
 ### `Parser`
 
