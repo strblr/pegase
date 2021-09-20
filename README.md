@@ -118,7 +118,7 @@ First, add Pegase as a dependency:
 
 `npm install pegase` or `yarn add pegase`
 
-Next, import the template literal tag that will become your new best friend and there you go, ready to write your first parsing expression.
+Next, import the template literal tag that will become your new best friend and there you go, ready to write your first peg expression.
 
 ```js
 import peg from "pegase";
@@ -152,9 +152,9 @@ if (bitArray.test(" [ 0,1 ,0  ,  1, 1]  "))
   console.log("It's a match!");
 ```
 
-As you might have spotted, whitespaces are handled automatically by default ([it can be changed](#handling-whitespaces)). The way this works is pretty simple: whitespace characters are parsed and discarded **before every terminal parser** (like `'['`, `1`, etc.). This process is called **skipping**. By default, every parser also adds an implicit "end of input" symbol (`$`) at the end of the parsing expression, which is a terminal, thus the trailing space is skipped too and the whole string matches.
+As you might have spotted, whitespaces are handled automatically by default ([it can be changed](#handling-whitespaces)). The way this works is pretty simple: whitespace characters are parsed and discarded **before every terminal parser** (like `'['`, `1`, etc.). This process is called **skipping**. By default, every parser also adds an implicit "end of input" symbol (`$`) at the end of the peg expression, which is a terminal, thus the trailing space is skipped too and the whole string matches.
 
-Good, but so far, a `RegExp` could have done the job. Things get interesting when we add in **non-terminals**. A non-terminal is an identifier that refers to a more complex parsing expression which will be invoked every time the identifier is used. You can think of non-terminals as *variables* whose value is a parser, initialized in what we call `rules`. This allows for recursive patterns. Let's say we want to match possibly infinitely-nested bit arrays:
+Good, but so far, a `RegExp` could have done the job. Things get interesting when we add in **non-terminals**. A non-terminal is an identifier that refers to a more complex peg expression which will be invoked every time the identifier is used. You can think of non-terminals as *variables* whose value is a parser, initialized in what we call `rules`. This allows for recursive patterns. Let's say we want to match possibly infinitely-nested bit arrays:
 
 ```js
 const nestedBitArray = peg`  
@@ -206,7 +206,7 @@ This will output:
 
 **The `peg` tag accepts any valid Pegase expression and always returns a `Parser` instance.**
 
-Pegase parsers follow the *combinator* paradigm: simple parsers are combined to form more complex parsers. You can read more about it in the [API > `Parser`](#parser) section. In the following table are the different expressions you can use as building blocks (`a` and `b` representing any parsing expression of higher precedence):
+Pegase parsers follow the *combinator* paradigm: simple parsers are combined to form more complex parsers. You can read more about it in the [API > `Parser`](#parser) section. In the following table are the different expressions you can use as building blocks (`a` and `b` representing any peg expression of higher precedence):
 
 <table>
   <thead>
@@ -400,7 +400,7 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
 
 Differentiating between faulty and correct inputs is generally only part of the job we expect from a parser. Another big part is to **run routines** and **generate data** as a side-effect. In this section, we'll talk *semantic actions*, *dataflow*, *parse children* and *captures*.
 
-PEG parsers are top-down parsers, meaning the parsing expressions are recursively invoked in a depth-first manner, guided by a left-to-right input read. This process can be represented as a tree, called concrete syntax tree. Let's illustrate that with the following grammar:
+PEG parsers are top-down parsers, meaning the peg expressions are recursively invoked in a depth-first manner, guided by a left-to-right input read. This process can be represented as a tree, called concrete syntax tree. Let's illustrate that with the following grammar:
 
 ```js
 const prefix = peg`
@@ -483,7 +483,7 @@ console.log(prefix.parse("+ 5 * 2 6").value); // "5 2 6 * +"
 console.log(prefix.value("+ 5 * 2 6"));       // "5 2 6 * +"
 ```
 
-`value` is `undefined` if there is no child, or multiple children. You can quickly convince yourself that the `prefix` grammar can only ever return one child. Thus, except in case of a parse failure, there is always a `value` to be read from `prefix`. A well designed parsing expression should always have easily predictable `children` for itself and all its nested parser parts. A quick glimpse at a grammar should always give you a good general picture of the dataflow. In most cases, a good design choice is to ensure that non-terminals always emit only up to one child but that's ultimately up to you.
+`value` is `undefined` if there is no child, or multiple children. You can quickly convince yourself that the `prefix` grammar can only ever return one child. Thus, except in case of a parse failure, there is always a `value` to be read from `prefix`. A well designed peg expression should always have easily predictable `children` for itself and all its nested parser parts. A quick glimpse at a grammar should always give you a good general picture of the dataflow. In most cases, a good design choice is to ensure that non-terminals always emit only up to one child but that's ultimately up to you.
 
 Great, but at the end of the day `children` are just unlabeled propagated values. Sometimes that's what you want (typically when you're parsing list-ish data: a list of phone numbers, a list of operators and operands, a list of arguments to a function, etc.), but very often in semantic actions, you want to be able to grab a specific parser's value by name. This is where *captures* will come in handy.
 
@@ -541,7 +541,7 @@ This behavior can be changed. All `Parser`'s methods (`parse`, `test`, `value` a
 - `skipper`, a `Parser` instance that should match the substring you want to skip before every terminal. When you don't provide that option, a default `Parser` is used which skips any sequence of `\s`.
 - `skip`, a boolean value that enables or disables skipping (`true` by default).
 
-In the following example, default options are used. Whitespaces are skipped before each `'a'` and before the implicit token `$` (set option `complete` to `false` to avoid having an implicit `$` at the end of your parsing expression):
+In the following example, default options are used. Whitespaces are skipped before each `'a'` and before the implicit token `$` (set option `complete` to `false` to avoid having an implicit `$` at the end of your peg expression):
 
 ```js
 const g = peg`'a'+`;
@@ -556,7 +556,7 @@ console.log(g.test("  aa  a  a a   a  ", { skip: false })); // false
 console.log(g.test("aaaaaa", { skip: false }));             // true
 ```
 
-You can toggle skipping for specific parts of your parsing expression by using the `@skip` and/or `@noskip` directives:
+You can toggle skipping for specific parts of your peg expression by using the `@skip` and/or `@noskip` directives:
 
 ```js
 const g = peg`('a'+ @noskip) 'b'`;
@@ -624,7 +624,7 @@ If you think about it, what we need is to skip whitespaces right **before** `int
 
 **A token parser wraps around a `Parser` and performs pre-skipping before invoking it. Skipping is then disabled inside.**
 
-Essentially, the token parser avoids the need for explicit whitespaces in the grammar *and* for an external tokenizer by allowing you to treat any arbitrary parsing expression *as if* it were a terminal. Let's try it out and see that it works as expected:
+Essentially, the token parser avoids the need for explicit whitespaces in the grammar *and* for an external tokenizer by allowing you to treat any arbitrary peg expression *as if* it were a terminal. Let's try it out and see that it works as expected:
 
 ```js
 const intList = peg`
@@ -738,7 +738,7 @@ Failures and warnings (called *log events*) are tracked using a [`Logger`](#logg
       |  ^
   ```
 
-  You can also manually emit them in semantic actions using the `$expected` hook (please note that this will override any failure emitted from *inside* the parsing expression the action is wrapped around):
+  You can also manually emit them in semantic actions using the `$expected` hook (please note that this will override any failure emitted from *inside* the peg expression the action is wrapped around):
 
   ```js
   const g = peg`'a' ('b' | . ${() => {
@@ -755,7 +755,7 @@ Failures and warnings (called *log events*) are tracked using a [`Logger`](#logg
       |  ^
   ```
 
-- **Semantic failures**. These are emitted by calling the `$fail` hook from a semantic action. They're useful when dealing with errors that can *not* be expressed as missing terminals, like undeclared identifiers, type errors, `break` statements outside of loops, etc. Such errors will also override any failure emitted from *inside* the parsing expression the action is wrapped around.
+- **Semantic failures**. These are emitted by calling the `$fail` hook from a semantic action. They're useful when dealing with errors that can *not* be expressed as missing terminals, like undeclared identifiers, type errors, `break` statements outside of loops, etc. Such errors will also override any failure emitted from *inside* the peg expression the action is wrapped around.
 
   ```js
   const g = peg`[a-z]+ ${() => {
@@ -848,7 +848,7 @@ Given a label to distinguish between node types and some custom fields, it build
 
 The `$label` field and the custom fields simply correspond to `$node`'s arguments. The `$match` key is *automatically* set and stores the success match object that was returned by the parser your semantic action is wrapped around. It contains the keys `from` (where the match started), `to` (where the match ended), `children` and `captures`.
 
-**Nodes might then be emitted, propagated and captured during the parsing process just like any `children`.**
+**Nodes can then be emitted, propagated and captured during the parsing process just like any `children`.**
 
 The specifics of how this happens is totally up to you (see [Basic concepts > Semantic actions and dataflow](#semantic-actions-and-dataflow)). Here is an example of a grammar generating an AST for sums written in prefix notation:
 
@@ -992,7 +992,7 @@ You get the idea. Have fun !
 **A visitor callback has access to all the hooks available in semantic actions**, except `$commit`. So it's totally fine to emit warnings and failures from visitors:
 
 ```ts
-const sumVisitor: Visitor = {
+const sumVisitor = {
   INT: node => {
     if (node.integer === "42") $warn("42 is too powerful");
     return Number(node.integer);
@@ -1018,7 +1018,7 @@ The effect of some hooks differ when used in a semantic action vs. a visitor. In
 
 ### Working with `RegExp`
 
-When a `RegExp` instance is inserted into a parsing expression via tag argument, it is converted into a regexp parser (an instance of `RegExpParser`, a subclass of `Parser`). At invocation, the parsing is automatically delegated to `RegExp.prototype.exec`. On success, Pegase will then emit its *capturing groups* as `children`:
+When a `RegExp` instance is inserted into a peg expression via tag argument, it is converted into a regexp parser (an instance of `RegExpParser`, a subclass of `Parser`). At invocation, the parsing is automatically delegated to `RegExp.prototype.exec`. On success, Pegase will then emit its *capturing groups* as `children`:
 
 ```js
 const time = /(\d+):(\d+)/;
@@ -1048,7 +1048,7 @@ console.log(yearIs.value("2021-08-19")); // "The year is 2021"
 
 ### Cut operator
 
-Pegase implements the concept of [cut points](http://ceur-ws.org/Vol-1269/paper232.pdf) in the form of a cut operator: `^`. There are times when, passing a certain point in an alternative, you know *for sure* that every remaining alternatives would also fail and thus don't need to be tried out. That "point" can be marked explicitly by `^` in your parsing expression and has the effect to **commit to the current alternative**: even if it were to fail past that point, the *first parent alternatives* would not be tried out. In other words, the cut operator prevents local backtracking.
+Pegase implements the concept of [cut points](http://ceur-ws.org/Vol-1269/paper232.pdf) in the form of a cut operator: `^`. There are times when, passing a certain point in an alternative, you know *for sure* that every remaining alternatives would also fail and thus don't need to be tried out. That "point" can be marked explicitly by `^` in your peg expression and has the effect to **commit to the current alternative**: even if it were to fail past that point, the *first parent alternatives* would not be tried out. In other words, the cut operator prevents local backtracking.
 
 An example will explain it better: let's say you want to write a compiler for a C-like language. You define an `instr` rule that can match an `if` statement, a `while` loop or a `do...while` loop. If the terminal `'if'` successfully matched, then *even* if the rest of the expression fails, there is just no way for an alternative `while` loop or a `do...while` loop to match. That means you can insert a *cut point* right after `'if'`. The same reasoning can be applied to the `'while'` terminal, but is useless for `'do'` since it's already the last alternative.
 
@@ -1082,7 +1082,7 @@ Coming soon.
 
 ### Using TypeScript
 
-Pegase was coded in TypeScript and ships with its own type declarations. The types of *all* entities, from semantic actions to failure objects, result objects, directives, plugins, etc. can directly be imported from `pegase`. For a list of all available types, please refer to the [`types.ts` file](#https://github.com/ostrebler/pegase/blob/master/src/types.ts). Furthermore, the `peg` tag accepts two optional generics: the first one types the *value* of the resulting parser, the second types the context option.
+Pegase was coded in TypeScript and ships with its own type declarations. The types of *all* entities, from semantic actions to failure objects, result objects, directives, plugins, etc. can directly be imported from `pegase`. For a list of all available types, please refer to [API > TypeScript types](#typescript-types). Furthermore, the `peg` tag accepts two optional generics: the first one types the *value* of the resulting parser, the second types the context option.
 
 ```ts
 import peg, { $context, $raw, $fail } from "pegase";
@@ -1093,7 +1093,7 @@ const g = peg<number, Context>`
   [a-z]+ ${() => {
     const val = $context().get($raw());
     if (!val) $fail(`Undeclared identifier "${$raw()}"`);
-    return val;
+    else return val;
   }}
 `;
 
@@ -1104,7 +1104,7 @@ const g = peg<number, Context>`
 
 ### Grammar fragments
 
-When you write a grammar (a parsing expression with rules), `peg` returns an instance of `GrammarParser`, which is a subclass of `Parser`. The `pegase` package exports a utility function named `merge` to, well, merge multiple `GrammarParser`s into one. Basically, this allows you to split long and complex grammars into fragments, possibly across multiple files, as long as you finally join them. Grammar fragments can reference each other's non-terminals without restriction.
+When you write a grammar (a peg expression with rules), `peg` returns an instance of `GrammarParser`, which is a subclass of `Parser`. The `pegase` package exports a utility function named `merge` to, well, merge multiple `GrammarParser`s into one. Basically, this allows you to split long and complex grammars into fragments, possibly across multiple files, as long as you finally join them. Grammar fragments can reference each other's non-terminals without restriction.
 
 If there are conflicting rule declarations, an exception is thrown.
 
@@ -1130,7 +1130,7 @@ export default peg`
 `;
 ```
 
-##### grammar.js
+##### `grammar.js`
 
 ```js
 import { merge } from "pegase";
@@ -1174,14 +1174,14 @@ And that's it. This method will be called when your parser is invoked. It must r
 
 Great, but how could you make use of your custom subclass ? There are basically three options depending on your needs:
 
-- You can create an **explicit instance** and inject it into a parsing expression as a tag argument:
+- You can create an **explicit instance** and inject it into a peg expression as a tag argument:
 
   ```js
   const p = new MyParser();
   const g = peg`0 | 1 | ${p}`;
   ```
 
-- If the class depends on some argument, you can make Pegase generate instances automatically by injecting that argument directly into the parsing expression and **casting** it into a `Parser` using a plugin:
+- If the class depends on some argument, you can make Pegase generate instances automatically by injecting that argument directly into the peg expression and **casting** it into a `Parser` using a plugin:
 
   ```js
   peg.extend({
@@ -1216,6 +1216,67 @@ Great, but how could you make use of your custom subclass ? There are basically 
 *Coming soon...*
 
 ## API
+
+### `peg`, `createTag`
+
+##### `peg` (function / template tag)
+
+<table>
+  <thead>
+    <tr>
+      <th>Property</th>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><i>Call via template tag</i></td>
+      <td><pre>&lt;Value = any, Context = any&gt;(chunks: TemplateStringsArray, ...args: any[]) => Parser&lt;Value, Context&gt;</pre></td>
+      <td>Generates a <code>Parser</code> instance based on a peg expression</td>
+    </tr>
+    <tr>
+      <td><pre>trace</pre></td>
+      <td><pre>boolean</pre></td>
+      <td>Activates tracing during peg expression parsing (called <i>meta-parsing</i>)</td>
+    </tr>
+    <tr>
+      <td><pre>plugins</pre></td>
+      <td><pre>Plugin[]</pre></td>
+      <td>The list of plugins attached to the tag (order matters: in case of conflicts, the first plugin wins)</td>
+    </tr>
+    <tr>
+      <td><pre>extend</pre></td>
+      <td><pre>(...plugins: Plugin[]) => void</pre></td>
+      <td>Appends the given plugins onto the tag's plugin list (order is preserved)</td>
+    </tr>
+    <tr>
+      <td><pre>unextend</pre></td>
+      <td><pre>(...plugins: Plugin[]) => void</pre></td>
+      <td>Removes the given plugins from the tag's plugin list (based on reference equality)</td>
+    </tr>
+  </tbody>
+</table>
+
+##### `createTag` (function)
+
+<table>
+  <thead>
+    <tr>
+      <th>Property</th>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><i>Call</i></td>
+      <td><pre>() => typeof peg</pre></td>
+      <td>Generates a new peg-like tag. This is usefull is you need different <code>peg</code> tags with different plugins at the same time.</td>
+    </tr>
+  </tbody>
+</table>
+
 
 ### `Parser`
 
