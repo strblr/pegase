@@ -1227,8 +1227,8 @@ Great, but how could you make use of your custom subclass ? There are basically 
 | *Call via template tag* | `<Value = any, Context = any>(chunks: TemplateStringsArray, ...args: any[]) => Parser<Value, Context>` | Generates a `Parser` instance based on a peg expression      |
 | `trace`                 | `boolean`                                                    | Activates tracing during peg expression parsing (called *meta-parsing*) |
 | `plugins`               | `Plugin[]`                                                   | The list of plugins attached to the tag (order matters: in case of conflicts, the first plugin wins) |
-| `extend`                | `(...plugins: Plugin[]) => void`                             | Appends the given plugins onto the tag's plugin list (order is preserved) |
-| `unextend`              | `(...plugins: Plugin[]) => void`                             | Removes the given plugins from the tag's plugin list (based on reference equality) |
+| `extend`                | `(plugins: Plugin | Plugin[]) => void`                       | Appends the given plugins onto the tag's plugin list (order is preserved) |
+| `unextend`              | `(plugins: Plugin | Plugin[]) => void`                       | Removes the given plugins from the tag's plugin list (based on reference equality) |
 
 ##### `createTag` (function)
 

@@ -8,6 +8,7 @@ import {
   ActionParser,
   AlternativeParser,
   CaptureParser,
+  castArray,
   CutParser,
   defaultPlugin,
   GrammarParser,
@@ -27,7 +28,8 @@ import {
   resolveFallback,
   SequenceParser,
   spaceCase,
-  TokenParser
+  TokenParser,
+  UncastArray
 } from "."; // The parser creator factory
 
 // The parser creator factory
@@ -63,12 +65,12 @@ export function createTag() {
   peg.trace = false;
   peg.plugins = [defaultPlugin];
 
-  peg.extend = (...plugins: Array<Plugin>) => {
-    peg.plugins = [...peg.plugins, ...plugins];
+  peg.extend = (plugins: UncastArray<Plugin>) => {
+    peg.plugins = [...peg.plugins, ...castArray(plugins)];
   };
 
-  peg.unextend = (...plugins: Array<Plugin>) => {
-    const set = new Set(plugins);
+  peg.unextend = (plugins: UncastArray<Plugin>) => {
+    const set = new Set(castArray(plugins));
     peg.plugins = peg.plugins.filter(plugin => !set.has(plugin));
   };
 
