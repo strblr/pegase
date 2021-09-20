@@ -210,8 +210,8 @@ export function applyVisitor<Value, Context>(
     $match: node.$match,
     ...fields
   });
-  hooks.$visit = (node, opts) =>
-    applyVisitor(node, visitor, { ...options, ...opts });
+  hooks.$visit = (node, opts, nextVisitor) =>
+    applyVisitor(node, nextVisitor ?? visitor, { ...options, ...opts });
   if (visitor.hasOwnProperty(node.$label)) return visitor[node.$label](node);
   if (visitor.hasOwnProperty("$default")) return visitor.$default(node);
   throw new Error(

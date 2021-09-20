@@ -66,7 +66,7 @@ export type Hooks = {
   $commit(): void;
   $emit(children: Match["children"]): void;
   $node(label: string, fields: Record<string, any>): Node;
-  $visit(node: Node, options?: Partial<ParseOptions>): any;
+  $visit(node: Node, options?: Partial<ParseOptions>, visitor?: Visitor): any;
 };
 
 // Related to tracing
