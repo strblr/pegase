@@ -1012,7 +1012,7 @@ console.log(
     |        ^
 ```
 
-The effect of some hooks differ when used in a semantic action vs. a visitor. In semantic actions, `$emit` propagates `children`. In visitors, `$emit` replaced the array at `node.$match.children`. In semantic actions, `$fail` and `$expected` don't commit failures, they emit failure *candidates* which are then merged or filtered out using the farthest failure heuristic (see [Basic concepts > Failures and warnings](#failures-and-warnings)). In visitors, these hooks commit failures directly. The heuristic wouldn't make much sense outside of a backtracking syntactic analysis. Please refer to [API > Hooks](#hooks) for an exhaustive doc of all hooks.
+The effect of some hooks differ when used in a semantic action vs. a visitor. In semantic actions, `$emit` propagates `children`. In visitors, `$emit` replaces the array at `node.$match.children` where `node` is the current node. In semantic actions, `$fail` and `$expected` don't commit failures, they emit failure *candidates* which are then merged or filtered out using the farthest failure heuristic (see [Basic concepts > Failures and warnings](#failures-and-warnings)). In visitors, these hooks commit failures directly. The heuristic wouldn't make much sense outside of a backtracking syntactic analysis. Please refer to [API > Hooks](#hooks) for an exhaustive doc of all hooks.
 
 ---
 
