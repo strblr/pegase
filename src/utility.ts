@@ -205,6 +205,9 @@ export function applyVisitor<Value, Context>(
       type: FailureType.Expectation,
       expected: castExpectation(castArray(expected))
     });
+  hooks.$emit = children => {
+    node.$match.children = children;
+  };
   hooks.$node = (label, fields) => ({
     $label: label,
     $match: node.$match,
