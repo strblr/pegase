@@ -10,7 +10,7 @@
 
 Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
 
-- **_Inline_**, meaning grammars are directly expressed as [tagged template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates). No generation step, no CLI. Pegase works in complete symbiosis with JS.
+- **_Inline_**, meaning grammars are directly expressed as [tagged template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates). No generation step, no CLI. Pegase works in symbiosis with JS.
 - ***Complete***. Pegase has *everything* you will ever need: an elegant grammar syntax with a lot of flexibility, semantic actions, support for native regexps, error recovery, warnings, grammar fragments, AST generation, AST visitors, cut operator, and a lot more.
 - **_Lightweight_**. Pegase is a _zero-dependency_ package, and weights less than 8kB gzipped.
 - **_Intuitive_**, in that it lets you express complex grammars and semantic processes in very simple ways. You will never feel lost.
@@ -826,7 +826,7 @@ console.log(p.parse("class test {").logger.print());
 
 ### AST and visitors
 
-We saw in [Basic concepts > Semantic actions and dataflow](#semantic-actions-and-dataflow) that a parsing process can be represented as an invocation tree, called *concrete syntax tree*. This tree doesn't actually exist except temporarily in the JS call stack, thus semantic processes you want to fire at some "nodes" have to be executed at parse time. This is what semantic actions are for. You can do a lot with that, but it might not be always sufficient or practical. For example, most real-life compilers do several traversals of the syntax tree, some dependent on the previous ones, with a clear separation of concerns. For the tree to be traversed multiple times, it has to be **generated** and **kept** in memory. You generally don't want to generate the whole concrete syntax tree which might have lots of parts only relevant to the syntax analysis but irrelevant in later stages. The actual tree you care about has custom nodes and is called *abstract syntax tree*.
+We saw in [Basic concepts > Semantic actions and dataflow](#semantic-actions-and-dataflow) that a parsing process can be represented as an invocation tree, called *concrete syntax tree*. This tree doesn't actually exist except temporarily in the JS call stack, thus semantic processes you want to fire at some "nodes" have to be executed at parse time. This is what semantic actions are for. You can do a lot with that, but it might not always be sufficient nor practical. For example, most real-life compilers do several traversals of the syntax tree, some dependent on the previous ones, with a clear separation of concerns. For the tree to be traversed multiple times, it has to be **generated** and **kept** in memory. You generally don't want to generate the whole concrete syntax tree which might have lots of parts only relevant to the syntax analysis but irrelevant in later stages. The actual tree you care about has custom nodes and is called *abstract syntax tree*.
 
 **Pegase provides a clean and elegant way to generate ASTs: the `$node` hook.**
 
@@ -846,7 +846,7 @@ Given a label to distinguish between node types and some custom fields, it build
 }
 ```
 
-The `$label` field and the custom fields simply correspond to `$node`'s arguments. The `$match` key is *automatically* set and stores the success match object that was returned by the parser your semantic action is wrapped around. It contains the keys `from` (where the match started), `to` (where the match ended), `children` and `captures`. This means that you don't have to set these information yourself as custom fields, they're attached by default to every `Node` object.
+The `$label` field and the custom fields simply correspond to `$node`'s arguments. The `$match` key is *automatically* set and stores the success match object that was returned by the parser your semantic action is wrapped around. It contains the keys `from` (where the match started), `to` (where the match ended), `children` and `captures`.
 
 **Nodes might then be emitted, propagated and captured during the parsing process just like any `children`.**
 
@@ -864,7 +864,7 @@ const prefix = peg`
 const ast = prefix.value("+ 12 + 42 3");
 ```
 
-The input `+ 12 + 42 3` generates the following AST:
+The resulting `ast` will look like this:
 
 ![AST](https://raw.githubusercontent.com/ostrebler/pegase/master/img/ast-1.png)
 
@@ -909,7 +909,7 @@ complex.value("13+6i"); // { $label: "COMPLEX", $match: (...), r: 13, i: 6 }
 complex.value("42");    // { $label: "COMPLEX", $match: (...), r: 42, i: 0 }
 ```
 
-Once an AST is generated, the next step is obviously to implement traversals procedures. The possibilities are nearly infinite: performing semantic checks (like type checks), fine-tuning a syntactic analysis, mutating the tree (like [Babel plugins](https://github.com/jamiebuilds/babel-handbook/blob/master/translations/en/plugin-handbook.md)), folding the tree to some output value, etc. To implement traversals of ASTs, Pegase ships with its own [visitor pattern](#https://en.wikipedia.org/wiki/Visitor_pattern#Use_case_example).
+Once an AST is generated, the next step is obviously to implement traversal procedures. The possibilities are nearly infinite: performing semantic checks (like type checks), fine-tuning a syntactic analysis, mutating the tree (like [Babel plugins](https://github.com/jamiebuilds/babel-handbook/blob/master/translations/en/plugin-handbook.md)), folding the tree to some output value, etc. To implement traversals of ASTs, Pegase ships with its own [visitor pattern](#https://en.wikipedia.org/wiki/Visitor_pattern#Use_case_example).
 
 **A Pegase visitor is an object whose keys are node labels and whose values are callbacks taking a `Node` as single argument:**
 
@@ -921,7 +921,7 @@ The *result* of a visitor for a given node `n` is the return value of the callba
 
 **After the parsing is done, the final `children` array will be mapped through the visitor pipe.**
 
-Every `children` item will individually be sent down the visitor pipe. Each visitor feeds its result to next one. The result of the final visitor will replace the initial child item. This mechanism implies two things:
+Every `children` item will individually be sent down the visitor pipe. Each visitor feeds its result to next one. The result of the final visitor will replace the initial child. This mechanism implies two things:
 
 - `children` never changes size as a result of visits, it's just a one-to-one mapping. Thus parsers who produce a `value` (ie. a single child) keep producing a `value` no matter how many visitors you stack. The final `value` will be the result of the visitor pipe applied to the initial `value`.
 - Only the last visitor can return a non-`Node` result, since each visitor has to be fed with a `Node` value.
@@ -968,7 +968,7 @@ prefix.value("182", { visit: sumVisitor });         // 182
 prefix.value("+ 12 + 42 3", { visit: sumVisitor }); // 57
 ```
 
-Next, we're going to add a visitor right before `sumVisitor` that preserves the AST but *doubles* the `integer` value of `INT` nodes. This basically implies that each visitor callback will have to be an identity function, returning the node it was passed and only performing side-effects. For `INT` nodes, the side-effect is to double the value. For `PLUS` nodes, it's to visit the child nodes. Something like this:
+Next, to illustrate visitor piping, we're going to add a visitor right before `sumVisitor` that preserves the AST but *doubles* the `integer` value of `INT` nodes. This basically implies that each visitor callback will have to be an identity function, returning the node it was passed and only performing side-effects. For `INT` nodes, the side-effect is to double the value. For `PLUS` nodes, it's to visit the child nodes. Giving us:
 
 ```ts
 const doubleVisitor = {
@@ -988,6 +988,31 @@ prefix.value("+ 12 + 42 3", { visit: [doubleVisitor, sumVisitor] }); // 114
 ```
 
 You get the idea. Have fun !
+
+**A visitor callback has access to all the hooks available in semantic actions**, except `$commit`. So it's totally fine to emit warnings and failures from visitors:
+
+```ts
+const sumVisitor: Visitor = {
+  INT: node => {
+    if (node.integer === "42") $warn("42 is too powerful");
+    return Number(node.integer);
+  },
+  PLUS: node => $visit(node.a) + $visit(node.b)
+};
+
+console.log(
+  prefix.parse("+ 12 + 42 3", { visit: sumVisitor }).logger.print()
+);
+```
+
+```
+(1:8) Warning: 42 is too powerful
+
+> 1 | + 12 + 42 3
+    |        ^
+```
+
+The effect of some hooks differ when used in a semantic action vs. a visitor. In semantic actions, `$emit` propagates `children`. In visitors, `$emit` replaced the array at `node.$match.children`. In semantic actions, `$fail` and `$expected` don't commit failures, they emit failure *candidates* which are then merged or filtered out using the farthest failure heuristic (see [Basic concepts > Failures and warnings](#failures-and-warnings)). In visitors, these hooks commit failures directly. The heuristic wouldn't make much sense outside of a backtracking syntactic analysis. Please refer to [API > Hooks](#hooks) for an exhaustive doc of all hooks.
 
 ---
 
