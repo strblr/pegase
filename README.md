@@ -923,10 +923,71 @@ The *result* of a visitor for a given node `n` is the return value of the callba
 
 Every `children` item will individually be sent down the visitor pipe. Each visitor feeds its result to next one. The result of the final visitor will replace the initial child item. This mechanism implies two things:
 
-- `children` never changes size as a result of visits, thus parsers who produce a `value` (ie. a single child) keep producing a `value` no matter how many visitors you stack.
+- `children` never changes size as a result of visits, it's just a one-to-one mapping. Thus parsers who produce a `value` (ie. a single child) keep producing a `value` no matter how many visitors you stack. The final `value` will be the result of the visitor pipe applied to the initial `value`.
 - Only the last visitor can return a non-`Node` result, since each visitor has to be fed with a `Node` value.
 
 ![AST](https://raw.githubusercontent.com/ostrebler/pegase/master/img/ast-2.png)
+
+Let's build a simple visitor that transforms the output `Node` of our previous `prefix` grammar into its label:
+
+```ts
+const prefix = peg`
+  expr:
+  | <>integer => 'INT'
+  | '+' <a>expr <b>expr => 'PLUS'
+
+  $integer @raw: \d+
+`;
+
+const labelVisitor = {
+  INT: node => node.$label,
+  PLUS: node => node.$label
+};
+
+prefix.value("182", { visit: labelVisitor });         // "INT"
+prefix.value("+ 12 + 42 3", { visit: labelVisitor }); // "PLUS"
+```
+
+As you might have spotted, the `INT` and `PLUS` callbacks are exactly the same. You can replace them with a simple default case callback by using the `$default` key. This callback will be called when no other visitor key matches the current node label.
+
+```ts
+const labelVisitor = {
+  $default: node => node.$label
+};
+```
+
+Let's dive a bit deeper: how would you implement a visitor that calculates the sum's result ? Calculating a sum from an AST means [*folding*](https://en.wikipedia.org/wiki/Fold_(higher-order_function)) the AST into a single value, which implies recursive visits to child nodes. That's exactly what the `$visit` hook is for: called from *inside* a visitor callback and given a node, it applies the current visitor to that node and returns the result. Our sum visitor could be implemented as follows:
+
+```ts
+const sumVisitor = {
+  INT: node => Number(node.integer),
+  PLUS: node => $visit(node.a) + $visit(node.b)
+};
+
+prefix.value("182", { visit: sumVisitor });         // 182
+prefix.value("+ 12 + 42 3", { visit: sumVisitor }); // 57
+```
+
+Next, we're going to add a visitor right before `sumVisitor` that preserves the AST but *doubles* the `integer` value of `INT` nodes. This basically implies that each visitor callback will have to be an identity function, returning the node it was passed and only performing side-effects. For `INT` nodes, the side-effect is to double the value. For `PLUS` nodes, it's to visit the child nodes. Something like this:
+
+```ts
+const doubleVisitor = {
+  INT: node => {
+    node.integer *= 2;
+    return node;
+  },
+  PLUS: node => {
+    $visit(node.a);
+    $visit(node.b);
+    return node;
+  }
+};
+
+prefix.value("182", { visit: [doubleVisitor, sumVisitor] });         // 364
+prefix.value("+ 12 + 42 3", { visit: [doubleVisitor, sumVisitor] }); // 114
+```
+
+You get the idea. Have fun !
 
 ---
 
