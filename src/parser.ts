@@ -332,7 +332,7 @@ export class TokenParser extends Parser {
     if (!this.displayName) return this.parser.exec(options);
     const match = this.parser.exec({
       ...options,
-      logger: options.logger.fresh()
+      logger: options.logger.create()
     });
     if (match) return match;
     options.logger.hang({
@@ -398,7 +398,7 @@ export class PredicateParser extends Parser {
   exec(options: ParseOptions): Match | null {
     const match = this.parser.exec({
       ...options,
-      ...(!this.polarity && { logger: options.logger.fresh() })
+      ...(!this.polarity && { logger: options.logger.create() })
     });
     const success = () => ({
       from: options.from,

@@ -85,7 +85,7 @@ export class Logger {
     }
   }
 
-  fresh() {
+  create(): Logger {
     const clone = Object.create(Logger.prototype);
     clone.warnings = [];
     clone.failures = [];
@@ -95,7 +95,7 @@ export class Logger {
     return clone;
   }
 
-  fork() {
+  fork(): Logger {
     const clone = Object.create(Logger.prototype);
     clone.warnings = this.warnings.concat();
     clone.failures = this.failures.concat();
