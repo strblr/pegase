@@ -1164,17 +1164,51 @@ We've seen in section [Basic concepts > Building parsers](#building-parsers) tha
 - Composition classes like `SequenceParser`, `TokenParser`, `PredicateParser`, `ActionParser`, etc. which, on the contrary, reference one or more subparsers.
 - `NonTerminalParser` is a special case, because it holds a reference to another parser, but as a string (a rule name) that will be resolved dynamically at parse time.
 
-The Pegase expression `'a' | 'b'` is converted by the `peg` tag into `new Options([new LiteralParser("a"), new LiteralParser("b")])`, `!id` is converted into `new PredicateParser(new NonTerminalParser("id"), false)`, etc. You got the idea.
+The `peg` tag's role is to parse a peg expression and to generate the corresponding `Parser` instances. The expression `'a' | 'b'` is converted by the `peg` tag into:
 
-In order to fit in this scheme, your custom class must satisfy two constraints: deriving from the `Parser` class, obviously, and implementing an `exec` method with the following signature:
+```ts
+new AlternativeParser([
+  new LiteralParser("a"),
+  new LiteralParser("b")
+])
+```
+
+`&id+` is converted into:
+
+```ts
+new PredicateParser(
+  new RepetitionParser(
+    new NonTerminalParser("id"),
+    [1, Infinity]
+  ),
+  true
+)
+```
+
+You get the idea.
+
+Every `Parser` subclass, the standard and your custom ones, **must** satisfy two constraints: 1) Inheriting from `Parser`, obviously, and 2) implementing an `exec` method with the following signature:
 
 ```ts
 exec(options: ParseOptions<Context>): Match | null;
 ```
 
-And that's it. This method will be called when your parser is invoked. It must return a `Match` object on success and `null` on failure (actual failure objects are emitted as side-effects using the `emitFailure` utility). The state of the parsing process at the time of invocation is resumed in the `options` argument with infos like the current position, the input string, the current grammar, the skipping state (on or off), the expected case sensitivity, etc. The exhaustive list is described in [API > Other types > `ParseOptions`](#parseoptions).
+The `exec` method will be called when the parser is *invoked*. It must return `null` on failure and a `Match` object on success with the following signature:
 
-Great, but how could you make use of your custom subclass ? There are basically three options depending on your needs:
+```ts
+{
+  from: Location;
+  to: Location;
+  children: any[];
+  captures: Map<string, any>;
+}
+```
+
+The state of the parsing process at the time of invocation is expressed by the `options` argument with info like the current position, the input string, the current grammar, the skipping state (on or off), the expected case sensitivity, etc. The exhaustive list is described in [API > TypeScript types](#typescript-types).
+
+Log events (warning and failures) must be emitted as side-effects using the `Logger` instance provided by `options.logger`. The logger is also used to efficiently build `Location` objects based on absolute input indexes. Please refer to [API > `Logger`](#logger) for a list of supported methods.
+
+Great. Once you wrote a custom `Parser` subclass, there are basically three options for using it, depending on your needs:
 
 - You can create an **explicit instance** and inject it into a peg expression as a tag argument:
 
@@ -1183,32 +1217,38 @@ Great, but how could you make use of your custom subclass ? There are basically 
   const g = peg`0 | 1 | ${p}`;
   ```
 
-- If the class depends on some argument, you can make Pegase generate instances automatically by injecting that argument directly into the peg expression and **casting** it into a `Parser` using a plugin:
+  There is also the builder approach:
+
+  ```ts
+  const _ = data => new MyParser(data);
+  const g = peg`0 | 1 | ${_("foo")} | ${_("bar")}`;
+  ```
+
+- If the class relies on some specific attribute (not a number, a string, a function, a `RegExp` or a `Parser`, these have already special meaning), you can make Pegase generate instances automatically by injecting that attribute directly into the peg expression and **casting** it into a `Parser` using a plugin:
 
   ```js
   peg.plugins.push({
-    castParser(arg) {
-      if(arg instanceof Set)
-        return new MyParser(arg);
+    castParser(set) {
+      if(set instanceof Set)
+        return new MyParser(set);
     }
   });
   
   const g = peg`42 | ${new Set(["a", "b"])}`;
   ```
 
-- Finally, in case of composition classes, you can define custom directives that generate instances of your subclass:
+- Lastly, if your class is a composition class, you can define custom directives that generate instances of it:
 
   ```js
   peg.plugins.push({
     directives: {
-      while(parser, predicate) {
-        return new MyWhileParser(parser, predicate);
+      custom(parser) {
+        return new MyParser(parser);
       }
     }
   });
   
-  const predicate = payload => { /*...*/ };
-  const g = peg`\d @while(${predicate})`;
+  const p = peg`\d+ @custom`; // p is a MyParser instance
   ```
 
 ---
@@ -1225,7 +1265,7 @@ Great, but how could you make use of your custom subclass ? There are basically 
 
 | Property                | Type                                                         | Description                                                  |
 | ----------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| *Call via template tag* | `<Value = any, Context = any>(chunks: TemplateStringsArray, ...args: any[]) => Parser<Value, Context>` | Generates a `Parser` instance based on a peg expression      |
+| *Call via template tag* | `<Value, Context>(chunks: TemplateStringsArray, ...args: any[]) => Parser<Value, Context>` | Generates a `Parser` instance based on a peg expression      |
 | `trace`                 | `boolean`                                                    | Activates tracing during peg expression parsing (called *meta-parsing*) |
 | `plugins`               | `Plugin[]`                                                   | The list of plugins attached to the tag (order matters: in case of conflicts, the first plugin wins). Can be mutated or replaced. |
 
@@ -1234,6 +1274,43 @@ Great, but how could you make use of your custom subclass ? There are basically 
 | Property | Type               | Description                                                  |
 | -------- | ------------------ | ------------------------------------------------------------ |
 | *Call*   | `() => typeof peg` | Generates a new peg-like tag. This is useful is you need different <code>peg</code> tags with different plugins at the same time. |
+
+---
+
+### `Parser`
+
+##### `Parser<Value, Context>` (abstract base class)
+
+| Property         | Type                                                         | Description                                                  |
+| ---------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| `defaultOptions` | `Partial<ParseOptions<Context>>`                             | Default parsing options. These are merged to the ones provided when calling one of the following method. |
+| `parse`          | `(input: string, options?: Partial<ParseOptions<Context>>) => Result<Value, Context>` | Parses `input` and builds a `Result` object                  |
+| `test`           | `(input: string, options?: Partial<ParseOptions<Context>>) => boolean` | Wrapper around `parse`. Returns the `Result` object's `success` field. |
+| `value`          | `(input: string, options?: Partial<ParseOptions<Context>>) => Value` | Wrapper around `parse`. Returns the `Result` object's `value` field in case of success. Throws an `Error` on failure. |
+| `children`       | `(input: string, options?: Partial<ParseOptions<Context>>) => any[]` | Wrapper around `parse`. Returns the `Result` object's `children` field in case of success. Throws an `Error` on failure. |
+
+All `Parser` **subclasses** share the following properties:
+
+| Property | Type                                                         | Description                                                  |
+| -------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| `exec`   | <code>(options: ParseOptions&lt;Context&gt;) => Match &vert; null</code> | Invokes the parser. Returns a `Match` on success and `null` on failure. |
+
+##### `LiteralParser` (subclass)
+
+| Property      | Type                                                    | Description                                                  |
+| ------------- | ------------------------------------------------------- | ------------------------------------------------------------ |
+| *Constructor* | `new(literal: string, emit?: boolean) => LiteralParser` | Builds a new instance                                        |
+| `literal`     | `string`                                                | The literal to be matched when the parser is invoked         |
+| `emit`        | `boolean`                                               | Whether the parser should emit the matched substring as a single child or not |
+
+##### `RegExpParser` (subclass)
+
+| Property      | Type                                  | Description                                     |
+| ------------- | ------------------------------------- | ----------------------------------------------- |
+| *Constructor* | `new(regExp: RegExp) => RegExpParser` | Builds a new instance                           |
+| `regExp`      | `RegExp`                              | The original `RegExp` passed to the constructor |
+| `cased`       | `RegExp`                              | The `RegExp` used for case-sensitive matching   |
+| `uncased`     | `RegExp`                              | The `RegExp` used for case-insensitive matching |
 
 ---
 
@@ -1250,10 +1327,10 @@ Great, but how could you make use of your custom subclass ? There are basically 
 | `$options`  | `() => ParseOptions`                                         | Semantic actions, visitors | Returns the current parse options                            |
 | `$context`  | `() => any`                                                  | Semantic actions, visitors | Returns the parse context. Shortcut for `$options().context`. |
 | `$warn`     | `(message: string) => void`                                  | Semantic actions, visitors | Emits a warning at the current match's start location        |
-| `$fail`     | `(message: string) => void`                                  | Semantic actions, visitors | Emits a semantic failure at the current match's start location. In semantic actions, this failure is only a *candidate* and might be thrown out or merged according to the farthest failure heuristic (see [Failures and warnings](#failures-and-warnings)). |
-| `$expected` | <code>(expected: string &vert; RegExp &vert; Expectation &vert; (...)[]) => void</code> | Semantic actions, visitors | Emits an expectation failure at the current match's start location. In semantic actions, this failure is only a *candidate* (see [Failures and warnings](#failures-and-warnings)). |
+| `$fail`     | `(message: string) => void`                                  | Semantic actions, visitors | Emits a semantic failure at the current match's start location. In semantic actions, this failure is only a *candidate* (see [Failures and warnings](#failures-and-warnings)). |
+| `$expected` | <code>(expected: string &vert; RegExp &vert; Expectation &vert; (...)[]) => void</code> | Semantic actions, visitors | Emits an expectation failure at the current match's start location. In semantic actions, this failure is only a *candidate* and might be thrown out or merged according to the farthest failure heuristic (see [Failures and warnings](#failures-and-warnings)). |
 | `$commit`   | `() => void`                                                 | Semantic actions           | Flushes the current farthest failure to the final failure output (see [Failure recovery](#failure-recovery)) |
 | `$emit`     | `(children: any[]) => void`                                  | Semantic actions, visitors | In semantic actions, emits the given children. In visitors, replaces `node.$match.children` where `node` is the current node. |
 | `$node`     | `(label: string, fields: Record<string, any>): Node`         | Semantic actions, visitors | Creates a `Node` with the given label, fields, and the current match |
-| `$visit`    | `(node: Node, options?: Partial<ParseOptions>, visitor?: Visitor) => any` | Visitors                   | Applies the current visitor (or `visitor` is the third argument is provided) to `node` and returns the result. New parse options can be merged to the current ones. |
+| `$visit`    | `(node: Node, options?: Partial<ParseOptions>, visitor?: Visitor) => any` | Visitors                   | Applies the current visitor (or `visitor` if the third argument is provided) to `node` and returns the result. New parse options can be merged to the current ones. |
 
