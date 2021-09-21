@@ -8,6 +8,8 @@ import peg, {
   $value,
   $visit,
   $warn,
+  ActionParser,
+  createTag,
   LiteralParser,
   merge,
   RegExpParser,
@@ -185,6 +187,24 @@ test("The cut operator should work correctly", () => {
   expect(g3.test("ad")).toBe(true);
 });
 
+test("The plugin system should work", () => {
+  const tag = createTag();
+  tag.plugins.push({
+    name: "min-max-plugin",
+    directives: {
+      min: parser => new ActionParser(parser, () => Math.min(...$children())),
+      max: parser => new ActionParser(parser, () => Math.max(...$children()))
+    }
+  });
+
+  const max = tag`
+    list: int+ @max
+    $int: \d+ @number
+  `;
+
+  expect(max.value("36 12 42 3")).toBe(42);
+});
+
 test("Semantic actions must correctly propagate children (including undefined)", () => {
   const g = peg`(
     | 0 ${() => $emit([undefined])}
@@ -304,23 +324,18 @@ test("Failure recovery should work", () => {
     sync: ...&(',' | ']')
   `;
 
-  const result = g.parse("[1, 0, 2, 1, 3, 0, 1, 2, 0, 1, 1]");
+  const result = g.parse("[1, 0, 1, 3, 0, 1, 2, 1]");
 
   expect(result.success).toBe(true);
-  expect(result.logger.print()).toBe(`(1:8) Failure: Expected "0" or "1"
+  expect(result.logger.print()).toBe(`(1:11) Failure: Expected "0" or "1"
 
-> 1 | [1, 0, 2, 1, 3, 0, 1, 2, 0, 1, 1]
-    |        ^
+> 1 | [1, 0, 1, 3, 0, 1, 2, 1]
+    |           ^
 
-(1:14) Failure: Expected "0" or "1"
+(1:20) Failure: Expected "0" or "1"
 
-> 1 | [1, 0, 2, 1, 3, 0, 1, 2, 0, 1, 1]
-    |              ^
-
-(1:23) Failure: Expected "0" or "1"
-
-> 1 | [1, 0, 2, 1, 3, 0, 1, 2, 0, 1, 1]
-    |                       ^
+> 1 | [1, 0, 1, 3, 0, 1, 2, 1]
+    |                    ^
 `);
 });
 

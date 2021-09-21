@@ -1051,9 +1051,9 @@ console.log(yearIs.value("2021-08-19")); // "The year is 2021"
 
 ### Cut operator
 
-Pegase implements the concept of [cut points](http://ceur-ws.org/Vol-1269/paper232.pdf) in the form of a cut operator: `^`. There are times when, passing a certain point in an alternative, you know *for sure* that every remaining alternatives would also fail and thus don't need to be tried out. That "point" can be marked explicitly by `^` in your peg expression and has the effect to **commit to the current alternative**: even if it were to fail past that point, the *first parent alternatives* would not be tried out. In other words, the cut operator prevents local backtracking.
+Pegase implements the concept of [cut points](http://ceur-ws.org/Vol-1269/paper232.pdf) in the form of a cut operator: `^`. There are times when, passing a certain point in an ordered choice expression (or *alternative*), you know *for sure* that every remaining options would fail. That "point" can be marked explicitly by `^` in your peg expression and has the effect to **commit to the current alternative**: even if it were to fail afterwards, the *first parent alternatives* would not be tried out. In other words, the cut operator prevents local backtracking.
 
-An example will explain it better: let's say you want to write a compiler for a C-like language. You define an `instr` rule that can match an `if` statement, a `while` loop or a `do...while` loop. If the terminal `'if'` successfully matched, then *even* if the rest of the expression fails, there is just no way for an alternative `while` loop or a `do...while` loop to match. That means you can insert a *cut point* right after `'if'`. The same reasoning can be applied to the `'while'` terminal, but is useless for `'do'` since it's already the last alternative.
+Let's say you want to write a compiler for a C-like language. You define an `instr` rule that can match an `if` statement, a `while` loop or a `do...while` loop. If the terminal `'if'` successfully matched, then *even* if the rest of the expression fails, there is just no way for a `while` loop or a `do...while` loop to match. That means you can insert a *cut point* right after `'if'`. The same reasoning can be applied to the `'while'` terminal, but is useless for `'do'` since it's already the last alternative.
 
 ```js
 peg`
@@ -1064,7 +1064,7 @@ peg`
 `;
 ```
 
-Since `^` is implemented as a no-op `Parser` that always succeeds (nothing is consumed nor emitted), it can **also** be used to implement default cases in alternative expressions, with the same effect but more efficient than the empty string:
+Since `^` is implemented as a no-op `Parser` (always succeeds, nothing is consumed nor emitted), it can **also** be used to implement default cases in alternative expressions, with the same effect but faster than the empty string:
 
 ```js
 peg`
@@ -1191,13 +1191,85 @@ console.log(g.test("abcdabcd")); // true
 
 ### Error recovery
 
-*Coming soon...*
+Sometimes you may need to keep parsing even after encountering what would otherwise be a fatal input error. This is the case in various compilers to report as many errors and warnings as possible in a single pass. It's also common practice in most advanced code editors in order to provide correct syntax highlighting and autocompletion even when you're not done typing.
+
+The way Pegase works without error recovery is described in [Basic concepts > Failures and warnings](#failures-and-warnings): failures may be an instruction to backtrack or the sign of an actual input error. That's why emitted failures are not directly collected into an array, they are emitted as *candidates* and sorted out using the farthest failure heuristic. The general idea of error recovery is to *commit* the current farthest failure to the final failures array, and resume parsing after *skipping* the erroneous input section. Here is how it's done with Pegase:
+
+- Identify the subsection of your peg expression that you wanna recover from.
+- Add an alternative to this subsection. In it:
+- Commit the current farthest failure by using the `$commit` hook or the `@commit` directive.
+- Identify an expression / terminal / set of terminals you're likely to find *after* the erroneous portion and *from where the parsing can resume from*. This is called a **synchronization expression**. In C-like languages, it could be the semi-colon `;` or a closing block bracket `}` for example.
+- Skip input character by character until that expression is found. This is called *synchronization* and can be achieved by using the `...` operator, called sync operator. The peg expression `...a` is in fact syntactic sugar for `(!a .)* a`. See [Basic concepts > Building parsers](#building-parsers).
+
+Here is a grammar that parses an array of bits and tries to recover when a bit matching fails:
+
+```ts
+const g = peg`
+  bitArray: '[' (bit | (^ @commit) sync) % ',' ']'
+  bit: 0 | 1
+  sync: ...&(',' | ']')
+`;
+
+console.log(g.parse("[1, 0, 1, 3, 0, 1, 2, 1]").logger.print());
+```
+
+```
+(1:11) Failure: Expected "0" or "1"
+
+> 1 | [1, 0, 1, 3, 0, 1, 2, 1]
+    |           ^
+
+(1:20) Failure: Expected "0" or "1"
+
+> 1 | [1, 0, 1, 3, 0, 1, 2, 1]
+    |                    ^
+```
+
+**Be aware**: the `success` status of the parsing will be `true`. With error recovery, a successful parsing doesn't necessarily imply "no failure", it just tells you that the parsing was able to finish successfully. This is indeed what *recovery* means. To check if there are any failures, call the logger's `hasFailures` method:
+
+```ts
+g.parse("[1, 0, 1, 3, 0, 1, 2, 1]").logger.hasFailures() // true
+```
 
 ---
 
 ### Writing a plugin
 
-*Coming soon...*
+Pegase has a plugin system that allows you to extend the base functionalities. A plugin is a simple object with four optional properties:
+
+1) `name`: the name of your plugin.
+2) `grammar`: A grammar parser instance that will be used as a fallback resolver for undefined non-terminals in your peg expressions. Think of it as *global rules*.
+3) `castParser`: A function to convert custom tag argument types into `Parser` instances.
+4) `directives`: Custom directive definitions.
+
+For the exact type signature of these properties, please refer to [API > TypeScript types](#typescript-types). Plugins then have to be added to the `peg` tag's `plugins` array. Order matters: in case of conflict (a conflicting `grammar` rule, `directive` definition or `castParser` behavior), the first will win. Let's add two directives `@min` and `@max`, that transform the `children` of the wrapped parser to only keep respectively the minimum and the maximum value and emit it as a single child:
+
+```ts
+peg.plugins.push({
+  name: "my-plugin",
+  directives: {
+    min: parser => new ActionParser(parser, () => Math.min(...$children())),
+    max: parser => new ActionParser(parser, () => Math.max(...$children()))
+  }
+});
+```
+
+Testing it:
+
+```ts
+const max = peg`
+  list: int+ @max
+  $int: \d+ @number
+`;
+
+max.value("36 12 42 3"); // 42
+```
+
+To remove a plugin, you can manipulate the `plugins` array just like any other array: `splice` it, or replace it entirely:
+
+```ts
+peg.plugins = peg.plugins.filter(({ name }) => name !== "my-plugin");
+```
 
 ---
 
@@ -1402,4 +1474,19 @@ All `Parser` **subclasses** share the following properties:
 | `$emit`     | `(children: any[]) => void`                                  | Semantic actions, visitors | In semantic actions, emits the given children. In visitors, replaces `node.$match.children` where `node` is the current node. |
 | `$node`     | `(label: string, fields: Record<string, any>): Node`         | Semantic actions, visitors | Creates a `Node` with the given label, fields, and the current match |
 | `$visit`    | `(node: Node, options?: Partial<ParseOptions>, visitor?: Visitor) => any` | Visitors                   | Applies the current visitor (or `visitor` if the third argument is provided) to `node` and returns the result. New parse options can be merged to the current ones. |
+
+## More
+
+### Ideas
+
+Here are some features that I strongly consider adding in future releases of Pegase. If they are listed here, it's mainly because I'm not so sure if they are relevant in real use cases, so I'll basically wait and see if there is enough demand before bloating the library with unused gadgets. If you're interested in one of these features, [please let me know on GitHub](https://github.com/ostrebler/pegase/issues).
+
+- **Cuts for repetitions**. The idea would be to have a cut operator, similar to `^`, but to break repetitions (like `a+`, `a*`, etc.). A sort of `break` statement for peg expressions. Peg repetitions are greedy by nature, but this might not always be what you want.
+- **Default values for captures**. The syntax would be something like `<id = 0>a`, `<id = ${expr}>a` (where `expr` is a JS expression), etc. The default value would be captured as `id` if `a`'s value is `undefined`.
+
+---
+
+### Bug report and discussion
+
+If you encounter a bug, or have a suggestion or a question, feel free to contact me via [the GitHub issue page](https://github.com/ostrebler/pegase/issues).
 
