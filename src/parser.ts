@@ -250,9 +250,9 @@ export class CutParser extends Parser {
 // AlternativeParser
 
 export class AlternativeParser extends Parser {
-  parsers: Array<Parser>;
+  parsers: Parser[];
 
-  constructor(parsers: Array<Parser>) {
+  constructor(parsers: Parser[]) {
     super();
     this.parsers = parsers;
   }
@@ -271,16 +271,16 @@ export class AlternativeParser extends Parser {
 // SequenceParser
 
 export class SequenceParser extends Parser {
-  parsers: Array<Parser>;
+  parsers: Parser[];
 
-  constructor(parsers: Array<Parser>) {
+  constructor(parsers: Parser[]) {
     super();
     this.parsers = parsers;
   }
 
   exec(options: ParseOptions): Match | null {
     let from = options.from;
-    const matches: Array<Match> = [];
+    const matches: Match[] = [];
     for (const parser of this.parsers) {
       const match = parser.exec({ ...options, from });
       if (match === null) return null;
@@ -302,7 +302,7 @@ export class GrammarParser extends Parser {
   rules: Map<string, Parser>;
   entry: Parser;
 
-  constructor(rules: Array<[string, Parser]>) {
+  constructor(rules: [string, Parser][]) {
     super();
     this.rules = new Map(rules);
     this.entry = new NonTerminalParser(rules[0][0]);
@@ -362,7 +362,7 @@ export class RepetitionParser extends Parser {
   exec(options: ParseOptions): Match | null {
     let from = options.from,
       counter = 0;
-    const matches: Array<Match> = [];
+    const matches: Match[] = [];
     const success = () => ({
       ...(matches.length === 0
         ? { from: options.from, to: options.from }

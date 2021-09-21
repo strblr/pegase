@@ -12,11 +12,11 @@ import {
 // Logger
 
 export class Logger {
-  warnings: Array<Warning>;
-  failures: Array<Failure>;
+  warnings: Warning[];
+  failures: Failure[];
   pending: Failure | null;
   readonly input: string;
-  readonly indexes: Array<number>;
+  readonly indexes: number[];
 
   constructor(input: string) {
     this.warnings = [];

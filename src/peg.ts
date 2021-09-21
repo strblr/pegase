@@ -43,11 +43,11 @@ export function createTag() {
     | symbol
     | bigint
     | object
-    | ((...args: Array<any>) => any);
+    | ((...args: any[]) => any);
 
   function peg<Value = any, Context = any>(
     chunks: TemplateStringsArray,
-    ...args: Array<Any>
+    ...args: Any[]
   ): Parser<Value, Context> {
     return metagrammar.value(
       chunks.raw.reduce((acc, chunk, index) => acc + `~${index - 1}` + chunk),
@@ -257,7 +257,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     new ActionParser(
       modulo(new NonTerminalParser("moduloParser"), new LiteralParser("-")),
       () =>
-        ($children() as Array<Parser>).reduce(
+        ($children() as Parser[]).reduce(
           (acc, not) =>
             new SequenceParser([new PredicateParser(not, false), acc])
         )

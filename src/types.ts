@@ -3,8 +3,8 @@ import { Logger, Parser } from ".";
 // Related to parser generation
 
 export type MetaContext = {
-  plugins: Array<Plugin>;
-  args: Array<any>;
+  plugins: Plugin[];
+  args: any[];
 };
 
 export type Plugin = {
@@ -14,7 +14,7 @@ export type Plugin = {
   directives?: Record<string, Directive>;
 };
 
-export type Directive = (parser: Parser, ...args: Array<any>) => Parser;
+export type Directive = (parser: Parser, ...args: any[]) => Parser;
 
 // Related to parsing processing
 
@@ -35,7 +35,7 @@ export type ParseOptions<Context = any> = {
 };
 
 export type Match = Range & {
-  children: Array<any>;
+  children: any[];
   captures: Map<string, any>;
 };
 
@@ -125,7 +125,7 @@ export type Failure = ExpectationFailure | SemanticFailure;
 
 export type ExpectationFailure = Range & {
   type: FailureType.Expectation;
-  expected: Array<Expectation>;
+  expected: Expectation[];
 };
 
 export type SemanticFailure = Range & {
@@ -217,4 +217,4 @@ export type Location = {
 
 // Helpers
 
-export type UncastArray<T> = T | Array<T>;
+export type UncastArray<T> = T | T[];

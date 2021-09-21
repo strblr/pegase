@@ -66,15 +66,15 @@ export function spaceCase(input: string) {
 
 // castArray
 
-export function castArray<T>(value: T | Array<T>) {
+export function castArray<T>(value: T | T[]) {
   return Array.isArray(value) ? value : [value];
 }
 
 // castExpectation
 
 export function castExpectation(
-  expected: Array<string | RegExp | Expectation>
-): Array<Expectation> {
+  expected: (string | RegExp | Expectation)[]
+): Expectation[] {
   return expected.map(expected =>
     typeof expected === "string"
       ? { type: ExpectationType.Literal, literal: expected }
@@ -94,7 +94,7 @@ export function skip(options: ParseOptions) {
 
 // resolveFallback
 
-export function resolveFallback(plugins: Array<Plugin>, rule: string) {
+export function resolveFallback(plugins: Plugin[], rule: string) {
   return plugins.find(plugin =>
     (plugin.grammar as GrammarParser | undefined)?.rules?.get(rule)
   )?.grammar;
@@ -102,7 +102,7 @@ export function resolveFallback(plugins: Array<Plugin>, rule: string) {
 
 // resolveCast
 
-export function resolveCast(plugins: Array<Plugin>, value: any) {
+export function resolveCast(plugins: Plugin[], value: any) {
   let parser: Parser | undefined;
   plugins.some(plugin => (parser = plugin.castParser?.(value)));
   if (!parser)
@@ -114,7 +114,7 @@ export function resolveCast(plugins: Array<Plugin>, value: any) {
 
 // resolveDirective
 
-export function resolveDirective(plugins: Array<Plugin>, directive: string) {
+export function resolveDirective(plugins: Plugin[], directive: string) {
   const plugin = plugins.find(plugin =>
     plugin.directives?.hasOwnProperty(directive)
   );
@@ -129,7 +129,7 @@ export function resolveDirective(plugins: Array<Plugin>, directive: string) {
 
 export function pipeDirectives(
   parser: Parser,
-  directives: Array<[Directive, Array<any>]>
+  directives: [Directive, any[]][]
 ) {
   return directives.reduce(
     (parser, [directive, args]) => directive(parser, ...args),
@@ -139,7 +139,7 @@ export function pipeDirectives(
 
 // inferValue
 
-export function inferValue(children: Array<any>) {
+export function inferValue(children: any[]) {
   return children.length === 1 ? children[0] : undefined;
 }
 
@@ -160,7 +160,7 @@ export function modulo(
 
 export function merge<Value = any, Context = any>(
   grammar: Parser<Value, Context>,
-  ...grammars: Array<Parser>
+  ...grammars: Parser[]
 ): Parser<Value, Context> {
   return new GrammarParser([
     ...[grammar, ...grammars]
@@ -225,7 +225,7 @@ export function applyVisitor<Value, Context>(
 // action
 
 export function action(
-  callback: (captures: Record<string, any>, ...args: Array<any>) => any
+  callback: (captures: Record<string, any>, ...args: any[]) => any
 ): Directive {
   return (parser, ...args) =>
     new ActionParser(parser, captures => callback(captures, ...args));

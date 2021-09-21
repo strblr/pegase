@@ -682,7 +682,7 @@ peg`two_digit_integer @token("two digit integer"): \d{2}`;
 Directives are functions defined in plugins with the following signature:
 
 ```ts
-(parser: Parser, ...args: Array<any>) => Parser
+(parser: Parser, ...args: any[]) => Parser
 ```
 
 **They transform a `Parser` into a new `Parser`.** The first `parser` argument is the parser the directive is applied to. The `args` array are the additional arguments passed to the directive with the bracketed argument syntax. These arguments can include tag arguments.
