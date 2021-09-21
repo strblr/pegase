@@ -35,7 +35,7 @@ Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
   - [Debugging with tracers](#debugging-with-tracers)
   - [Using TypeScript](#using-typescript)
   - [Grammar fragments](#grammar-fragments)
-  - [Failure recovery](#failure-recovery)
+  - [Error recovery](#error-recovery)
   - [Writing a plugin](#writing-a-plugin)
   - [Writing a `Parser` subclass](#writing-a-parser-subclass)
   - [L-attributed grammars](#l-attributed-grammars)
@@ -183,7 +183,7 @@ const nestedBitArray = peg`
 `;
 ```
 
-Okay, the `test` method is fun but what if you want to do something more elaborated like collecting values, reading warnings or parse failures ? The `parse` method is what you're asking for. It returns a result object containing all the infos you might be interested in after a parsing. In fact, all other `Parser` methods (`test`, `value` and `children`) are *wrappers* around `parse`.
+Okay, the `test` method is fun but what if you want to do something more elaborated like collecting values, reading warnings or parse failures ? The `parse` method is what you're asking for. It returns a result object containing all the info you might be interested in after a parsing. In fact, all other `Parser` methods (`test`, `value` and `children`) are *wrappers* around `parse`.
 
 ```js
 const result = nestedBitArray.parse("[[0]");
@@ -697,7 +697,7 @@ peg`a @dir("str", ${42})`;
 definitionOfDir(peg`a`, "str", 42);
 ```
 
-Directives are used for a wide range of purposes, from wrapping parsers in tokens, making some semantic behavior quickly reusable, toggling whitespace skipping, etc. There are a bunch of standard directives defined by default, like `@omit`, `@raw`, `@number`, `@token`, `@reverse`, etc. See [API > `defaultPlugin`](#defaultplugin) for more infos. As a quick example, the standard `@test` directive wraps around a `Parser` `a`, and creates a new `Parser` that will always succeed, emitting `true` if `a` succeeds and `false` otherwise. In other words, a definition for `@test` could be:
+Directives are used for a wide range of purposes, from wrapping parsers in tokens, making some semantic behavior quickly reusable, toggling whitespace skipping, etc. There are a bunch of standard directives defined by default, like `@omit`, `@raw`, `@number`, `@token`, `@reverse`, etc. See [API > `defaultPlugin`](#defaultplugin) for more info. As a quick example, the standard `@test` directive wraps around a `Parser` `a`, and creates a new `Parser` that will always succeed, emitting `true` if `a` succeeds and `false` otherwise. In other words, a definition for `@test` could be:
 
 ```js
 function test(a) {
@@ -721,7 +721,7 @@ This is well explained in [this paper](http://scg.unibe.ch/archive/masters/Ruef1
 
 The general idea is that a failure emitted at input position *n* will generally be more relevant than a failure emitted at position *n - x*, where *x* is a positive integer, because *x* more characters have been successfully recognized by the parser at that point.
 
-Failures and warnings (called *log events*) are tracked using a [`Logger`](#logger) instance, which is just a special object. The logger is attached to the parse result, whether the match fails or succeeds (a successful match can produce failures, see [Advanced concepts > Failure recovery](#failure-recovery)).
+Failures and warnings (called *log events*) are tracked using a [`Logger`](#logger) instance, which is just a special object. The logger is attached to the parse result, whether the match fails or succeeds (a successful match can produce failures, see [Advanced concepts > Error recovery](#error-recovery)).
 
 **In Pegase, there are two types of failures**:
 
@@ -788,7 +788,7 @@ If there are *several* failures at the farthest position *n*, they are folded in
 - If they're only expectation failures, the expectations are *merged* as illustrated above.
 - If there is a semantic failure, it will override everything else. In case of multiple semantic failures at the same position, the last one will win.
 
-If you want to identify multiple input errors at once, you have to do *error recovery*. This is done using failure commits and synchronization expressions (`...a`). See [Advanced concepts > Failure recovery](#failure-recovery) for more infos.
+If you want to identify multiple input errors at once, you have to do *error recovery*. This is done using failure commits and synchronization expressions (`...a`). See [Advanced concepts > Error recovery](#error-recovery) for more info.
 
 **Warnings can be emitted in semantic actions using the `$warn` hook**. They are collected in a side-effect manner and don't influence the parsing process:
 
@@ -1144,7 +1144,7 @@ console.log(g.test("abcdabcd")); // true
 
 ---
 
-### Failure recovery
+### Error recovery
 
 *Coming soon...*
 
@@ -1329,8 +1329,8 @@ All `Parser` **subclasses** share the following properties:
 | `hasFailures` | `() => boolean`                                  | Checks whether the logger has any failure                    |
 | `warn`        | `(warning: Warning) => void`                     | Pushes the given warning to the logger's `warnings`          |
 | `fail`        | `(failure: Failure) => void`                     | Pushes the given failure to the logger's `failures`          |
-| `hang`        | `(failure: Failure) => void`                     | Compares the given failure to the logger's `pending` and merges/replaces/keeps it according to the farthest failure heuristic. See [Failures and warnings](#failures-and-warnings). |
-| `commit`      | `() => void`                                     | Flushes the logger's `pending` failure (if any) to the `failures` array. |
+| `hang`        | `(failure: Failure) => void`                     | Compares the given failure to the logger's `pending` failure and merges / replaces / keeps it according to the farthest failure heuristic. See [Failures and warnings](#failures-and-warnings). |
+| `commit`      | `() => void`                                     | Flushes the logger's `pending` failure (if any) to the `failures` array. This is used to implement [error recovery](#error-recovery). |
 | `create`      | `() => Logger`                                   | Creates a new empty `Logger` instance on the same input without recalculating the `indexes` array. |
 | `fork`        | `() => Logger`                                   | Creates a copy of the current logger                         |
 | `sync`        | `(logger: Logger) => void`                       | Copies the given logger's `warnings`, `failures` and `pending` into the current logger |
@@ -1353,7 +1353,7 @@ All `Parser` **subclasses** share the following properties:
 | `$warn`     | `(message: string) => void`                                  | Semantic actions, visitors | Emits a warning at the current match's start location        |
 | `$fail`     | `(message: string) => void`                                  | Semantic actions, visitors | Emits a semantic failure at the current match's start location. In semantic actions, this failure is only a *candidate* (see [Failures and warnings](#failures-and-warnings)). |
 | `$expected` | <code>(expected: string &vert; RegExp &vert; Expectation &vert; (...)[]) => void</code> | Semantic actions, visitors | Emits an expectation failure at the current match's start location. In semantic actions, this failure is only a *candidate* and might be thrown out or merged according to the farthest failure heuristic (see [Failures and warnings](#failures-and-warnings)). |
-| `$commit`   | `() => void`                                                 | Semantic actions           | Flushes the current farthest failure to the final failure output (see [Failure recovery](#failure-recovery)) |
+| `$commit`   | `() => void`                                                 | Semantic actions           | Flushes the current farthest failure to the final failure output (see [Error recovery](#error-recovery)) |
 | `$emit`     | `(children: any[]) => void`                                  | Semantic actions, visitors | In semantic actions, emits the given children. In visitors, replaces `node.$match.children` where `node` is the current node. |
 | `$node`     | `(label: string, fields: Record<string, any>): Node`         | Semantic actions, visitors | Creates a `Node` with the given label, fields, and the current match |
 | `$visit`    | `(node: Node, options?: Partial<ParseOptions>, visitor?: Visitor) => any` | Visitors                   | Applies the current visitor (or `visitor` if the third argument is provided) to `node` and returns the result. New parse options can be merged to the current ones. |
