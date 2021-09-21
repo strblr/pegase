@@ -481,53 +481,63 @@ export class ActionParser extends Parser {
     const save = options.logger.fork();
     const match = this.parser.exec(options);
     if (match === null) return null;
-    let emit, failed;
-    hooks.$from = () => match.from;
-    hooks.$to = () => match.to;
-    hooks.$children = () => match.children;
-    hooks.$captures = () => match.captures;
-    hooks.$value = () => inferValue(match.children);
-    hooks.$raw = () =>
-      options.input.substring(match.from.index, match.to.index);
-    hooks.$options = () => options;
-    hooks.$context = () => options.context;
-    hooks.$warn = message =>
-      options.logger.warn({
-        from: match.from,
-        to: match.to,
-        type: WarningType.Message,
-        message
-      });
-    hooks.$fail = message => {
-      failed = true;
-      options.logger.sync(save);
-      options.logger.hang({
-        from: match.from,
-        to: match.to,
-        type: FailureType.Semantic,
-        message
-      });
-    };
-    hooks.$expected = expected => {
-      failed = true;
-      options.logger.sync(save);
-      options.logger.hang({
-        from: match.from,
-        to: match.to,
-        type: FailureType.Expectation,
-        expected: castExpectation(castArray(expected))
-      });
-    };
-    hooks.$commit = () => options.logger.commit();
-    hooks.$emit = children => {
-      emit = children;
-    };
-    hooks.$node = (label, fields) => ({
-      $label: label,
-      $match: match,
-      ...fields
+    let value, emit, failed;
+    hooks.push({
+      $from: () => match.from,
+      $to: () => match.to,
+      $children: () => match.children,
+      $captures: () => match.captures,
+      $value: () => inferValue(match.children),
+      $raw: () => options.input.substring(match.from.index, match.to.index),
+      $options: () => options,
+      $context: () => options.context,
+      $warn: message =>
+        options.logger.warn({
+          from: match.from,
+          to: match.to,
+          type: WarningType.Message,
+          message
+        }),
+      $fail(message) {
+        failed = true;
+        options.logger.sync(save);
+        options.logger.hang({
+          from: match.from,
+          to: match.to,
+          type: FailureType.Semantic,
+          message
+        });
+      },
+      $expected(expected) {
+        failed = true;
+        options.logger.sync(save);
+        options.logger.hang({
+          from: match.from,
+          to: match.to,
+          type: FailureType.Expectation,
+          expected: castExpectation(castArray(expected))
+        });
+      },
+      $commit: () => options.logger.commit(),
+      $emit(children) {
+        emit = children;
+      },
+      $node: (label, fields) => ({
+        $label: label,
+        $match: match,
+        ...fields
+      }),
+      $visit() {
+        throw new Error("The $visit hook is not available in semantic actions");
+      }
     });
-    const value = this.action(Object.fromEntries(match.captures));
+    try {
+      value = this.action(Object.fromEntries(match.captures));
+    } catch (e) {
+      hooks.pop();
+      throw e;
+    }
+    hooks.pop();
     return failed
       ? null
       : {

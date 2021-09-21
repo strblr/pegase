@@ -345,6 +345,47 @@ test("Failure heuristic should work correctly", () => {
 `);
 });
 
+test("Hooks should work correctly", () => {
+  const a = peg`"0" ${() => {}}`;
+  const b = peg`"1" ${() => {
+    a.parse("0");
+    $warn("This is a warning");
+    return $children()[0];
+  }}`;
+
+  const r = b.parse("1") as SuccessResult;
+  expect(r.value).toBe("1");
+  expect(r.logger.print()).toBe(`(1:1) Warning: This is a warning
+
+> 1 | 1
+    | ^
+`);
+
+  const g = peg`
+    node: <a>leaf <b>leaf => 'NODE'
+    leaf: <val>"0" => 'LEAF'
+  `;
+
+  expect(
+    g
+      .parse("00", {
+        visit: {
+          LEAF: () => {},
+          NODE: node => {
+            $visit(node.a);
+            $visit(node.b);
+            $warn("This is a warning");
+          }
+        }
+      })
+      .logger.print()
+  ).toBe(`(1:1) Warning: This is a warning
+
+> 1 | 00
+    | ^
+`);
+});
+
 test("Grammar fragments should work", () => {
   const f1 = peg`
     a: "a" b

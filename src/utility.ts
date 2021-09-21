@@ -22,17 +22,17 @@ import {
   TweakParser,
   Visitor,
   WarningType
-} from "."; // Hooks
+} from ".";
 
 // Hooks
 
 function hook<K extends keyof Hooks>(key: K): Hooks[K] {
   return function () {
-    return (hooks[key] as Function).apply(null, arguments);
+    return (hooks[hooks.length - 1][key] as Function).apply(null, arguments);
   };
 }
 
-export const hooks: Hooks = Object.create(null);
+export const hooks: Hooks[] = [];
 export const $from = hook("$from");
 export const $to = hook("$to");
 export const $children = hook("$children");
@@ -185,41 +185,55 @@ export function applyVisitor<Value, Context>(
   visitor: Visitor<Value>,
   options: ParseOptions<Context>
 ) {
-  const { from, to } = node.$match;
-  hooks.$from = () => from;
-  hooks.$to = () => to;
-  hooks.$children = () => node.$match.children;
-  hooks.$captures = () => node.$match.captures;
-  hooks.$value = () => inferValue(node.$match.children);
-  hooks.$raw = () => options.input.substring(from.index, to.index);
-  hooks.$options = () => options;
-  hooks.$context = () => options.context;
-  hooks.$warn = message =>
-    options.logger.warn({ from, to, type: WarningType.Message, message });
-  hooks.$fail = message =>
-    options.logger.fail({ from, to, type: FailureType.Semantic, message });
-  hooks.$expected = expected =>
-    options.logger.fail({
-      from,
-      to,
-      type: FailureType.Expectation,
-      expected: castExpectation(castArray(expected))
-    });
-  hooks.$emit = children => {
-    node.$match.children = children;
-  };
-  hooks.$node = (label, fields) => ({
-    $label: label,
-    $match: node.$match,
-    ...fields
+  let value,
+    { from, to } = node.$match;
+  hooks.push({
+    $from: () => from,
+    $to: () => to,
+    $children: () => node.$match.children,
+    $captures: () => node.$match.captures,
+    $value: () => inferValue(node.$match.children),
+    $raw: () => options.input.substring(from.index, to.index),
+    $options: () => options,
+    $context: () => options.context,
+    $warn: message =>
+      options.logger.warn({ from, to, type: WarningType.Message, message }),
+    $fail: message =>
+      options.logger.fail({ from, to, type: FailureType.Semantic, message }),
+    $expected: expected =>
+      options.logger.fail({
+        from,
+        to,
+        type: FailureType.Expectation,
+        expected: castExpectation(castArray(expected))
+      }),
+    $commit() {
+      throw new Error("The $commit hook is not available in visitors");
+    },
+    $emit(children) {
+      node.$match.children = children;
+    },
+    $node: (label, fields) => ({
+      $label: label,
+      $match: node.$match,
+      ...fields
+    }),
+    $visit: (node, opts, nextVisitor) =>
+      applyVisitor(node, nextVisitor ?? visitor, { ...options, ...opts })
   });
-  hooks.$visit = (node, opts, nextVisitor) =>
-    applyVisitor(node, nextVisitor ?? visitor, { ...options, ...opts });
-  if (visitor.hasOwnProperty(node.$label)) return visitor[node.$label](node);
-  if (visitor.hasOwnProperty("$default")) return visitor.$default(node);
-  throw new Error(
-    `Missing visitor callback for "${node.$label}" labeled nodes`
-  );
+  try {
+    if (visitor.hasOwnProperty(node.$label)) value = visitor[node.$label](node);
+    else if (visitor.hasOwnProperty("$default")) value = visitor.$default(node);
+    else
+      throw new Error(
+        `Missing visitor callback for "${node.$label}" labeled nodes`
+      );
+  } catch (e) {
+    hooks.pop();
+    throw e;
+  }
+  hooks.pop();
+  return value;
 }
 
 // action
