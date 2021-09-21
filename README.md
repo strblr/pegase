@@ -1051,7 +1051,7 @@ console.log(yearIs.value("2021-08-19")); // "The year is 2021"
 
 ### Cut operator
 
-Pegase implements the concept of [cut points](http://ceur-ws.org/Vol-1269/paper232.pdf) in the form of a cut operator: `^`. There are times when, passing a certain point in an ordered choice expression (or *alternative*), you know *for sure* that every remaining options would fail. That "point" can be marked explicitly by `^` in your peg expression and has the effect to **commit to the current alternative**: even if it were to fail afterwards, the *first parent alternatives* would not be tried out. In other words, the cut operator prevents local backtracking.
+Pegase implements the concept of [cut points](http://ceur-ws.org/Vol-1269/paper232.pdf) in the form of a cut operator: `^`. There are times when, passing a certain point in an ordered choice expression (or *alternative expression*), you know *for sure* that every remaining options would fail. That "point" can be marked explicitly by `^` in your peg expression and has the effect to **commit to the current alternative**: even if it were to fail afterwards, the *first parent alternatives* would not be tried out. In other words, the cut operator prevents local backtracking.
 
 Let's say you want to write a compiler for a C-like language. You define an `instr` rule that can match an `if` statement, a `while` loop or a `do...while` loop. If the terminal `'if'` successfully matched, then *even* if the rest of the expression fails, there is just no way for a `while` loop or a `do...while` loop to match. That means you can insert a *cut point* right after `'if'`. The same reasoning can be applied to the `'while'` terminal, but is useless for `'do'` since it's already the last alternative.
 
@@ -1480,6 +1480,8 @@ All `Parser` **subclasses** share the following properties:
 ### Ideas
 
 Here are some features that I strongly consider adding in future releases of Pegase. If they are listed here, it's mainly because I'm not so sure if they are relevant in real use cases, so I'll basically wait and see if there is enough demand before bloating the library with unused gadgets. If you're interested in one of these features, [please let me know on GitHub](https://github.com/ostrebler/pegase/issues).
+
+- **Fatal failures**. Whether they're emitted in semantic actions or visitors, failures are emitted as side-effects and don't stop the current process. You *could* stop everything by throwing an exception, sure. But maybe fatal failures should be treated as first-class citizens. It's unclear whether Pegase should catch exceptions internally and transform them into top-priority semantic failures before short-exiting, or if emitting failures and short-exiting should remain two separate things. A `$stop` hook could be implemented to short-exit from parsers and visitors without any other side-effect, for example.
 
 - **Cuts for repetitions**. The idea would be to have a cut operator, similar to `^`, but to break repetitions (like `a+`, `a*`, etc.). A sort of `break` statement for peg expressions. Peg repetitions are greedy by nature, but this might not always be what you want.
 - **Default values for captures**. The syntax would be something like `<id = 0>a`, `<id = ${expr}>a` (where `expr` is a JS expression), etc. The default value would be captured as `id` if `a`'s value is `undefined`.
