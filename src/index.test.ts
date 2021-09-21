@@ -9,6 +9,7 @@ import peg, {
   $visit,
   $warn,
   LiteralParser,
+  merge,
   RegExpParser,
   SuccessResult,
   Visitor
@@ -342,6 +343,19 @@ test("Failure heuristic should work correctly", () => {
 > 1 | baz
     | ^
 `);
+});
+
+test("Grammar fragments should work", () => {
+  const f1 = peg`
+    a: "a" b
+    b: "b" c
+  `;
+  const f2 = peg`
+    c: "c" d
+    d: "d" a?
+  `;
+  const g = merge(f1, f2);
+  expect(g.test("abcdabcd")).toBe(true);
 });
 
 test("Math expressions should be correctly calculated", () => {
