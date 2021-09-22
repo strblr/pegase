@@ -29,7 +29,7 @@ import {
   TokenParser
 } from "."; // The parser creator factory
 
-// The parser creator factory
+// createTag
 
 export function createTag() {
   // This is basically a hack to replace "any" but without an "implicit any" error
@@ -64,114 +64,10 @@ export function createTag() {
   return peg;
 }
 
-/** The peg metagrammar
- *
- * # Main rules :
- *
- * parser:  => Parser
- *   grammarParser | optionsParser
- *
- * grammarParser:  => Parser
- *   (identifier directives ':' ^ optionsParser)+
- *
- * optionsParser:  => Parser
- *   ('|' | '/')? directiveParser % ('|' | '/')
- *
- * directiveParser:  => Parser
- *   sequenceParser directives
- *
- * sequenceParser:  => Parser
- *   minusParser+
- *
- * minusParser:  => Parser
- *   moduloParser % '-'
- *
- * moduloParser:  => Parser
- *   forwardParser % ('%' repetitionRange?)
- *
- * forwardParser:  => Parser
- *   '...'? captureParser
- *
- * captureParser:  => Parser
- *   ('<' identifier? '>')? predicateParser
- *
- * predicateParser:  => Parser
- *   ('&' | '!')? repetitionParser
- *
- * repetitionParser:  => Parser
- *   primaryParser repetitionRange?
- *
- * primaryParser:  => Parser
- * | '.'
- * | '$' - identifier
- * | 'ε'
- * | '^'
- * | '(' ^ parser ')'
- * | nonTerminal !(directives ':')
- * | numberLiteral
- * | stringLiteral
- * | characterClass
- * | escapedMeta
- * | castableTagArgument
- *
- *
- * # Secondary bricks :
- *
- * identifier:  => string
- *   $identifier
- *
- * nonTerminal:  => Parser
- *   identifier
- *
- * numberLiteral:  => number
- *   $number
- *
- * stringLiteral:  => [string, boolean]
- *   $singleQuoteString | $doubleQuoteString
- *
- * characterClass:  => RegExp
- *   $characterClass
- *
- * escapedMeta:  => RegExp
- *   $escapedMeta
- *
- * tagArgument:  => any
- *   $tagArgument
- *
- * castableTagArgument:  => Parser
- *   $castableTagArgument
- *
- * actionTagArgument:  => Function
- *   $actionTagArgument
- *
- * repetitionRange:  => [number, number]
- * | '?'
- * | '+'
- * | '*'
- * | '{' value (',' value?)? '}'
- *
- * directives:  => [function, any[]][]
- *   directive*
- *
- * directive:  => [function, any[]]
- * | '@' ^ identifier directiveArguments
- * | actionTagArgument
- * | '=>' value
- *
- * directiveArguments:  => any[]
- *   ('(' value % ',' ')')?
- *
- * value:  => any
- * | tagArgument
- * | stringLiteral
- * | numberLiteral
- * | nonTerminal
- * | characterClass
- * | escapedMeta
- */
+// metagrammar
 
 const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
-  // Main rules :
+  // Main rules:
   [
     "parser",
     new AlternativeParser([
@@ -417,7 +313,102 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
       new NonTerminalParser("castableTagArgument")
     ])
   ],
-  // Secondary bricks :
+  // Secondary rules:
+  [
+    "repetitionRange",
+    new AlternativeParser([
+      new ActionParser(new LiteralParser("?"), () => [0, 1]),
+      new ActionParser(new LiteralParser("+"), () => [1, Infinity]),
+      new ActionParser(new LiteralParser("*"), () => [0, Infinity]),
+      new ActionParser(
+        new SequenceParser([
+          new LiteralParser("{"),
+          new NonTerminalParser("value"),
+          new RepetitionParser(
+            new SequenceParser([
+              new LiteralParser(","),
+              new ActionParser(
+                new RepetitionParser(new NonTerminalParser("value"), [0, 1]),
+                () => ($children().length === 0 ? Infinity : undefined)
+              )
+            ]),
+            [0, 1]
+          ),
+          new LiteralParser("}")
+        ]),
+        () => {
+          const [min, max = min] = $children();
+          if (typeof min !== "number" || typeof max !== "number")
+            return $fail("A repetition range can be defined by numbers only");
+          return [min, max];
+        }
+      )
+    ])
+  ],
+  [
+    "directives",
+    new ActionParser(
+      new RepetitionParser(new NonTerminalParser("directive"), [0, Infinity]),
+      () => $children()
+    )
+  ],
+  [
+    "directive",
+    new AlternativeParser([
+      new ActionParser(
+        new SequenceParser([
+          new LiteralParser("@"),
+          new CutParser(),
+          new ActionParser(new NonTerminalParser("identifier"), () =>
+            resolveDirective($context().plugins, $children()[0])
+          ),
+          new NonTerminalParser("directiveArguments")
+        ]),
+        () => $children()
+      ),
+      new ActionParser(new NonTerminalParser("actionTagArgument"), () => [
+        resolveDirective($context().plugins, "action"),
+        $children()
+      ]),
+      new SequenceParser([
+        new LiteralParser("=>"),
+        new ActionParser(new NonTerminalParser("value"), () =>
+          typeof $children()[0] !== "string"
+            ? $fail("A node label can only be a string")
+            : [resolveDirective($context().plugins, "node"), $children()]
+        )
+      ])
+    ])
+  ],
+  [
+    "directiveArguments",
+    new ActionParser(
+      new RepetitionParser(
+        new SequenceParser([
+          new LiteralParser("("),
+          modulo(new NonTerminalParser("value"), new LiteralParser(",")),
+          new LiteralParser(")")
+        ]),
+        [0, 1]
+      ),
+      () => $children()
+    )
+  ],
+  [
+    "value",
+    new AlternativeParser([
+      new NonTerminalParser("tagArgument"),
+      new ActionParser(
+        new NonTerminalParser("stringLiteral"),
+        () => $children()[0][0]
+      ),
+      new NonTerminalParser("numberLiteral"),
+      new NonTerminalParser("nonTerminal"),
+      new NonTerminalParser("characterClass"),
+      new NonTerminalParser("escapedMeta")
+    ])
+  ],
+  // Tokens:
   [
     "identifier",
     new TokenParser(
@@ -512,103 +503,9 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
       }),
       "action tag argument"
     )
-  ],
-  [
-    "repetitionRange",
-    new AlternativeParser([
-      new ActionParser(new LiteralParser("?"), () => [0, 1]),
-      new ActionParser(new LiteralParser("+"), () => [1, Infinity]),
-      new ActionParser(new LiteralParser("*"), () => [0, Infinity]),
-      new ActionParser(
-        new SequenceParser([
-          new LiteralParser("{"),
-          new NonTerminalParser("value"),
-          new RepetitionParser(
-            new SequenceParser([
-              new LiteralParser(","),
-              new ActionParser(
-                new RepetitionParser(new NonTerminalParser("value"), [0, 1]),
-                () => ($children().length === 0 ? Infinity : undefined)
-              )
-            ]),
-            [0, 1]
-          ),
-          new LiteralParser("}")
-        ]),
-        () => {
-          const [min, max = min] = $children();
-          if (typeof min !== "number" || typeof max !== "number")
-            return $fail("A repetition range can be defined by numbers only");
-          return [min, max];
-        }
-      )
-    ])
-  ],
-  [
-    "directives",
-    new ActionParser(
-      new RepetitionParser(new NonTerminalParser("directive"), [0, Infinity]),
-      () => $children()
-    )
-  ],
-  [
-    "directive",
-    new AlternativeParser([
-      new ActionParser(
-        new SequenceParser([
-          new LiteralParser("@"),
-          new CutParser(),
-          new ActionParser(new NonTerminalParser("identifier"), () =>
-            resolveDirective($context().plugins, $children()[0])
-          ),
-          new NonTerminalParser("directiveArguments")
-        ]),
-        () => $children()
-      ),
-      new ActionParser(new NonTerminalParser("actionTagArgument"), () => [
-        resolveDirective($context().plugins, "action"),
-        $children()
-      ]),
-      new SequenceParser([
-        new LiteralParser("=>"),
-        new ActionParser(new NonTerminalParser("value"), () =>
-          typeof $children()[0] !== "string"
-            ? $fail("A node label can only be a string")
-            : [resolveDirective($context().plugins, "node"), $children()]
-        )
-      ])
-    ])
-  ],
-  [
-    "directiveArguments",
-    new ActionParser(
-      new RepetitionParser(
-        new SequenceParser([
-          new LiteralParser("("),
-          modulo(new NonTerminalParser("value"), new LiteralParser(",")),
-          new LiteralParser(")")
-        ]),
-        [0, 1]
-      ),
-      () => $children()
-    )
-  ],
-  [
-    "value",
-    new AlternativeParser([
-      new NonTerminalParser("tagArgument"),
-      new ActionParser(
-        new NonTerminalParser("stringLiteral"),
-        () => $children()[0][0]
-      ),
-      new NonTerminalParser("numberLiteral"),
-      new NonTerminalParser("nonTerminal"),
-      new NonTerminalParser("characterClass"),
-      new NonTerminalParser("escapedMeta")
-    ])
   ]
 ]);
 
-// Default peg tag :
+// peg
 
 export const peg = createTag();
