@@ -164,5 +164,5 @@ This will output:
 
 ## More
 
-Failures, warnings, semantic actions, tokens, directives, ASTs, there is so much more to uncover. To learn more about Pegase, <a href="">please go to the official website</a>.
+Failures, warnings, semantic actions, tokens, directives, ASTs, there is so much more to uncover. To learn more about Pegase, [please go to the official website](https://ostrebler.github.io/pegase/).
 
