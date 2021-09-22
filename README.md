@@ -14,9 +14,7 @@ Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
 - **_Intuitive_**, in that it lets you express complex grammars and semantic processes in very simple ways. You will never feel lost.
 - **_Extensible_**: You can define your own `Parser` subclasses, add plugins, write custom directives, etc.
 
-<h1><a href="#">🔗 Go to the official website</a></h1>
-
-
+# [🔗 Go to the official website](https://ostrebler.github.io/pegase/)
 
 ## Motivation
 

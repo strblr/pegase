@@ -5,7 +5,7 @@ hide:
 ---
 
 <p align="center">  
-  <img alt="pegase" src="/assets/images/pegase.png">  
+  <img alt="pegase" src="/pegase/assets/images/pegase.png">  
 </p>
 
 Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
