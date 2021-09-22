@@ -1,0 +1,941 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="An inline, powerful and lightweight PEG parser generator for JavaScript and TypeScript, with semantic actions, support for native regexps, error recovery, warnings, grammar fragments, AST generation, AST visitors, cut operator, and a lot more.">
+      
+      
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.2.2, mkdocs-material-7.2.8">
+    
+    
+      
+        <title>Building parsers - Pegase</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.92558b1b.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.3f5d1f46.min.css">
+        
+          
+          
+          <meta name="theme-color" content="#ef5552">
+        
+      
+    
+    
+    
+      
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <style>:root{--md-text-font-family:"Roboto";--md-code-font-family:"Roboto Mono"}</style>
+      
+    
+    
+    
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/atom-one-dark.min.css">
+    
+    
+      
+
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="red" data-md-color-accent="">
+  
+    
+    <script>function __prefix(e){return new URL("../..",location).pathname+"."+e}function __get(e,t=localStorage){return JSON.parse(t.getItem(__prefix(e)))}</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Pegase" class="md-header__button md-logo" aria-label="Pegase" data-md-component="logo">
+      
+  <img src="../../assets/images/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Pegase
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Building parsers
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" aria-label="Clear" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Pegase" class="md-nav__button md-logo" aria-label="Pegase" data-md-component="logo">
+      
+  <img src="../../assets/images/logo.png" alt="logo">
+
+    </a>
+    Pegase
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        Home
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quick-start/" class="md-nav__link">
+        Quick start
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3" type="checkbox" id="__nav_3" checked>
+      
+      <label class="md-nav__link" for="__nav_3">
+        Basic concepts
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="Basic concepts" data-md-level="1">
+        <label class="md-nav__title" for="__nav_3">
+          <span class="md-nav__icon md-icon"></span>
+          Basic concepts
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        Building parsers
+      </a>
+      
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Semantic-action-and-dataflow/" class="md-nav__link">
+        Semantic action and dataflow
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Handling-whitespaces/" class="md-nav__link">
+        Handling whitespaces
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Tokens/" class="md-nav__link">
+        Tokens
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Directives/" class="md-nav__link">
+        Directives
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Failures-and-warnings/" class="md-nav__link">
+        Failures and warnings
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" data-md-state="indeterminate" type="checkbox" id="__nav_4" checked>
+      
+      <label class="md-nav__link" for="__nav_4">
+        Advanced concepts
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="Advanced concepts" data-md-level="1">
+        <label class="md-nav__title" for="__nav_4">
+          <span class="md-nav__icon md-icon"></span>
+          Advanced concepts
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced-concepts/AST-and-visitors/" class="md-nav__link">
+        AST and visitors
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced-concepts/Working-with-RegExp/" class="md-nav__link">
+        Working with RegExp
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced-concepts/Cut-operator/" class="md-nav__link">
+        Cut operator
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced-concepts/Debugging-with-tracers/" class="md-nav__link">
+        Debugging with tracers
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced-concepts/Using-TypeScript/" class="md-nav__link">
+        Using TypeScript
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced-concepts/Grammar-fragments/" class="md-nav__link">
+        Grammar fragments
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced-concepts/Error-recovery/" class="md-nav__link">
+        Error recovery
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced-concepts/Writing-a-plugin/" class="md-nav__link">
+        Writing a plugin
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced-concepts/Writing-a-Parser-subclass/" class="md-nav__link">
+        Writing a Parser subclass
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced-concepts/L-attributed-grammars/" class="md-nav__link">
+        L-attributed grammars
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" data-md-state="indeterminate" type="checkbox" id="__nav_5" checked>
+      
+      <label class="md-nav__link" for="__nav_5">
+        API
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="API" data-md-level="1">
+        <label class="md-nav__title" for="__nav_5">
+          <span class="md-nav__icon md-icon"></span>
+          API
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/peg-createTag/" class="md-nav__link">
+        peg, createTag
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/Parser/" class="md-nav__link">
+        Parser
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/Logger/" class="md-nav__link">
+        Logger
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/defaultPlugin/" class="md-nav__link">
+        defaultPlugin
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/Hooks/" class="md-nav__link">
+        Hooks
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/Utility-functions/" class="md-nav__link">
+        Utility functions
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/Types/" class="md-nav__link">
+        Types
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/Metagrammar/" class="md-nav__link">
+        Metagrammar
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_6" data-md-state="indeterminate" type="checkbox" id="__nav_6" checked>
+      
+      <label class="md-nav__link" for="__nav_6">
+        More
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="More" data-md-level="1">
+        <label class="md-nav__title" for="__nav_6">
+          <span class="md-nav__icon md-icon"></span>
+          More
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../more/Ideas/" class="md-nav__link">
+        Ideas
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../more/Bug-report-and-discussion/" class="md-nav__link">
+        Bug report and discussion
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          <div class="md-content" data-md-component="content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                  <h1>Building parsers</h1>
+                
+                <p><strong>The <code>peg</code> tag accepts any valid Pegase expression and always returns a <code>Parser</code> instance.</strong></p>
+<p>Pegase parsers follow the <em>combinator</em> paradigm: simple parsers are combined to form more complex parsers. You can read more about it in the <a href="#parser">API &gt; <code>Parser</code></a> section. In the following table are the different expressions you can use as building blocks (<code>a</code> and <code>b</code> representing any peg expression of higher precedence):</p>
+<table>
+  <thead>
+    <tr>
+      <th>Pegase</th>
+      <th>Description</th>
+      <th>Children</th>
+      <th>Precedence</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><pre>.</pre></td>
+      <td>Matches any character</td>
+      <td><code>[]</code></td>
+      <td align="center" rowspan="13">0</td>
+    </tr>
+    <tr>
+      <td><pre>$</pre></td>
+      <td>Matches the end of the input (equivalent to <code>!. @token("end of input")</code>)</td>
+      <td><code>[]</code></td>
+    </tr>
+    <tr>
+      <td><pre>ε</pre></td>
+      <td>Matches the empty string. Equivalent to <code>''</code> and always a success.</td>
+      <td><code>[]</code></td>
+    </tr>
+    <tr>
+      <td><pre>^</pre></td>
+      <td>The cut operator. Always a success, commits to an alternative to prevent exploring any further in an ordered choice expression. Example : <code>'x' ^ a &#124; b</code> will <b>not</b> try <code>b</code> if <code>'x'</code> was found but <code>a</code> failed.</td>
+      <td><code>[]</code></td>
+    </tr>
+    <tr>
+      <td><pre>(a)</pre></td>
+      <td>Matches <code>a</code></td>
+      <td>Forwarded from <code>a</code></td>
+    </tr>
+    <tr>
+      <td><pre>identifier</pre></td>
+      <td>Matches the non-terminal <code>identifier</code></td>
+      <td>Forwarded from the non-terminal <code>identifier</code></td>
+    </tr>
+    <tr>
+      <td><pre>'literal'</pre></td>
+      <td>Matches the string <i>"literal"</i></td>
+      <td><code>[]</code></td>
+    </tr>
+    <tr>
+      <td><pre>"literal"</pre></td>
+      <td>Matches the string <i>"literal"</i></td>
+      <td><code>["literal"]</code></td>
+    </tr>
+    <tr>
+      <td><pre>42</pre></td>
+      <td>Matches the number literally (equivalent to <code>'42'</code>)</td>
+      <td><code>[]</code></td>
+    </tr>
+    <tr>
+      <td><pre>${arg}</pre></td>
+      <td>Template tag argument (<code>arg</code> is a js expression). It can be a number (matches the number literally), a string (matches the string), a <code>RegExp</code> (matches the regular expression), or a <code>Parser</code> instance. Plugins can add support for additionnal values.</td>
+      <td>If <code>arg</code> is a string or a number: <code>[]</code>. If <code>arg</code> is a <code>RegExp</code>, it emits its capturing groups (if any). If <code>arg</code> is a <code>Parser</code> instance, its children are forwarded.</td>
+    </tr>
+    <tr>
+      <td><pre>[a-zA-Z]</pre></td>
+      <td>Matches one character in the given character class (same syntax as <code>RegExp</code> character classes)</td>
+      <td><code>[]</code></td>
+    </tr>
+    <tr>
+      <td><pre>[^a-zA-Z]</pre></td>
+      <td>Matches one character <b>not</b> in the given character class (same syntax as <code>RegExp</code> negated character classes)</td>
+      <td><code>[]</code></td>
+    </tr>
+    <tr>
+      <td><pre>\n<br/>\s<br/>\xAF<br/>\uA6F1</pre>etc.</td>
+      <td>Matches the escaped metacharacter as a <code>RegExp</code> expression (i.e. <code>\s</code> matches any whitespace, <code>\S</code> any non-whitespace, <code>\uA6F1</code> matches the unicode character <code>A6F1</code>, etc. (<a href="https://www.w3schools.com/jsref/jsref_obj_regexp.asp">See <code>RegExp</code> documentation</a> for a complete list of supported metacharacters).</td>
+      <td><code>[]</code></td>
+    </tr>
+    <tr>
+      <td><pre>a?</pre></td>
+      <td>Matches zero or one <code>a</code></td>
+      <td>Forwarded from <code>a</code></td>
+      <td align="center" rowspan="6">1</td>
+    </tr>
+    <tr>
+      <td><pre>a+</pre></td>
+      <td>Matches one or more <code>a</code></td>
+      <td>Forwarded and concatenated from <code>a</code></td>
+    </tr>
+    <tr>
+      <td><pre>a*</pre></td>
+      <td>Matches zero or more <code>a</code></td>
+      <td>Forwarded and concatenated from <code>a</code></td>
+    </tr>
+    <tr>
+      <td><pre>a{4}</pre></td>
+      <td>Matches <code>a</code> exactly 4 times. Please note that quantifiers can be parametrized by tag argument: <code>a{${n}}</code>, where <code>n</code> is a JS expression.</td>
+      <td>Forwarded and concatenated from <code>a</code></td>
+    </tr>
+    <tr>
+      <td><pre>a{4, 15}</pre></td>
+      <td>Matches <code>a</code> between 4 and 15 times</td>
+      <td>Forwarded and concatenated from <code>a</code></td>
+    </tr>
+    <tr>
+      <td><pre>a{4,}</pre></td>
+      <td>Matches <code>a</code> at least 4 times</td>
+      <td>Forwarded and concatenated from <code>a</code></td>
+    </tr>
+    <tr>
+      <td><pre>&amp;a</pre></td>
+      <td>Matches <code>a</code> without consuming any input</td>
+      <td><code>[]</code></td>
+      <td align="center" rowspan="2">2</td>
+    </tr>
+    <tr>
+      <td><pre>!a</pre></td>
+      <td>Succeeds if <code>a</code> fails and vice-versa, doesn't consume input</td>
+      <td><code>[]</code></td>
+    </tr>
+    <tr>
+      <td><pre>&lt;id&gt;a</pre></td>
+      <td>If <code>a</code> emits a single child (called <i>value of <code>a</code></i>), it's captured and assigned to the identifier <i>"id"</i>, which can then be used in semantic actions. Otherwise, <i>"id"</i> will be set to <code>undefined</code>.</td>
+      <td>Forwarded from <code>a</code></td>
+      <td align="center" rowspan="2">3</td>
+    </tr>
+    <tr>
+      <td><pre>&lt;&gt;id</pre></td>
+      <td>Shortcut for <code>&lt;id&gt;id</code>, where <code>id</code> is a non-terminal</td>
+      <td>Forwarded from the non-terminal <code>id</code></td>
+    </tr>
+    <tr>
+      <td><pre>...a</pre></td>
+      <td>Skips input character by character until <code>a</code> is matched. This can be used to implement <i>synchronization</i> to recover from errors and is equivalent to <code>(!a .)* a</code>. Write <code>...&amp;a</code> if you want to sync to <code>a</code> without consuming <code>a</code>. See <a href="#failure-recovery">Failure recovery</a>.</td>
+      <td>Forwarded from <code>a</code></td>
+      <td align="center">4</td>
+    </tr>
+    <tr>
+      <td><pre>a % b<br/>a %? b<br/>a %{3} b<br/>a %{3,} b</pre>etc.</td>
+      <td>Matches a sequence of <code>a</code> separated by <code>b</code>. The <code>%</code> operator can be parametrized using the quantifiers described above. <code>a % b</code> is equivalent to <code>a (b a)*</code>, <code>a %? b</code> to <code>a (b a)?</code>, etc.</td>
+      <td>Forwarded and concatenated from the matched sequence of <code>a</code> and <code>b</code></td>
+      <td align="center">5</td>
+    </tr>
+    <tr>
+      <td><pre>a - b</pre></td>
+      <td>Matches <code>a</code> but not <code>b</code> (fails if <code>b</code> succeeds). Equivalent to <code>!b a</code>.</td>
+      <td>Forwarded from <code>a</code></td>
+      <td align="center">6</td>
+    </tr>
+    <tr>
+      <td><pre>a b</pre></td>
+      <td>Matches <code>a</code> followed by <code>b</code></td>
+      <td>Forwarded and concatenated from <code>a</code> and <code>b</code></td>
+      <td align="center">7</td>
+    </tr>
+    <tr>
+      <td><pre>a @dir<br/>a @dir(x, y)<br/>a @dir(x, ${y})<br/>a @dir @other</pre>etc.</td>
+      <td>Applies the directive(s) to the parser <code>a</code>. Directives are functions that take a parser and return a new parser. They can take additional arguments and can be chained.</td>
+      <td>Directives generate new parsers. So <code>children</code> depends on whatever parser is generated.</td>
+      <td align="center" rowspan="3">8</td>
+    </tr>
+    <tr>
+      <td><pre>a ${func}</pre></td>
+      <td>Semantic action. <code>func</code> is a JS function passed as tag argument. It will be called if <code>a</code> succeeds and will receive <code>a</code>'s captures as a single object argument. This is in fact a shortcut for <code>a @action(${func})</code> and can thus be chained with other directives as described above.</td>
+      <td><code>[&lt;return value of func&gt;]</code> if that value is different than <code>undefined</code>, otherwise forwarded from <code>a</code></td>
+    </tr>
+    <tr>
+      <td><pre>a => 'label'</pre></td>
+      <td>Shortcut for <code>a @node('label')</code>. It will generate a Pegase node labeled <i>"label"</i> and emit it as a single child. See <a href="#ast-and-visitors">AST and visitors</a>. The label value can be inserted via tag argument: <code>a => ${str}</code>, where <code>str</code> is a JS string.</td>
+      <td><code>[&lt;the generated node&gt;]</code></td>
+    </tr>
+    <tr>
+      <td><pre>a | b<br/>a / b</pre></td>
+      <td>Ordered choice. Succeeds if <code>a</code> or <code>b</code> succeeds (order matters). Please note that you can add a leading bar for aesthetic purposes.</td>
+      <td>Forwarded from <code>a</code> or <code>b</code></td>
+      <td align="center">9</td>
+    </tr>
+    <tr>
+      <td><pre>id: a<br/>$id: a</br/>id @dir: a</pre>etc.</td>
+      <td>Rule. This creates a non-terminal <code>id</code> as an alias to parser <code>a</code>. Rules can be stacked to form <b>grammars</b>. If directives are specified right after the rule name, they are applied to the whole right-side expression <code>a</code>. Adding <code>$</code> at the beginning of a rule name applies an implicit <code>@token</code> directive (the display name in failure reports will be the rule name transformed to space case, i.e. <code>$myToken: a</code> is equivalent to <code>myToken @token("my token"): a</code>).</td>
+      <td>Forwarded from the topmost rule</td>
+      <td align="center">10</td>
+    </tr>
+  </tbody>
+</table>
+                
+              
+              
+                
+
+
+              
+            </article>
+          </div>
+        </div>
+        
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <nav class="md-footer__inner md-grid" aria-label="Footer">
+      
+        
+        <a href="../../quick-start/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Quick start" rel="prev">
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+          </div>
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              Quick start
+            </div>
+          </div>
+        </a>
+      
+      
+        
+        <a href="../Semantic-action-and-dataflow/" class="md-footer__link md-footer__link--next" aria-label="Next: Semantic action and dataflow" rel="next">
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              Semantic action and dataflow
+            </div>
+          </div>
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+          </div>
+        </a>
+      
+    </nav>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+          <div class="md-footer-copyright__highlight">
+            © ostrebler
+          </div>
+        
+        Made with
+        <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+          Material for MkDocs
+        </a>
+        
+      </div>
+      
+  <div class="md-footer-social">
+    
+      
+      
+        
+        
+      
+      <a href="https://github.com/ostrebler/pegase" target="_blank" rel="noopener" title="github.com" class="md-footer-social__link">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+      </a>
+    
+  </div>
+
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.expand"], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../../assets/javascripts/workers/search.94ec81fe.min.js", "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.48dfec6c.min.js"></script>
+      
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/highlight.min.js"></script>
+      
+        <script src="../../javascript/config.js"></script>
+      
+    
+  </body>
+</html>
