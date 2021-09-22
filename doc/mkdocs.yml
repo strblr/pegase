@@ -26,6 +26,14 @@ nav:
       - api/peg-createTag.md
       - api/Parser.md
       - api/Logger.md
+      - api/defaultPlugin.md
+      - api/Hooks.md
+      - api/Utility-functions.md
+      - api/Types.md
+      - api/Metagrammar.md
+  - More:
+      - more/Ideas.md
+      - more/Bug-report-and-discussion.md
 theme:
   name: material
   logo: assets/images/logo.png
