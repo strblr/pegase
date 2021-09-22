@@ -1,5 +1,8 @@
 site_name: Pegase
 site_description: An inline, powerful and lightweight PEG parser generator for JavaScript and TypeScript, with semantic actions, support for native regexps, error recovery, warnings, grammar fragments, AST generation, AST visitors, cut operator, and a lot more.
+repo_url: https://github.com/ostrebler/pegase
+repo_name: pegase
+site_url: https://ostrebler.github.io/pegase/
 copyright: © ostrebler
 nav:
   - Home: index.md
