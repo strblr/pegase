@@ -5,12 +5,27 @@ nav:
   - Home: index.md
   - quick-start.md
   - Basic concepts:
-      - basic-concepts/building-parsers.md
-      - basic-concepts/semantic-action-and-dataflow.md
-      - basic-concepts/handling-whitespaces.md
-      - basic-concepts/tokens.md
-      - basic-concepts/directives.md
-      - basic-concepts/failures-and-warnings.md
+      - basic-concepts/Building-parsers.md
+      - basic-concepts/Semantic-action-and-dataflow.md
+      - basic-concepts/Handling-whitespaces.md
+      - basic-concepts/Tokens.md
+      - basic-concepts/Directives.md
+      - basic-concepts/Failures-and-warnings.md
+  - Advanced concepts:
+      - advanced-concepts/AST-and-visitors.md
+      - advanced-concepts/Working-with-RegExp.md
+      - advanced-concepts/Cut-operator.md
+      - advanced-concepts/Debugging-with-tracers.md
+      - advanced-concepts/Using-TypeScript.md
+      - advanced-concepts/Grammar-fragments.md
+      - advanced-concepts/Error-recovery.md
+      - advanced-concepts/Writing-a-plugin.md
+      - advanced-concepts/Writing-a-Parser-subclass.md
+      - advanced-concepts/L-attributed-grammars.md
+  - API:
+      - api/peg-createTag.md
+      - api/Parser.md
+      - api/Logger.md
 theme:
   name: material
   logo: assets/images/logo.png

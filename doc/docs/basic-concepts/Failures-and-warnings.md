@@ -1,3 +1,8 @@
+---
+hide:
+- toc
+---
+
 Producing accurate error messages is notoriously difficult when it comes to PEG parsing. That's because when an input error triggers a parse failure, the parser *backtracks* to all the parent alternatives, tries them out, **fails repetitively**, before ultimately exiting with an error. Thus, failures are being emitted way after the one that's relevant. So which one should be displayed ? You also can't just short-exit on the first failure you encounter, since that would prohibit any backtracking and defeat the purpose of PEGs.
 
 **Because of PEG's backtracking nature, a parse failure isn't necessarily an input *error*.**
