@@ -694,8 +694,8 @@
 <pre><code class="language-ts">peg.plugins.push({
   name: &quot;my-plugin&quot;,
   directives: {
-    min: parser =&gt; new ActionParser(parser, () =&gt; Math.min(...$children())),
-    max: parser =&gt; new ActionParser(parser, () =&gt; Math.max(...$children()))
+    min: parser =&gt; peg`${parser} ${() =&gt; Math.min(...$children())}`,
+    max: parser =&gt; peg`${parser} ${() =&gt; Math.max(...$children())}`
   }
 });
 </code></pre>
