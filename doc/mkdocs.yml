@@ -1,0 +1,31 @@
+site_name: Pegase
+site_description: An inline, powerful and lightweight PEG parser generator for JavaScript and TypeScript, with semantic actions, support for native regexps, error recovery, warnings, grammar fragments, AST generation, AST visitors, cut operator, and a lot more.
+copyright: © ostrebler
+nav:
+  - Home: index.md
+  - quick-start.md
+  - Basic concepts:
+      - basic-concepts/building-parsers.md
+      - basic-concepts/semantic-action-and-dataflow.md
+      - basic-concepts/handling-whitespaces.md
+      - basic-concepts/tokens.md
+      - basic-concepts/directives.md
+      - basic-concepts/failures-and-warnings.md
+theme:
+  name: material
+  logo: assets/images/logo.png
+  custom_dir: overrides
+  palette:
+    scheme: default
+    primary: red
+  features:
+    - navigation.expand
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/ostrebler/pegase
+extra_javascript:
+  - https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/highlight.min.js
+  - javascript/config.js
+extra_css:
+  - https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/atom-one-dark.min.css
