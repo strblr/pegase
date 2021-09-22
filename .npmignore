@@ -1,6 +1,7 @@
 node_modules
-/lib
 .idea
 doc
 src
 img
+lib/index.test.d.ts
+lib/index.test.js
