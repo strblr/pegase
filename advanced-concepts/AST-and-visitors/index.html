@@ -776,7 +776,7 @@
 const ast = prefix.value(&quot;+ 12 + 42 3&quot;);
 </code></pre>
 <p>The resulting <code>ast</code> will look like this:</p>
-<p><img alt="AST" src="https://raw.githubusercontent.com/ostrebler/pegase/master/img/ast-1.png" /></p>
+<p><img alt="AST" src="/pegase/assets/images/ast-1.png" /></p>
 <p>You may have noticed that the custom node fields are the captures. This is actually a very common practice and Pegase offers a shortcut for it: the standard <code>@node</code> directive. This directive takes the node label as an argument, and automatically emits a <code>Node</code> whose custom fields <em>are</em> the captures. In other words, the following is <em>strictly equivalent</em> to the previous example:</p>
 <pre><code class="language-ts">const prefix = peg`
   expr:
@@ -821,7 +821,7 @@ complex.value(&quot;42&quot;);    // { $label: &quot;COMPLEX&quot;, $match: (...
 <li><code>children</code> never changes size as a result of visits, it's just a one-to-one mapping. Thus parsers who produce a <code>value</code> (ie. a single child) keep producing a <code>value</code> no matter how many visitors you stack. The final <code>value</code> will be the result of the visitor pipe applied to the initial <code>value</code>.</li>
 <li>Only the last visitor can return a non-<code>Node</code> result, since each visitor has to be fed with a <code>Node</code> value.</li>
 </ul>
-<p><img alt="AST" src="https://raw.githubusercontent.com/ostrebler/pegase/master/img/ast-2.png" /></p>
+<p><img alt="AST" src="/pegase/assets/images/ast-2.png" /></p>
 <p>Let's build a simple visitor that transforms the output <code>Node</code> of our previous <code>prefix</code> grammar into its label:</p>
 <pre><code class="language-ts">const prefix = peg`
   expr:

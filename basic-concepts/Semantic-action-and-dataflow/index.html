@@ -691,7 +691,7 @@
 `;
 </code></pre>
 <p>The input <code>"+ 5 * 2 6"</code> would generate the following syntax tree:</p>
-<p><img alt="Parse tree" src="https://raw.githubusercontent.com/ostrebler/pegase/master/img/dataflow-1.png" /></p>
+<p><img alt="Parse tree" src="/pegase/assets/images/dataflow-1.png" /></p>
 <p><strong>Pegase implements a mechanism by which every individual parser can emit an array of values called <code>children</code></strong>.</p>
 <p>For example, in the <code>op</code> rule, <code>'+'</code> is a parser in and of itself who will succeed if a <em>plus</em> character can be read from the input. It's called a <em>literal</em> parser. You can make any literal parser emit the substring it matched as a single child by using double quotes instead of single quotes. More generally, you can make <strong>any</strong> parser emit the substring it matched as a single child by using the <code>@raw</code> directive. For example, <code>\d @raw</code> will emit the exact digit character it matched, i.e. the input <code>5</code> would produce <code>["5"]</code> as <code>children</code>.</p>
 <p><strong><code>children</code> can be collected and processed in parent parsers through composition</strong>.</p>
@@ -702,7 +702,7 @@
 `;
 </code></pre>
 <p>Now <code>children</code> are emitted and propagated during the parsing process:</p>
-<p><img alt="Parse tree" src="https://raw.githubusercontent.com/ostrebler/pegase/master/img/dataflow-2.png" /></p>
+<p><img alt="Parse tree" src="/pegase/assets/images/dataflow-2.png" /></p>
 <p>Indeed:</p>
 <pre><code class="language-js">prefix.parse(&quot;+ 5 * 2 6&quot;).children; // [&quot;+&quot;, &quot;5&quot;, &quot;*&quot;, &quot;2&quot;, &quot;6&quot;]
 prefix.children(&quot;+ 5 * 2 6&quot;);       // [&quot;+&quot;, &quot;5&quot;, &quot;*&quot;, &quot;2&quot;, &quot;6&quot;]
@@ -726,7 +726,7 @@ const prefix = peg`
 <p><code>$children</code> is a hook.</p>
 <p><strong>Hooks are global functions that provide contextual information and operations in semantic actions</strong>, like reading <code>children</code>, emitting warnings or failures, getting the current position, etc. Please refer to the <a href="#hooks">Hooks</a> section for a list of all available hooks.</p>
 <p>Recursively, this process will transform the entire input from prefix to postfix:</p>
-<p><img alt="Parse tree" src="https://raw.githubusercontent.com/ostrebler/pegase/master/img/dataflow-3.png" /></p>
+<p><img alt="Parse tree" src="/pegase/assets/images/dataflow-3.png" /></p>
 <p>Let's test this:</p>
 <pre><code class="language-js">prefix.children(&quot;+ 5 * 2 6&quot;); // [&quot;5 2 6 * +&quot;]
 </code></pre>
