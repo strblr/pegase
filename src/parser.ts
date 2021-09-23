@@ -145,23 +145,23 @@ export class LiteralParser extends Parser {
 // RegexParser
 
 export class RegexParser extends Parser {
-  regExp: RegExp;
+  regex: RegExp;
   cased: RegExp;
   uncased: RegExp;
 
-  constructor(regExp: RegExp) {
+  constructor(regex: RegExp) {
     super();
-    this.regExp = regExp;
-    this.cased = extendFlags(regExp, "y");
-    this.uncased = extendFlags(regExp, "iy");
+    this.regex = regex;
+    this.cased = extendFlags(regex, "y");
+    this.uncased = extendFlags(regex, "iy");
   }
 
   exec(options: Options): Match | null {
     const from = skip(options);
     if (from === null) return null;
-    const regExp = this[options.ignoreCase ? "uncased" : "cased"];
-    regExp.lastIndex = from.index;
-    const result = regExp.exec(options.input);
+    const regex = this[options.ignoreCase ? "uncased" : "cased"];
+    regex.lastIndex = from.index;
+    const result = regex.exec(options.input);
     if (result !== null)
       return {
         from,
@@ -173,7 +173,7 @@ export class RegexParser extends Parser {
       from,
       to: from,
       type: FailureType.Expectation,
-      expected: [{ type: ExpectationType.RegExp, regExp: this.regExp }]
+      expected: [{ type: ExpectationType.RegExp, regex: this.regex }]
     });
     return null;
   }

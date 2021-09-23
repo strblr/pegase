@@ -42,11 +42,24 @@ test("The peg tag should work with raw strings", () => {
   expect(g1).toBeInstanceOf(LiteralParser);
   expect((g1 as LiteralParser).literal).toBe('My name is "pegase".');
   expect(g2).toBeInstanceOf(RegexParser);
-  expect((g2 as RegexParser).regExp.toString()).toBe("/[\\]]/");
+  expect((g2 as RegexParser).regex.toString()).toBe("/[\\]]/");
   expect(g3).toBeInstanceOf(RegexParser);
-  expect((g3 as RegexParser).regExp.toString()).toBe("/\\s/");
+  expect((g3 as RegexParser).regex.toString()).toBe("/\\s/");
   expect(g3.test("", { skip: false })).toBe(false);
   expect(g3.test(" ", { skip: false })).toBe(true);
+});
+
+test("The peg tag should correctly parse regex literals", () => {
+  const g1 = peg`/abc/` as RegexParser;
+  const g2 = peg`/a\//` as RegexParser;
+  const g3 = peg`/a\\\//` as RegexParser;
+  const g4 = peg`/a[ab/cd]b/` as RegexParser;
+  const g5 = peg`/[[^()]*|(\(.*?\))]*/` as RegexParser;
+  expect(g1.regex.toString()).toBe(/abc/.toString());
+  expect(g2.regex.toString()).toBe(/a\//.toString());
+  expect(g3.regex.toString()).toBe(/a\\\//.toString());
+  expect(g4.regex.toString()).toBe(/a[ab/cd]b/.toString());
+  expect(g5.regex.toString()).toBe(/[[^()]*|(\(.*?\))]*/.toString());
 });
 
 test("Repetition parsers should work", () => {

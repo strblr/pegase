@@ -1,4 +1,17 @@
-When a `RegExp` instance is inserted into a peg expression via tag argument, it is converted into a regexp parser (an instance of `RegexParser`, a subclass of `Parser`). At invocation, the parsing is automatically delegated to `RegExp.prototype.exec`. On success, Pegase will then emit its *capturing groups* as `children`:
+Pegase allows for regex literals to appear directly in a peg expression. Internally, this builds an actual `RegExp` instance and wraps it in a `RegexParser` (a subclass of `Parser`). At invocation, the parsing is automatically delegated to `RegExp.prototype.exec`. On success, the `RegexParser` will emit the *capturing groups* as `children`:
+
+```ts
+const minutes = peg`
+  /(\d+):(\d+)/ ${() => {
+    const [hr, min] = $children();
+    return 60 * Number(hr) + Number(min);
+  }}
+`;
+
+minutes.value("2:43"); // 163
+```
+
+`RegExp` instances can also be *inserted* into a peg expression via tag argument:
 
 ```js
 const time = /(\d+):(\d+)/;

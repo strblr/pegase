@@ -32,7 +32,7 @@ Class (inherits from `Parser`)
 
 | Property      | Type                                  | Description                                     |
 | ------------- | ------------------------------------- | ----------------------------------------------- |
-| *Constructor* | `new(regExp: RegExp) => RegexParser` | Builds a new instance                           |
-| `regExp`      | `RegExp`                              | The original `RegExp` passed to the constructor |
+| *Constructor* | `new(regex: RegExp) => RegexParser`   | Builds a new instance                           |
+| `regex`       | `RegExp`                              | The original `RegExp` passed to the constructor |
 | `cased`       | `RegExp`                              | The `RegExp` used for case-sensitive matching   |
 | `uncased`     | `RegExp`                              | The `RegExp` used for case-insensitive matching |

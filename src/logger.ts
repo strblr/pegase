@@ -147,7 +147,7 @@ export class Logger {
         case ExpectationType.Literal:
           return `"${expectation.literal}"`;
         case ExpectationType.RegExp:
-          return String(expectation.regExp);
+          return String(expectation.regex);
         case ExpectationType.Token:
           return expectation.displayName;
         case ExpectationType.Mismatch:

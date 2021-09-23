@@ -152,7 +152,7 @@ export type LiteralExpectation = {
 
 export type RegexExpectation = {
   type: ExpectationType.RegExp;
-  regExp: RegExp;
+  regex: RegExp;
 };
 
 export type TokenExpectation = {

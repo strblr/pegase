@@ -170,6 +170,17 @@ const minutes = peg`
 minutes.value("2:43"); // 163
 ```
 
+Pegase also supports regex literals:
+
+```ts
+const minutes = peg`
+  /(\d+):(\d+)/ ${() => {
+    const [hr, min] = $children();
+    return 60 * Number(hr) + Number(min);
+  }}
+`;
+```
+
 Read more in [Working with RegExp](https://ostrebler.github.io/pegase/advanced-concepts/Working-with-RegExp/).
 
 ### Painless AST and visitors

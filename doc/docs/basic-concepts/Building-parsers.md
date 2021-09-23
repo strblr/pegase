@@ -16,7 +16,7 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
       <td><pre>.</pre></td>
       <td>Matches any character</td>
       <td><code>[]</code></td>
-      <td align="center" rowspan="13">0</td>
+      <td align="center" rowspan="14">0</td>
     </tr>
     <tr>
       <td><pre>$</pre></td>
@@ -77,6 +77,11 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
       <td><pre>\n<br/>\s<br/>\xAF<br/>\uA6F1</pre>etc.</td>
       <td>Matches the escaped metacharacter as a <code>RegExp</code> expression (i.e. <code>\s</code> matches any whitespace, <code>\S</code> any non-whitespace, <code>\uA6F1</code> matches the unicode character <code>A6F1</code>, etc. (<a href="https://www.w3schools.com/jsref/jsref_obj_regexp.asp">See <code>RegExp</code> documentation</a> for a complete list of supported metacharacters).</td>
       <td><code>[]</code></td>
+    </tr>
+    <tr>
+      <td><pre>/ab/<br/>/\w+/<br/>/(\d+):(\d+)/</pre>etc.</td>
+      <td>Matches the regex (same syntax as JS' <code>RegExp</code> literals)</td>
+      <td>The regex's capturing groups</td>
     </tr>
     <tr>
       <td><pre>a?</pre></td>
@@ -172,7 +177,7 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
       <td><code>[&lt;the generated node&gt;]</code></td>
     </tr>
     <tr>
-      <td><pre>a | b<br/>a / b</pre></td>
+      <td><pre>a | b</pre></td>
       <td>Ordered choice. Succeeds if <code>a</code> or <code>b</code> succeeds (order matters). Please note that you can add a leading bar for aesthetic purposes.</td>
       <td>Forwarded from <code>a</code> or <code>b</code></td>
       <td align="center">9</td>
@@ -185,3 +190,4 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
     </tr>
   </tbody>
 </table>
+

@@ -107,20 +107,8 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     "optionsParser",
     new ActionParser(
       new SequenceParser([
-        new RepetitionParser(
-          new AlternativeParser([
-            new LiteralParser("|"),
-            new LiteralParser("/")
-          ]),
-          [0, 1]
-        ),
-        modulo(
-          new NonTerminalParser("directiveParser"),
-          new AlternativeParser([
-            new LiteralParser("|"),
-            new LiteralParser("/")
-          ])
-        )
+        new RepetitionParser(new LiteralParser("|"), [0, 1]),
+        modulo(new NonTerminalParser("directiveParser"), new LiteralParser("|"))
       ]),
       () =>
         $children().length === 1
@@ -310,6 +298,10 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         new NonTerminalParser("escapedMeta"),
         () => new RegexParser($children()[0])
       ),
+      new ActionParser(
+        new NonTerminalParser("regexLiteral"),
+        () => new RegexParser($children()[0])
+      ),
       new NonTerminalParser("castableTagArgument")
     ])
   ],
@@ -405,7 +397,8 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
       new NonTerminalParser("numberLiteral"),
       new NonTerminalParser("nonTerminal"),
       new NonTerminalParser("characterClass"),
-      new NonTerminalParser("escapedMeta")
+      new NonTerminalParser("escapedMeta"),
+      new NonTerminalParser("regexLiteral")
     ])
   ],
   // Tokens:
@@ -453,6 +446,16 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         ])
       ]),
       "string literal"
+    )
+  ],
+  [
+    "regexLiteral",
+    new TokenParser(
+      new ActionParser(
+        new RegexParser(/\/((?:\[[^\]]*]|[^\\\/]|\\.)+)\//),
+        () => new RegExp($children()[0])
+      ),
+      "regex literal"
     )
   ],
   [

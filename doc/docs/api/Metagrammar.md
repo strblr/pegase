@@ -10,7 +10,7 @@ grammarParser:
   (identifier directives ':' ^ optionsParser)+
 
 optionsParser:
-  ('|' | '/')? directiveParser % ('|' | '/')
+  '|'? directiveParser % '|'
 
 directiveParser:
   sequenceParser directives
@@ -47,6 +47,7 @@ primaryParser:
 | stringLiteral
 | characterClass
 | escapedMeta
+| regexLiteral
 | castableTagArgument
 
 
@@ -76,6 +77,7 @@ value:
 | nonTerminal
 | characterClass
 | escapedMeta
+| regexLiteral
 
 # Tokens:
 
@@ -91,6 +93,9 @@ numberLiteral @token('number literal'):
 stringLiteral @token('string literal'):
 | /'((?:[^\\']|\\.)*)'/
 | /"(?:[^\\"]|\\.)*"/
+
+regexLiteral @token('regex literal'):
+  /\/((?:\[[^\]]*]|[^\\\/]|\\.)+)\//
 
 characterClass @token('character class'):
   /\[(?:[^\\\]]|\\.)*]/

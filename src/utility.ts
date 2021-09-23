@@ -51,8 +51,8 @@ export const $visit = hook("$visit");
 
 // extendFlags
 
-export function extendFlags(regExp: RegExp, flags: string) {
-  return new RegExp(regExp, [...new Set([...regExp.flags, ...flags])].join(""));
+export function extendFlags(regex: RegExp, flags: string) {
+  return new RegExp(regex, [...new Set([...regex.flags, ...flags])].join(""));
 }
 
 // spaceCase
@@ -79,7 +79,7 @@ export function castExpectation(
     typeof expected === "string"
       ? { type: ExpectationType.Literal, literal: expected }
       : expected instanceof RegExp
-      ? { type: ExpectationType.RegExp, regExp: expected }
+      ? { type: ExpectationType.RegExp, regex: expected }
       : expected
   );
 }
