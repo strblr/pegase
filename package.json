@@ -1,13 +1,13 @@
 {
   "name": "pegase",
-  "version": "0.3.11",
+  "version": "0.3.12",
   "description": "An inline, powerful and lightweight PEG parser generator for JavaScript and TypeScript, with semantic actions, support for native regexps, error recovery, warnings, grammar fragments, AST generation, AST visitors, cut operator, and a lot more.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "test": "tsc & jest lib/index.test.js",
+    "build": "tsc & browserify lib/index.browser.js -o umd/index.js",
+    "test": "yarn build & jest lib/index.test.js",
     "doc": "cd doc & mkdocs gh-deploy",
-    "build": "tsc & browserify lib/index.js -o umd/index.js",
     "prepare": "yarn build"
   },
   "repository": {
