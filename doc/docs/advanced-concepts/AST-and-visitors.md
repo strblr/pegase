@@ -43,7 +43,7 @@ const ast = prefix.value("+ 12 + 42 3");
 
 The resulting `ast` will look like this:
 
-![AST](https://raw.githubusercontent.com/ostrebler/pegase/master/img/ast-1.png)
+![AST](/pegase/assets/images/ast-1.png)
 
 You may have noticed that the custom node fields are the captures. This is actually a very common practice and Pegase offers a shortcut for it: the standard `@node` directive. This directive takes the node label as an argument, and automatically emits a `Node` whose custom fields *are* the captures. In other words, the following is *strictly equivalent* to the previous example:
 
@@ -105,7 +105,7 @@ Every `children` item will individually be sent down the visitor pipe. Each visi
 - `children` never changes size as a result of visits, it's just a one-to-one mapping. Thus parsers who produce a `value` (ie. a single child) keep producing a `value` no matter how many visitors you stack. The final `value` will be the result of the visitor pipe applied to the initial `value`.
 - Only the last visitor can return a non-`Node` result, since each visitor has to be fed with a `Node` value.
 
-![AST](https://raw.githubusercontent.com/ostrebler/pegase/master/img/ast-2.png)
+![AST](/pegase/assets/images/ast-2.png)
 
 Let's build a simple visitor that transforms the output `Node` of our previous `prefix` grammar into its label:
 

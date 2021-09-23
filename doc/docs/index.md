@@ -32,7 +32,7 @@ function calc(left, op, right) {
   }
 }
 
-const g = peg`  
+const expr = peg`  
   expr: term % ("+" | "-") @infix(${calc})  
   term: fact % ("*" | "/") @infix(${calc})  
   fact: integer | '(' expr ')'
@@ -42,19 +42,19 @@ const g = peg`
 
 Let's see how this plays out :
 
-#### `g.value("2 + (17-2*30) *(-5)+2")`
+#### > `expr.value("2 + (17-2*30) *(-5)+2")`
 
 ```json
 219
 ```
 
-#### `g.test("2* (4 + )/32")`
+#### > `expr.test("2* (4 + )/32")`
 
 ```json
 false
 ```
 
-#### `g.parse("2* (4 + )/32").logger.print()`
+#### > `expr.parse("2* (4 + )/32").logger.print()`
 
 ```
 (1:9) Failure: Expected integer or "("
@@ -73,3 +73,10 @@ A few early notes here :
 - Notice how some literals are single-quoted like `')'` or double-quoted like `"+"`. Double-quote literals emit their string match as a single child, while single-quotes are silent. Writing the operators with double quotes allows them to be accumulated and processed with `@infix`.
 
 Don't worry if things aren't so clear yet. The rest of the documentation below is here to go step by step in all the underlying concepts, so that you understand the core philosophy and principles at hand.
+
+### Try-it out
+
+You can try everything out while reading this website by accessing your JS console tab. The `peg` tag will be directly available in your namespace. All other named exports from `pegase` are available as properties of the underscore identifier `_`. Have fun!
+
+![Console demo](/pegase/assets/images/console-demo.png)
+

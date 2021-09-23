@@ -11,7 +11,7 @@ const prefix = peg`
 
 The input `"+ 5 * 2 6"` would generate the following syntax tree:
 
-![Parse tree](https://raw.githubusercontent.com/ostrebler/pegase/master/img/dataflow-1.png)
+![Parse tree](/pegase/assets/images/dataflow-1.png)
 
 **Pegase implements a mechanism by which every individual parser can emit an array of values called `children`**.
 
@@ -32,7 +32,7 @@ Now `children` are emitted and propagated during the parsing process:
 
 
 
-![Parse tree](https://raw.githubusercontent.com/ostrebler/pegase/master/img/dataflow-2.png)
+![Parse tree](/pegase/assets/images/dataflow-2.png)
 
 Indeed:
 
@@ -68,7 +68,7 @@ const prefix = peg`
 
 Recursively, this process will transform the entire input from prefix to postfix:
 
-![Parse tree](https://raw.githubusercontent.com/ostrebler/pegase/master/img/dataflow-3.png)
+![Parse tree](/pegase/assets/images/dataflow-3.png)
 
 Let's test this:
 
