@@ -1,4 +1,4 @@
-When a `RegExp` instance is inserted into a peg expression via tag argument, it is converted into a regexp parser (an instance of `RegExpParser`, a subclass of `Parser`). At invocation, the parsing is automatically delegated to `RegExp.prototype.exec`. On success, Pegase will then emit its *capturing groups* as `children`:
+When a `RegExp` instance is inserted into a peg expression via tag argument, it is converted into a regexp parser (an instance of `RegexParser`, a subclass of `Parser`). At invocation, the parsing is automatically delegated to `RegExp.prototype.exec`. On success, Pegase will then emit its *capturing groups* as `children`:
 
 ```js
 const time = /(\d+):(\d+)/;

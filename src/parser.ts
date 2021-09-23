@@ -23,7 +23,7 @@ import {
  *
  * Parser
  * | LiteralParser
- * | RegExpParser
+ * | RegexParser
  * | NonTerminalParser
  * | CutParser
  * | AlternativeParser
@@ -142,9 +142,9 @@ export class LiteralParser extends Parser {
   }
 }
 
-// RegExpParser
+// RegexParser
 
-export class RegExpParser extends Parser {
+export class RegexParser extends Parser {
   regExp: RegExp;
   cased: RegExp;
   uncased: RegExp;
@@ -547,12 +547,12 @@ export class ActionParser extends Parser {
 
 // Presets
 
-export const defaultSkipper = new RegExpParser(/\s*/);
+export const defaultSkipper = new RegexParser(/\s*/);
 
-export const pegSkipper = new RegExpParser(/(?:\s|#[^#\r\n]*[#\r\n])*/);
+export const pegSkipper = new RegexParser(/(?:\s|#[^#\r\n]*[#\r\n])*/);
 
 export const endOfInput = new TokenParser(
-  new PredicateParser(new RegExpParser(/./), false),
+  new PredicateParser(new RegexParser(/./), false),
   "end of input"
 );
 

@@ -26,13 +26,13 @@ Class (inherits from `Parser`)
 | `literal`     | `string`                                                | The literal to be matched when the parser is invoked         |
 | `emit`        | `boolean`                                               | Whether the parser should emit the matched substring as a single child or not |
 
-#### `RegExpParser`
+#### `RegexParser`
 
 Class (inherits from `Parser`)
 
 | Property      | Type                                  | Description                                     |
 | ------------- | ------------------------------------- | ----------------------------------------------- |
-| *Constructor* | `new(regExp: RegExp) => RegExpParser` | Builds a new instance                           |
+| *Constructor* | `new(regExp: RegExp) => RegexParser` | Builds a new instance                           |
 | `regExp`      | `RegExp`                              | The original `RegExp` passed to the constructor |
 | `cased`       | `RegExp`                              | The `RegExp` used for case-sensitive matching   |
 | `uncased`     | `RegExp`                              | The `RegExp` used for case-insensitive matching |

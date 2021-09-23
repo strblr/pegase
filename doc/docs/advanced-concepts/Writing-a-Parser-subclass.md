@@ -1,6 +1,6 @@
 We've seen in section [Basic concepts > Building parsers](#building-parsers) that parsers are combined together to form more complex parsers. In this section, we'll go into more detail about how exactly this composition is done internally and how you could write your own `Parser` subclass with its own logic. Under the hood, the `Parser` class is derived into three categories of subclasses:
 
-- Leaf classes, which don't hold a reference to other parsers. There are three of them: `LiteralParser`, `RegExpParser` and `CutParser`.
+- Leaf classes, which don't hold a reference to other parsers. There are three of them: `LiteralParser`, `RegexParser` and `CutParser`.
 - Composition classes like `SequenceParser`, `TokenParser`, `PredicateParser`, `ActionParser`, etc. which, on the contrary, reference one or more subparsers.
 - `NonTerminalParser` is a special case, because it holds a reference to another parser, but as a string (a rule name) that will be resolved dynamically at parse time.
 

@@ -13,7 +13,7 @@ import {
   Options,
   Parser,
   Plugin,
-  RegExpParser,
+  RegexParser,
   RepetitionParser,
   SemanticAction,
   SequenceParser,
@@ -256,7 +256,7 @@ export const defaultPlugin: Plugin = {
   castParser(arg) {
     if (typeof arg === "number") return new LiteralParser(String(arg));
     if (typeof arg === "string") return new LiteralParser(arg);
-    if (arg instanceof RegExp) return new RegExpParser(arg);
+    if (arg instanceof RegExp) return new RegexParser(arg);
     if (arg instanceof Parser) return arg;
   },
   directives: {

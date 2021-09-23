@@ -140,7 +140,7 @@ export enum FailureType {
 
 export type Expectation =
   | LiteralExpectation
-  | RegExpExpectation
+  | RegexExpectation
   | TokenExpectation
   | MismatchExpectation
   | CustomExpectation;
@@ -150,7 +150,7 @@ export type LiteralExpectation = {
   literal: string;
 };
 
-export type RegExpExpectation = {
+export type RegexExpectation = {
   type: ExpectationType.RegExp;
   regExp: RegExp;
 };

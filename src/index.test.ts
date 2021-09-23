@@ -12,7 +12,7 @@ import peg, {
   createTag,
   LiteralParser,
   merge,
-  RegExpParser,
+  RegexParser,
   SuccessResult,
   Visitor
 } from ".";
@@ -41,10 +41,10 @@ test("The peg tag should work with raw strings", () => {
   const g3 = peg`\s`;
   expect(g1).toBeInstanceOf(LiteralParser);
   expect((g1 as LiteralParser).literal).toBe('My name is "pegase".');
-  expect(g2).toBeInstanceOf(RegExpParser);
-  expect((g2 as RegExpParser).regExp.toString()).toBe("/[\\]]/");
-  expect(g3).toBeInstanceOf(RegExpParser);
-  expect((g3 as RegExpParser).regExp.toString()).toBe("/\\s/");
+  expect(g2).toBeInstanceOf(RegexParser);
+  expect((g2 as RegexParser).regExp.toString()).toBe("/[\\]]/");
+  expect(g3).toBeInstanceOf(RegexParser);
+  expect((g3 as RegexParser).regExp.toString()).toBe("/\\s/");
   expect(g3.test("", { skip: false })).toBe(false);
   expect(g3.test(" ", { skip: false })).toBe(true);
 });

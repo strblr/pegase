@@ -19,7 +19,7 @@ import {
   pegSkipper,
   pipeDirectives,
   PredicateParser,
-  RegExpParser,
+  RegexParser,
   RepetitionParser,
   resolveCast,
   resolveDirective,
@@ -191,7 +191,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
           new RepetitionParser(
             new SequenceParser([
               new PredicateParser($children()[1], false),
-              new RegExpParser(/./)
+              new RegexParser(/./)
             ]),
             [0, Infinity]
           ),
@@ -264,7 +264,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "primaryParser",
     new AlternativeParser([
-      new ActionParser(new LiteralParser("."), () => new RegExpParser(/./)),
+      new ActionParser(new LiteralParser("."), () => new RegexParser(/./)),
       new ActionParser(
         new SequenceParser([
           new PredicateParser(new NonTerminalParser("identifier"), false),
@@ -272,7 +272,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
         ]),
         () =>
           new TokenParser(
-            new PredicateParser(new RegExpParser(/./), false),
+            new PredicateParser(new RegexParser(/./), false),
             "end of input"
           )
       ),
@@ -304,11 +304,11 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
       }),
       new ActionParser(
         new NonTerminalParser("characterClass"),
-        () => new RegExpParser($children()[0])
+        () => new RegexParser($children()[0])
       ),
       new ActionParser(
         new NonTerminalParser("escapedMeta"),
-        () => new RegExpParser($children()[0])
+        () => new RegexParser($children()[0])
       ),
       new NonTerminalParser("castableTagArgument")
     ])
@@ -412,7 +412,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "identifier",
     new TokenParser(
-      new RegExpParser(/(\$?[_a-zA-Z][_a-zA-Z0-9]*)/),
+      new RegexParser(/(\$?[_a-zA-Z][_a-zA-Z0-9]*)/),
       "identifier"
     )
   ],
@@ -433,7 +433,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "numberLiteral",
     new TokenParser(
-      new ActionParser(new RegExpParser(/[0-9]+\.?[0-9]*/), () =>
+      new ActionParser(new RegexParser(/[0-9]+\.?[0-9]*/), () =>
         Number($raw())
       ),
       "number literal"
@@ -443,11 +443,11 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     "stringLiteral",
     new TokenParser(
       new AlternativeParser([
-        new ActionParser(new RegExpParser(/'((?:[^\\']|\\.)*)'/), () => [
+        new ActionParser(new RegexParser(/'((?:[^\\']|\\.)*)'/), () => [
           JSON.parse(`"${$value()}"`),
           false
         ]),
-        new ActionParser(new RegExpParser(/"(?:[^\\"]|\\.)*"/), () => [
+        new ActionParser(new RegexParser(/"(?:[^\\"]|\\.)*"/), () => [
           JSON.parse($raw()),
           true
         ])
@@ -459,7 +459,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     "characterClass",
     new TokenParser(
       new ActionParser(
-        new RegExpParser(/\[(?:[^\\\]]|\\.)*]/),
+        new RegexParser(/\[(?:[^\\\]]|\\.)*]/),
         () => new RegExp($raw())
       ),
       "character class"
@@ -469,7 +469,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
     "escapedMeta",
     new TokenParser(
       new ActionParser(
-        new RegExpParser(/\\[a-zA-Z0-9]+/),
+        new RegexParser(/\\[a-zA-Z0-9]+/),
         () => new RegExp($raw())
       ),
       "escaped metacharacter"
@@ -478,7 +478,7 @@ const metagrammar: Parser<Parser, MetaContext> = new GrammarParser([
   [
     "tagArgument",
     new TokenParser(
-      new ActionParser(new RegExpParser(/~(\d+)/), () =>
+      new ActionParser(new RegexParser(/~(\d+)/), () =>
         $emit([$context().args[$children()[0]]])
       ),
       "tag argument"
