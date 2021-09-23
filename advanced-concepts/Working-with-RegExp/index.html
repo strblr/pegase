@@ -683,7 +683,17 @@
                 
                   <h1>Working with RegExp</h1>
                 
-                <p>When a <code>RegExp</code> instance is inserted into a peg expression via tag argument, it is converted into a regexp parser (an instance of <code>RegexParser</code>, a subclass of <code>Parser</code>). At invocation, the parsing is automatically delegated to <code>RegExp.prototype.exec</code>. On success, Pegase will then emit its <em>capturing groups</em> as <code>children</code>:</p>
+                <p>Pegase allows for regex literals to appear directly in a peg expression. Internally, this builds an actual <code>RegExp</code> instance and wraps it in a <code>RegexParser</code> (a subclass of <code>Parser</code>). At invocation, the parsing is automatically delegated to <code>RegExp.prototype.exec</code>. On success, the <code>RegexParser</code> will emit the <em>capturing groups</em> as <code>children</code>:</p>
+<pre><code class="language-ts">const minutes = peg`
+  /(\d+):(\d+)/ ${() =&gt; {
+    const [hr, min] = $children();
+    return 60 * Number(hr) + Number(min);
+  }}
+`;
+
+minutes.value(&quot;2:43&quot;); // 163
+</code></pre>
+<p><code>RegExp</code> instances can also be <em>inserted</em> into a peg expression via tag argument:</p>
 <pre><code class="language-js">const time = /(\d+):(\d+)/;
 
 const minutes = peg`
