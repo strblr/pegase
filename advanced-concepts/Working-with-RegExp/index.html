@@ -683,7 +683,7 @@
                 
                   <h1>Working with RegExp</h1>
                 
-                <p>When a <code>RegExp</code> instance is inserted into a peg expression via tag argument, it is converted into a regexp parser (an instance of <code>RegExpParser</code>, a subclass of <code>Parser</code>). At invocation, the parsing is automatically delegated to <code>RegExp.prototype.exec</code>. On success, Pegase will then emit its <em>capturing groups</em> as <code>children</code>:</p>
+                <p>When a <code>RegExp</code> instance is inserted into a peg expression via tag argument, it is converted into a regexp parser (an instance of <code>RegexParser</code>, a subclass of <code>Parser</code>). At invocation, the parsing is automatically delegated to <code>RegExp.prototype.exec</code>. On success, Pegase will then emit its <em>capturing groups</em> as <code>children</code>:</p>
 <pre><code class="language-js">const time = /(\d+):(\d+)/;
 
 const minutes = peg`
