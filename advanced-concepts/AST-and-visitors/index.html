@@ -170,6 +170,8 @@
           
             
               
+                
+              
               <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
@@ -709,7 +711,9 @@
             
             
               
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" hidden>
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
@@ -882,6 +886,8 @@ prefix.value(&quot;+ 12 + 42 3&quot;, { visit: [doubleVisitor, sumVisitor] }); /
     |        ^
 </code></pre>
 <p>The effect of some hooks differ when used in a semantic action vs. a visitor. In semantic actions, <code>$emit</code> propagates <code>children</code>. In visitors, <code>$emit</code> replaces the array at <code>node.$match.children</code> where <code>node</code> is the current node. In semantic actions, <code>$fail</code> and <code>$expected</code> don't commit failures, they emit failure <em>candidates</em> which are then merged or filtered out using the farthest failure heuristic (see <a href="#failures-and-warnings">Basic concepts &gt; Failures and warnings</a>). In visitors, these hooks commit failures directly. The heuristic wouldn't make much sense outside of a backtracking syntactic analysis. Please refer to <a href="#hooks">API &gt; Hooks</a> for an exhaustive doc of all hooks.</p>
+                
+                  
                 
               
               

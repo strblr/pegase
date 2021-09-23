@@ -170,6 +170,8 @@
           
             
               
+                
+              
               <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
@@ -709,7 +711,9 @@
             
             
               
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" hidden>
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
@@ -776,6 +780,8 @@
 <p><strong>Be aware</strong>: the <code>success</code> status of the parsing will be <code>true</code>. With error recovery, a successful parsing doesn't necessarily imply "no failure", it just tells you that the parsing was able to finish successfully. This is indeed what <em>recovery</em> means. To check if there are any failures, call the logger's <code>hasFailures</code> method:</p>
 <pre><code class="language-ts">g.parse(&quot;[1, 0, 1, 3, 0, 1, 2, 1]&quot;).logger.hasFailures() // true
 </code></pre>
+                
+                  
                 
               
               
