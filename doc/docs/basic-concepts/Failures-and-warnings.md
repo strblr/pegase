@@ -23,8 +23,9 @@ These are automatically emitted when a literal, a regexp or a token mismatched, 
 
 ```js
 const g = peg`'a' ('b' | 'c' | 'd' @token("the awesome letter d") | ![b-e] .)`;
-console.log(g.parse('ae').logger.print());
 ```
+
+#### > `g.parse('ae').logger.print()`
 
 ```
 (1:2) Failure: Expected "b", "c", the awesome letter d or mismatch of "e"
@@ -39,9 +40,9 @@ You can also manually emit them in semantic actions using the `$expected` hook (
 const g = peg`'a' ('b' | . ${() => {
   if (!["c", "d"].includes($raw())) $expected(["c", "d"]);
 }})`;
-
-console.log(g.parse("ae").logger.print());
 ```
+
+#### > `g.parse("ae").logger.print()`
 
 ```
 (1:2) Failure: Expected "b", "c" or "d"
@@ -100,9 +101,9 @@ const p = peg`
     
   $identifier @raw: [a-zA-Z]+
 `;
-
-console.log(p.parse("class test {").logger.print());
 ```
+
+#### > `p.parse("class test {").logger.print()`
 
 ```
 (1:7) Warning: Class names should be capitalized

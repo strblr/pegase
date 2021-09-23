@@ -11,8 +11,8 @@ For the exact type signature of these properties, please refer to [API > TypeScr
 peg.plugins.push({
   name: "my-plugin",
   directives: {
-    min: parser => new ActionParser(parser, () => Math.min(...$children())),
-    max: parser => new ActionParser(parser, () => Math.max(...$children()))
+    min: parser => peg`${parser} ${() => Math.min(...$children())}`,
+    max: parser => peg`${parser} ${() => Math.max(...$children())}`
   }
 });
 ```

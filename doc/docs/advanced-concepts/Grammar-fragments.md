@@ -37,5 +37,5 @@ import fragment1 from "./fragment1";
 import fragment2 from "./fragment1";
 
 const g = merge(fragment1, fragment2);
-console.log(g.test("abcdabcd")); // true
+g.test("abcdabcd"); // true
 ```

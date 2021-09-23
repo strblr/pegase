@@ -10,7 +10,7 @@ const minutes = peg`
   }}
 `;
 
-console.log(minutes.value("2:43")); // 163
+minutes.value("2:43"); // 163
 ```
 
 The `RegExp`'s [named capturing groups](https://github.com/tc39/proposal-regexp-named-groups) (when supported by your environment) are transformed into regular Pegase captures:
@@ -21,5 +21,5 @@ const yearIs = peg`
   ${date} ${({ year }) => "The year is " + year}
 `;
 
-console.log(yearIs.value("2021-08-19")); // "The year is 2021"
+yearIs.value("2021-08-19"); // "The year is 2021"
 ```

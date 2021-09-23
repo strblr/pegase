@@ -10,7 +10,7 @@ const intList = peg`
 But this doesn't work. Indeed, as whitespace skipping happens before every `\d`, `\d+` can match any space-separated digit list. Thus, `"23 4, 45"` would be a valid input because `23 4` would be considered *one* integer:
 
 ```js
-console.log(intList.children("23 4, 45")); // ["23 4", "45"]
+intList.children("23 4, 45"); // ["23 4", "45"]
 ```
 
 You might intuitively want to disable skipping for the integer rule:
@@ -24,9 +24,7 @@ const intList = peg`
 
 But this doesn't work either, because now you don't allow for whitespaces *before* integers. So a simple `"1 , 1"` would fail when it should not:
 
-```js
-console.log(intList.parse("1 , 1").logger.print());
-```
+#### > `intList.parse("1 , 1").logger.print();`
 
 ```
 (1:4) Failure: Expected /\d/
@@ -46,9 +44,9 @@ const intList = peg`
   list: integer % ','
   integer @raw @token: \d+
 `;
-
-console.log(intList.parse("23 4, 45").logger.print());
 ```
+
+#### > `intList.parse("23 4, 45").logger.print()`
 
 ```
 (1:4) Failure: Expected "," or end of input
@@ -66,9 +64,9 @@ const intList = peg`
   list: integer % ','
   integer @raw @token("fancy integer"): \d+
 `;
-
-console.log(intList.parse("12, ").logger.print());
 ```
+
+#### > `intList.parse("12, ").logger.print()`
 
 ```
 (1:5) Failure: Expected fancy integer

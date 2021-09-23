@@ -12,13 +12,13 @@ Here is a grammar that parses an array of bits and tries to recover when a bit m
 
 ```ts
 const g = peg`
-  bitArray: '[' (bit | (^ @commit) sync) % ',' ']'
+  bitArray: '[' (bit | sync) % ',' ']'
   bit: 0 | 1
-  sync: ...&(',' | ']')
+  sync: (^ @commit) ...&(',' | ']')
 `;
-
-console.log(g.parse("[1, 0, 1, 3, 0, 1, 2, 1]").logger.print());
 ```
+
+#### > `g.parse("[1, 0, 1, 3, 0, 1, 2, 1]").logger.print()`
 
 ```
 (1:11) Failure: Expected "0" or "1"

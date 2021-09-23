@@ -30,7 +30,7 @@ You get the idea.
 Every `Parser` subclass, the standard and your custom ones, **must** satisfy two constraints: 1) Inheriting from `Parser`, obviously, and 2) implementing an `exec` method with the following signature:
 
 ```ts
-exec(options: ParseOptions<Context>): Match | null;
+exec(options: Options<Context>): Match | null;
 ```
 
 The `exec` method will be called when the parser is *invoked*. It must return `null` on failure and a `Match` object on success with the following signature:

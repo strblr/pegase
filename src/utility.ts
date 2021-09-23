@@ -10,7 +10,7 @@ import {
   Hooks,
   LiteralParser,
   Node,
-  ParseOptions,
+  Options,
   Parser,
   Plugin,
   RegExpParser,
@@ -22,7 +22,7 @@ import {
   TweakParser,
   Visitor,
   WarningType
-} from ".";
+} from "."; // Hooks
 
 // Hooks
 
@@ -86,7 +86,7 @@ export function castExpectation(
 
 // skip
 
-export function skip(options: ParseOptions) {
+export function skip(options: Options) {
   if (!options.skip) return options.from;
   const match = options.skipper.exec({ ...options, skip: false });
   return match && match.to;
@@ -115,8 +115,10 @@ export function resolveCast(plugins: Plugin[], value: any) {
 // resolveDirective
 
 export function resolveDirective(plugins: Plugin[], directive: string) {
-  const plugin = plugins.find(plugin =>
-    plugin.directives?.hasOwnProperty(directive)
+  const plugin = plugins.find(
+    plugin =>
+      plugin.directives &&
+      Object.prototype.hasOwnProperty.call(plugin.directives, directive)
   );
   if (!plugin)
     $fail(
@@ -183,7 +185,7 @@ export function merge<Value = any, Context = any>(
 export function applyVisitor<Value, Context>(
   node: Node,
   visitor: Visitor<Value>,
-  options: ParseOptions<Context>
+  options: Options<Context>
 ) {
   let value,
     { from, to } = node.$match;
@@ -218,12 +220,14 @@ export function applyVisitor<Value, Context>(
       $match: node.$match,
       ...fields
     }),
-    $visit: (node, opts, nextVisitor) =>
-      applyVisitor(node, nextVisitor ?? visitor, { ...options, ...opts })
+    $visit: (node, opts, nextVisitor = visitor) =>
+      applyVisitor(node, nextVisitor, { ...options, ...opts })
   });
   try {
-    if (visitor.hasOwnProperty(node.$label)) value = visitor[node.$label](node);
-    else if (visitor.hasOwnProperty("$default")) value = visitor.$default(node);
+    if (Object.prototype.hasOwnProperty.call(visitor, node.$label))
+      value = visitor[node.$label](node);
+    else if (Object.prototype.hasOwnProperty.call(visitor, "$default"))
+      value = visitor.$default(node);
     else
       throw new Error(
         `Missing visitor callback for "${node.$label}" labeled nodes`

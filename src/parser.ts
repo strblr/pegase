@@ -9,7 +9,7 @@ import {
   inferValue,
   Logger,
   Match,
-  ParseOptions,
+  Options,
   Result,
   ResultCommon,
   SemanticAction,
@@ -38,21 +38,21 @@ import {
  */
 
 export abstract class Parser<Value = any, Context = any> {
-  defaultOptions: Partial<ParseOptions<Context>> = {};
+  defaultOptions: Partial<Options<Context>> = {};
 
-  abstract exec(options: ParseOptions<Context>): Match | null;
+  abstract exec(options: Options<Context>): Match | null;
 
-  test(input: string, options?: Partial<ParseOptions<Context>>) {
+  test(input: string, options?: Partial<Options<Context>>) {
     return this.parse(input, options).success;
   }
 
-  value(input: string, options?: Partial<ParseOptions<Context>>) {
+  value(input: string, options?: Partial<Options<Context>>) {
     const result = this.parse(input, options);
     if (!result.success) throw new Error(result.logger.print());
     return result.value;
   }
 
-  children(input: string, options?: Partial<ParseOptions<Context>>) {
+  children(input: string, options?: Partial<Options<Context>>) {
     const result = this.parse(input, options);
     if (!result.success) throw new Error(result.logger.print());
     return result.children;
@@ -60,10 +60,10 @@ export abstract class Parser<Value = any, Context = any> {
 
   parse(
     input: string,
-    options?: Partial<ParseOptions<Context>>
+    options?: Partial<Options<Context>>
   ): Result<Value, Context> {
     const logger = new Logger(input);
-    const opts: ParseOptions<Context> = {
+    const opts: Options<Context> = {
       input,
       from: logger.at(0),
       complete: true,
@@ -117,7 +117,7 @@ export class LiteralParser extends Parser {
     this.emit = emit;
   }
 
-  exec(options: ParseOptions): Match | null {
+  exec(options: Options): Match | null {
     const from = skip(options);
     if (from === null) return null;
     const to = from.index + this.literal.length;
@@ -156,7 +156,7 @@ export class RegExpParser extends Parser {
     this.uncased = extendFlags(regExp, "iy");
   }
 
-  exec(options: ParseOptions): Match | null {
+  exec(options: Options): Match | null {
     const from = skip(options);
     if (from === null) return null;
     const regExp = this[options.ignoreCase ? "uncased" : "cased"];
@@ -191,7 +191,7 @@ export class NonTerminalParser extends Parser {
     this.fallback = fallback;
   }
 
-  exec(options: ParseOptions): Match | null {
+  exec(options: Options): Match | null {
     let parser = (options.grammar as GrammarParser | undefined)?.rules.get(
       this.rule
     );
@@ -236,7 +236,7 @@ export class NonTerminalParser extends Parser {
 // CutParser
 
 export class CutParser extends Parser {
-  exec(options: ParseOptions): Match | null {
+  exec(options: Options): Match | null {
     options.cut.current = true;
     return {
       from: options.from,
@@ -257,7 +257,7 @@ export class AlternativeParser extends Parser {
     this.parsers = parsers;
   }
 
-  exec(options: ParseOptions) {
+  exec(options: Options) {
     options = { ...options, cut: { current: false } };
     for (const parser of this.parsers) {
       const match = parser.exec(options);
@@ -278,7 +278,7 @@ export class SequenceParser extends Parser {
     this.parsers = parsers;
   }
 
-  exec(options: ParseOptions): Match | null {
+  exec(options: Options): Match | null {
     let from = options.from;
     const matches: Match[] = [];
     for (const parser of this.parsers) {
@@ -308,7 +308,7 @@ export class GrammarParser extends Parser {
     this.entry = new NonTerminalParser(rules[0][0]);
   }
 
-  exec(options: ParseOptions): Match | null {
+  exec(options: Options): Match | null {
     return this.entry.exec({ ...options, grammar: this });
   }
 }
@@ -325,7 +325,7 @@ export class TokenParser extends Parser {
     this.displayName = displayName;
   }
 
-  exec(options: ParseOptions) {
+  exec(options: Options) {
     const from = skip(options);
     if (from === null) return null;
     options = { ...options, from, skip: false };
@@ -359,7 +359,7 @@ export class RepetitionParser extends Parser {
     this.max = max;
   }
 
-  exec(options: ParseOptions): Match | null {
+  exec(options: Options): Match | null {
     let from = options.from,
       counter = 0;
     const matches: Match[] = [];
@@ -395,7 +395,7 @@ export class PredicateParser extends Parser {
     this.polarity = polarity;
   }
 
-  exec(options: ParseOptions): Match | null {
+  exec(options: Options): Match | null {
     const match = this.parser.exec({
       ...options,
       ...(!this.polarity && { logger: options.logger.create() })
@@ -422,20 +422,18 @@ export class PredicateParser extends Parser {
 
 export class TweakParser extends Parser {
   parser: Parser;
-  options: (options: ParseOptions) => Partial<ParseOptions>;
+  options: (options: Options) => Partial<Options>;
 
   constructor(
     parser: Parser,
-    options:
-      | Partial<ParseOptions>
-      | ((options: ParseOptions) => Partial<ParseOptions>)
+    options: Partial<Options> | ((options: Options) => Partial<Options>)
   ) {
     super();
     this.parser = parser;
     this.options = typeof options === "function" ? options : () => options;
   }
 
-  exec(options: ParseOptions) {
+  exec(options: Options) {
     return this.parser.exec({ ...options, ...this.options(options) });
   }
 }
@@ -452,7 +450,7 @@ export class CaptureParser extends Parser {
     this.name = name;
   }
 
-  exec(options: ParseOptions): Match | null {
+  exec(options: Options): Match | null {
     const match = this.parser.exec(options);
     if (match === null) return null;
     return {
@@ -477,7 +475,7 @@ export class ActionParser extends Parser {
     this.action = action;
   }
 
-  exec(options: ParseOptions): Match | null {
+  exec(options: Options): Match | null {
     const save = options.logger.fork();
     const match = this.parser.exec(options);
     if (match === null) return null;

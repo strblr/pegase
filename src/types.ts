@@ -18,7 +18,7 @@ export type Directive = (parser: Parser, ...args: any[]) => Parser;
 
 // Related to parsing processing
 
-export type ParseOptions<Context = any> = {
+export type Options<Context = any> = {
   input: string;
   from: Location;
   grammar?: Parser;
@@ -58,7 +58,7 @@ export type Hooks = {
   $captures(): Match["captures"];
   $value(): any;
   $raw(): string;
-  $options(): ParseOptions;
+  $options(): Options;
   $context(): any;
   $warn(message: string): void;
   $fail(message: string): void;
@@ -66,7 +66,7 @@ export type Hooks = {
   $commit(): void;
   $emit(children: Match["children"]): void;
   $node(label: string, fields: Record<string, any>): Node;
-  $visit(node: Node, options?: Partial<ParseOptions>, visitor?: Visitor): any;
+  $visit(node: Node, options?: Partial<Options>, visitor?: Visitor): any;
 };
 
 // Related to tracing
@@ -99,7 +99,7 @@ export enum TraceEventType {
 
 export type TraceCommon<Context = any> = {
   rule: string;
-  options: ParseOptions<Context>;
+  options: Options<Context>;
 };
 
 // Related to logging
@@ -198,7 +198,7 @@ export type FailResult<Context = any> = ResultCommon<Context> & {
 };
 
 export type ResultCommon<Context = any> = {
-  options: ParseOptions<Context>;
+  options: Options<Context>;
   logger: Logger;
 };
 

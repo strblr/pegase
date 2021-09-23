@@ -37,8 +37,8 @@ Now `children` are emitted and propagated during the parsing process:
 Indeed:
 
 ```js
-console.log(prefix.parse("+ 5 * 2 6").children); // ["+", "5", "*", "2", "6"]
-console.log(prefix.children("+ 5 * 2 6"));       // ["+", "5", "*", "2", "6"]
+prefix.parse("+ 5 * 2 6").children; // ["+", "5", "*", "2", "6"]
+prefix.children("+ 5 * 2 6");       // ["+", "5", "*", "2", "6"]
 ```
 
 That can already be pretty useful, but what you usually want to do is to process these `children` in certain ways at strategic steps during parse time in order to incrementally build your desired output. This is where *semantic actions* come into play.
@@ -73,14 +73,14 @@ Recursively, this process will transform the entire input from prefix to postfix
 Let's test this:
 
 ```js
-console.log(prefix.children("+ 5 * 2 6")); // ["5 2 6 * +"]
+prefix.children("+ 5 * 2 6"); // ["5 2 6 * +"]
 ```
 
 **When a `Parser` emits only a single child, it's called the *value* of that `Parser`.**
 
 ```js
-console.log(prefix.parse("+ 5 * 2 6").value); // "5 2 6 * +"
-console.log(prefix.value("+ 5 * 2 6"));       // "5 2 6 * +"
+prefix.parse("+ 5 * 2 6").value; // "5 2 6 * +"
+prefix.value("+ 5 * 2 6");       // "5 2 6 * +"
 ```
 
 `value` is `undefined` if there is no child, or multiple children. You can quickly convince yourself that the `prefix` grammar can only ever return one child. Thus, except in case of a parse failure, there is always a `value` to be read from `prefix`. A well designed peg expression should always have easily predictable `children` for itself and all its nested parser parts. A quick glimpse at a grammar should always give you a good general picture of the dataflow. In most cases, a good design choice is to ensure that non-terminals always emit only up to one child but that's ultimately up to you.

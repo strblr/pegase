@@ -26,7 +26,7 @@ function echo(entity: any) {
         if (val instanceof RegExp) return val.toString();
         if (val instanceof Function) return val.toString();
         if (val === Infinity) return "Infinity";
-        if (val instanceof Object && val.hasOwnProperty("$label"))
+        if (typeof val === "object" && val !== null && val["$label"])
           return (({ $match, ...rest }) => rest)(val);
         return val;
       },
@@ -192,7 +192,7 @@ test("The plugin system should work", () => {
   tag.plugins.push({
     name: "min-max-plugin",
     directives: {
-      min: parser => new ActionParser(parser, () => Math.min(...$children())),
+      min: parser => peg`${parser} ${() => Math.min(...$children())}`,
       max: parser => new ActionParser(parser, () => Math.max(...$children()))
     }
   });
@@ -318,10 +318,9 @@ test("AST and visitors should work", () => {
 
 test("Failure recovery should work", () => {
   const g = peg`
-    bitArray: '[' (bit | (^ @commit) sync) % ',' ']'
+    bitArray: '[' (bit | sync) % ',' ']'
     bit: 0 | 1
-    
-    sync: ...&(',' | ']')
+    sync: (^ @commit) ...&(',' | ']')
   `;
 
   const result = g.parse("[1, 0, 1, 3, 0, 1, 2, 1]");

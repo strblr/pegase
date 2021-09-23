@@ -17,23 +17,23 @@ In the following example, default options are used. Whitespaces are skipped befo
 
 ```js
 const g = peg`'a'+`;
-console.log(g.test("  aa  a  a a   a  ")); // true
+g.test("  aa  a  a a   a  "); // true
 ```
 
 Next, let's disable skipping entirely:
 
 ```js
 const g = peg`'a'+`;
-console.log(g.test("  aa  a  a a   a  ", { skip: false })); // false
-console.log(g.test("aaaaaa", { skip: false }));             // true
+g.test("  aa  a  a a   a  ", { skip: false }); // false
+g.test("aaaaaa", { skip: false });             // true
 ```
 
 You can toggle skipping for specific parts of your peg expression by using the `@skip` and/or `@noskip` directives:
 
 ```js
 const g = peg`('a'+ @noskip) 'b'`;
-console.log(g.test("  aa  a  a a   a  b")); // false
-console.log(g.test("aaaaaaa   b"));         // true
+g.test("  aa  a  a a   a  b"); // false
+g.test("aaaaaaa   b");         // true
 ```
 
 **If none of these options suits your needs, you can use explicit whitespaces and disable auto-skipping once and for all:**
@@ -46,7 +46,7 @@ const g = peg`
 
 g.defaultOptions.skip = false;
 
-console.log(g.test("[1,1,1]"));      // false
-console.log(g.test("[  1,1,1  ]"));  // true
-console.log(g.test("[  1, 1,1  ]")); // false
+g.test("[1,1,1]");      // false
+g.test("[  1,1,1  ]");  // true
+g.test("[  1, 1,1  ]"); // false
 ```

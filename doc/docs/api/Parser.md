@@ -4,17 +4,17 @@ Class (abstract base)
 
 | Property         | Type                                                         | Description                                                  |
 | ---------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| `defaultOptions` | `Partial<ParseOptions<Context>>`                             | Default parsing options. These are merged to the ones provided when calling one of the following method. |
-| `parse`          | `(input: string, options?: Partial<ParseOptions<Context>>) => Result<Value, Context>` | Parses `input` and builds a `Result` object                  |
-| `test`           | `(input: string, options?: Partial<ParseOptions<Context>>) => boolean` | Wrapper around `parse`. Returns the `Result` object's `success` field. |
-| `value`          | `(input: string, options?: Partial<ParseOptions<Context>>) => Value` | Wrapper around `parse`. Returns the `Result` object's `value` field in case of success. Throws an `Error` on failure. |
-| `children`       | `(input: string, options?: Partial<ParseOptions<Context>>) => any[]` | Wrapper around `parse`. Returns the `Result` object's `children` field in case of success. Throws an `Error` on failure. |
+| `defaultOptions` | `Partial<Options<Context>>`                             | Default parsing options. These are merged to the ones provided when calling one of the following method. |
+| `parse`          | `(input: string, options?: Partial<Options<Context>>) => Result<Value, Context>` | Parses `input` and builds a `Result` object                  |
+| `test`           | `(input: string, options?: Partial<Options<Context>>) => boolean` | Wrapper around `parse`. Returns the `Result` object's `success` field. |
+| `value`          | `(input: string, options?: Partial<Options<Context>>) => Value` | Wrapper around `parse`. Returns the `Result` object's `value` field in case of success. Throws an `Error` on failure. |
+| `children`       | `(input: string, options?: Partial<Options<Context>>) => any[]` | Wrapper around `parse`. Returns the `Result` object's `children` field in case of success. Throws an `Error` on failure. |
 
 All `Parser` **subclasses** share the following properties:
 
 | Property | Type                                                         | Description                                                  |
 | -------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| `exec`   | <code>(options: ParseOptions&lt;Context&gt;) => Match &vert; null</code> | Invokes the parser. Returns a `Match` on success and `null` on failure. |
+| `exec`   | <code>(options: Options&lt;Context&gt;) => Match &vert; null</code> | Invokes the parser. Returns a `Match` on success and `null` on failure. |
 
 #### `LiteralParser`
 

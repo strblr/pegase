@@ -7,7 +7,7 @@ Next, import the template literal tag that will become your new best friend and 
 ```js
 import peg from "pegase";
 
-const parser = peg`your pegase expression`;
+const parser = peg`your peg expression`;
 ```
 
 What about a parser that recognizes a binary digit ? That's a simple alternative:
@@ -26,13 +26,13 @@ if (bit.test("1"))
 What about an array of bits like `[0, 1, 1, 0, 1]` ?
 
 ```js
-const bitArray = peg`'[' (0 | 1) % ',' ']'`
+const bitArray = peg`'[' (0 | 1) % ',' ']'`;
 ```
 
 The `%` operator can be read as "separated by". Let's test it:
 
 ```js
-if (bitArray.test(" [ 0,1 ,0  ,  1, 1]  "))
+if (bitArray.test(" [ 0,1,    1 ,0 , 1 ]  "))
   console.log("It's a match!");
 ```
 
@@ -52,9 +52,9 @@ We have two rules: `bitArray` and `bit`. A collection of rules is called a **gra
 Testing it:
 
 ```js
-nestedBitArray.test("[[0]"); // false
+nestedBitArray.test("[[0]");          // false
 nestedBitArray.test("[ [1, 0], 1] "); // true
-nestedBitArray.test(" [0, [[0] ]]"); // true
+nestedBitArray.test(" [0, [[0] ]]");  // true
 ```
 
 If we already defined `bit` as a JS variable, we're not obligated to redefine it as a rule. We can simply inject it as a tag argument:
@@ -83,3 +83,61 @@ This will output:
 > 1 | [[0]
     |     ^
 ```
+
+What we are going to do next is collecting the bits we matched in an array. Every parser and subparser has the ability to *emit* values on success. These values are called `children` and can be processed in parent parsers, which in turn emit `children`, etc. You can think of `children` as Pegase's version of [synthesized attributes](https://en.wikipedia.org/wiki/Attribute_grammar#Synthesized_attributes), values that bubble from bottom to top.
+
+Back to the grammar. By writing `"0"` instead of `0` or `'0'`, it will emit the matched substring as a single child (same for `1`):
+
+```ts
+const bit = peg`"0" | "1"`;
+bit.parse("1").children; // ["1"]
+```
+
+Or directly:
+
+```ts
+bit.children("1"); // ["1"]
+```
+
+`children` are automatically concatenated in case of sequence and repetition:
+
+```ts
+const bitArray = peg`'[' ("0" | "1") % ',' ']'`;
+bitArray.children("[0, 1, 1, 0, 1]"); // ["0", "1", "1", "0", "1"]
+```
+
+You can wrap any peg expression in functions inserted via tag argument. These functions are called *semantic actions*. Actions can, among many other things, read their subparser's `children`, and process them. Let's wrap our entire expression in an action and `console.log` the `children` from there:
+
+```ts
+import peg, { $children } from "pegase";
+
+const bitArray = peg`
+  '[' ("0" | "1") % ',' ']' ${() => console.log($children())}
+`;
+
+bitArray.parse("[0, 1, 1, 0, 1]"); // console.log: ["0", "1", "1", "0", "1"]
+```
+
+If we return a value in our semantic action, it will be emitted as a single child in replacement of the previous `children`. Let's use this to sum our bits:
+
+```ts
+const bitArray = peg`
+  '[' ("0" | "1") % ',' ']' ${() => $children().reduce((a, b) => a + Number(b), 0)}
+`;
+
+bitArray.children("[0, 1, 1, 0, 1]"); // [3]
+```
+
+When a parser emits a single child, that child is said to be the `value` of the parser:
+
+```ts
+bitArray.value("[0, 1, 1, 0, 1]"); // 3
+```
+
+Some behaviors are so commonly used that they are abstracted away in reusable bricks called *directives*. Similarly to semantic actions, un directive wraps a parser and produces another parser. Here is an example of a standard directive, `@reverse`, that... well, reverses the `children`:
+
+```ts
+const bitArray = peg`'[' ("0" | "1") % ',' ']' @reverse`;
+bitArray.children("[0, 1, 1, 0, 1]"); // ["1", "0", "1", "1", "0"]
+```
+

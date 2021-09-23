@@ -8,7 +8,7 @@ Hooks are functions that can be called from semantic actions and visitor callbac
 | `$captures` | `() => Map<string, any>`                                     | Semantic actions, visitors | Returns the captures produced by the current match           |
 | `$value`    | `() => any`                                                  | Semantic actions, visitors | Returns the value (i.e. the single child) produced by the current match. This is `undefined` if there is no child, or multiple children. |
 | `$raw`      | `() => string`                                               | Semantic actions, visitors | Returns the substring of the current match                   |
-| `$options`  | `() => ParseOptions`                                         | Semantic actions, visitors | Returns the current parse options                            |
+| `$options`  | `() => Options`                                         | Semantic actions, visitors | Returns the current parse options                            |
 | `$context`  | `() => any`                                                  | Semantic actions, visitors | Returns the parse context. Shortcut for `$options().context`. |
 | `$warn`     | `(message: string) => void`                                  | Semantic actions, visitors | Emits a warning at the current match's start location        |
 | `$fail`     | `(message: string) => void`                                  | Semantic actions, visitors | Emits a semantic failure at the current match's start location. In semantic actions, this failure is only a *candidate* (see [Failures and warnings](#failures-and-warnings)). |
@@ -16,4 +16,4 @@ Hooks are functions that can be called from semantic actions and visitor callbac
 | `$commit`   | `() => void`                                                 | Semantic actions           | Flushes the current farthest failure to the final failure output (see [Error recovery](#error-recovery)) |
 | `$emit`     | `(children: any[]) => void`                                  | Semantic actions, visitors | In semantic actions, emits the given children. In visitors, replaces `node.$match.children` where `node` is the current node. |
 | `$node`     | `(label: string, fields: Record<string, any>): Node`         | Semantic actions, visitors | Creates a `Node` with the given label, fields, and the current match |
-| `$visit`    | `(node: Node, options?: Partial<ParseOptions>, visitor?: Visitor) => any` | Visitors                   | Applies the current visitor (or `visitor` if the third argument is provided) to `node` and returns the result. New parse options can be merged to the current ones. |
+| `$visit`    | `(node: Node, options?: Partial<Options>, visitor?: Visitor) => any` | Visitors                   | Applies the current visitor (or `visitor` if the third argument is provided) to `node` and returns the result. New parse options can be merged to the current ones. |
