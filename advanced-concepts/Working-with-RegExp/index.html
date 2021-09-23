@@ -219,7 +219,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../quick-start/" class="md-nav__link">
+      <a href="../../Quick-start/" class="md-nav__link">
         Quick start
       </a>
     </li>
@@ -693,7 +693,7 @@ const minutes = peg`
   }}
 `;
 
-console.log(minutes.value(&quot;2:43&quot;)); // 163
+minutes.value(&quot;2:43&quot;); // 163
 </code></pre>
 <p>The <code>RegExp</code>'s <a href="https://github.com/tc39/proposal-regexp-named-groups">named capturing groups</a> (when supported by your environment) are transformed into regular Pegase captures:</p>
 <pre><code class="language-js">const date = /(?&lt;year&gt;\d{4})-(?&lt;month&gt;\d{2})-(?&lt;day&gt;\d{2})/;
@@ -701,7 +701,7 @@ const yearIs = peg`
   ${date} ${({ year }) =&gt; &quot;The year is &quot; + year}
 `;
 
-console.log(yearIs.value(&quot;2021-08-19&quot;)); // &quot;The year is 2021&quot;
+yearIs.value(&quot;2021-08-19&quot;); // &quot;The year is 2021&quot;
 </code></pre>
                 
               

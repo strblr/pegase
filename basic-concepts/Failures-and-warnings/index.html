@@ -71,7 +71,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#gvaluefoo-context" class="md-skip">
+        <a href="#gparseaeloggerprint" class="md-skip">
           Skip to content
         </a>
       
@@ -226,7 +226,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../quick-start/" class="md-nav__link">
+      <a href="../../Quick-start/" class="md-nav__link">
         Quick start
       </a>
     </li>
@@ -353,6 +353,20 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#gparseaeloggerprint" class="md-nav__link">
+    &gt; g.parse('ae').logger.print()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gparseaeloggerprint_1" class="md-nav__link">
+    &gt; g.parse("ae").logger.print()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#gvaluefoo-context" class="md-nav__link">
     g.value("foo", { context })
   </a>
@@ -362,6 +376,13 @@
         <li class="md-nav__item">
   <a href="#gparsebaz-context-loggerprint" class="md-nav__link">
     g.parse("baz", { context }).logger.print()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pparseclass-test-loggerprint" class="md-nav__link">
+    &gt; p.parse("class test {").logger.print()
   </a>
   
 </li>
@@ -736,6 +757,20 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#gparseaeloggerprint" class="md-nav__link">
+    &gt; g.parse('ae').logger.print()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gparseaeloggerprint_1" class="md-nav__link">
+    &gt; g.parse("ae").logger.print()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#gvaluefoo-context" class="md-nav__link">
     g.value("foo", { context })
   </a>
@@ -745,6 +780,13 @@
         <li class="md-nav__item">
   <a href="#gparsebaz-context-loggerprint" class="md-nav__link">
     g.parse("baz", { context }).logger.print()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pparseclass-test-loggerprint" class="md-nav__link">
+    &gt; p.parse("class test {").logger.print()
   </a>
   
 </li>
@@ -776,8 +818,8 @@
 </ul>
 <p>These are automatically emitted when a literal, a regexp or a token mismatched, or if a portion of the input matched where it should not have (cf. <em>negative predicates</em> (<code>!a</code>)).</p>
 <pre><code class="language-js">const g = peg`'a' ('b' | 'c' | 'd' @token(&quot;the awesome letter d&quot;) | ![b-e] .)`;
-console.log(g.parse('ae').logger.print());
 </code></pre>
+<h4 id="gparseaeloggerprint">&gt; <code>g.parse('ae').logger.print()</code></h4>
 <pre><code>(1:2) Failure: Expected &quot;b&quot;, &quot;c&quot;, the awesome letter d or mismatch of &quot;e&quot;
 
 &gt; 1 | ae
@@ -787,9 +829,8 @@ console.log(g.parse('ae').logger.print());
 <pre><code class="language-js">const g = peg`'a' ('b' | . ${() =&gt; {
   if (![&quot;c&quot;, &quot;d&quot;].includes($raw())) $expected([&quot;c&quot;, &quot;d&quot;]);
 }})`;
-
-console.log(g.parse(&quot;ae&quot;).logger.print());
 </code></pre>
+<h4 id="gparseaeloggerprint_1">&gt; <code>g.parse("ae").logger.print()</code></h4>
 <pre><code>(1:2) Failure: Expected &quot;b&quot;, &quot;c&quot; or &quot;d&quot;
 
 &gt; 1 | ae
@@ -834,9 +875,8 @@ const context = new Map([[&quot;foo&quot;, 42], [&quot;bar&quot;, 18]]);
 
   $identifier @raw: [a-zA-Z]+
 `;
-
-console.log(p.parse(&quot;class test {&quot;).logger.print());
 </code></pre>
+<h4 id="pparseclass-test-loggerprint">&gt; <code>p.parse("class test {").logger.print()</code></h4>
 <pre><code>(1:7) Warning: Class names should be capitalized
 
 &gt; 1 | class test {

@@ -11,7 +11,7 @@
       
       
       
-        <link rel="canonical" href="https://ostrebler.github.io/pegase/quick-start/">
+        <link rel="canonical" href="https://ostrebler.github.io/pegase/Quick-start/">
       
       <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.2.2, mkdocs-material-7.2.8">
@@ -686,7 +686,7 @@
 <p>Next, import the template literal tag that will become your new best friend and there you go, ready to write your first peg expression.</p>
 <pre><code class="language-js">import peg from &quot;pegase&quot;;
 
-const parser = peg`your pegase expression`;
+const parser = peg`your peg expression`;
 </code></pre>
 <p>What about a parser that recognizes a binary digit ? That's a simple alternative:</p>
 <pre><code class="language-js">const bit = peg`0 | 1`;
@@ -696,10 +696,10 @@ const parser = peg`your pegase expression`;
   console.log(&quot;It's a match!&quot;);
 </code></pre>
 <p>What about an array of bits like <code>[0, 1, 1, 0, 1]</code> ?</p>
-<pre><code class="language-js">const bitArray = peg`'[' (0 | 1) % ',' ']'`
+<pre><code class="language-js">const bitArray = peg`'[' (0 | 1) % ',' ']'`;
 </code></pre>
 <p>The <code>%</code> operator can be read as "separated by". Let's test it:</p>
-<pre><code class="language-js">if (bitArray.test(&quot; [ 0,1 ,0  ,  1, 1]  &quot;))
+<pre><code class="language-js">if (bitArray.test(&quot; [ 0,1,    1 ,0 , 1 ]  &quot;))
   console.log(&quot;It's a match!&quot;);
 </code></pre>
 <p>As you might have spotted, whitespaces are handled automatically by default (<a href="#handling-whitespaces">it can be changed</a>). The way this works is pretty simple: whitespace characters are parsed and discarded <strong>before every terminal parser</strong> (like <code>'['</code>, <code>1</code>, etc.). This process is called <strong>skipping</strong>. By default, every parser also adds an implicit "end of input" symbol (<code>$</code>) at the end of the peg expression, which is a terminal, thus the trailing space is skipped too and the whole string matches.</p>
@@ -711,9 +711,9 @@ const parser = peg`your pegase expression`;
 </code></pre>
 <p>We have two rules: <code>bitArray</code> and <code>bit</code>. A collection of rules is called a <strong>grammar</strong>. The generated parser, <code>nestedBitArray</code>, always points to the topmost rule, <code>bitArray</code> in this case.</p>
 <p>Testing it:</p>
-<pre><code class="language-js">nestedBitArray.test(&quot;[[0]&quot;); // false
+<pre><code class="language-js">nestedBitArray.test(&quot;[[0]&quot;);          // false
 nestedBitArray.test(&quot;[ [1, 0], 1] &quot;); // true
-nestedBitArray.test(&quot; [0, [[0] ]]&quot;); // true
+nestedBitArray.test(&quot; [0, [[0] ]]&quot;);  // true
 </code></pre>
 <p>If we already defined <code>bit</code> as a JS variable, we're not obligated to redefine it as a rule. We can simply inject it as a tag argument:</p>
 <pre><code class="language-js">const bit = peg`0 | 1`;
@@ -732,6 +732,41 @@ if(!result.success)
 
 &gt; 1 | [[0]
     |     ^
+</code></pre>
+<p>What we are going to do next is collecting the bits we matched in an array. Every parser and subparser has the ability to <em>emit</em> values on success. These values are called <code>children</code> and can be processed in parent parsers, which in turn emit <code>children</code>, etc. You can think of <code>children</code> as Pegase's version of <a href="https://en.wikipedia.org/wiki/Attribute_grammar#Synthesized_attributes">synthesized attributes</a>, values that bubble from bottom to top.</p>
+<p>Back to the grammar. By writing <code>"0"</code> instead of <code>0</code> or <code>'0'</code>, it will emit the matched substring as a single child (same for <code>1</code>):</p>
+<pre><code class="language-ts">const bit = peg`&quot;0&quot; | &quot;1&quot;`;
+bit.parse(&quot;1&quot;).children; // [&quot;1&quot;]
+</code></pre>
+<p>Or directly:</p>
+<pre><code class="language-ts">bit.children(&quot;1&quot;); // [&quot;1&quot;]
+</code></pre>
+<p><code>children</code> are automatically concatenated in case of sequence and repetition:</p>
+<pre><code class="language-ts">const bitArray = peg`'[' (&quot;0&quot; | &quot;1&quot;) % ',' ']'`;
+bitArray.children(&quot;[0, 1, 1, 0, 1]&quot;); // [&quot;0&quot;, &quot;1&quot;, &quot;1&quot;, &quot;0&quot;, &quot;1&quot;]
+</code></pre>
+<p>You can wrap any peg expression in functions inserted via tag argument. These functions are called <em>semantic actions</em>. Actions can, among many other things, read their subparser's <code>children</code>, and process them. Let's wrap our entire expression in an action and <code>console.log</code> the <code>children</code> from there:</p>
+<pre><code class="language-ts">import peg, { $children } from &quot;pegase&quot;;
+
+const bitArray = peg`
+  '[' (&quot;0&quot; | &quot;1&quot;) % ',' ']' ${() =&gt; console.log($children())}
+`;
+
+bitArray.parse(&quot;[0, 1, 1, 0, 1]&quot;); // console.log: [&quot;0&quot;, &quot;1&quot;, &quot;1&quot;, &quot;0&quot;, &quot;1&quot;]
+</code></pre>
+<p>If we return a value in our semantic action, it will be emitted as a single child in replacement of the previous <code>children</code>. Let's use this to sum our bits:</p>
+<pre><code class="language-ts">const bitArray = peg`
+  '[' (&quot;0&quot; | &quot;1&quot;) % ',' ']' ${() =&gt; $children().reduce((a, b) =&gt; a + Number(b), 0)}
+`;
+
+bitArray.children(&quot;[0, 1, 1, 0, 1]&quot;); // [3]
+</code></pre>
+<p>When a parser emits a single child, that child is said to be the <code>value</code> of the parser:</p>
+<pre><code class="language-ts">bitArray.value(&quot;[0, 1, 1, 0, 1]&quot;); // 3
+</code></pre>
+<p>Some behaviors are so commonly used that they are abstracted away in reusable bricks called <em>directives</em>. Similarly to semantic actions, un directive wraps a parser and produces another parser. Here is an example of a standard directive, <code>@reverse</code>, that... well, reverses the <code>children</code>:</p>
+<pre><code class="language-ts">const bitArray = peg`'[' (&quot;0&quot; | &quot;1&quot;) % ',' ']' @reverse`;
+bitArray.children(&quot;[0, 1, 1, 0, 1]&quot;); // [&quot;1&quot;, &quot;0&quot;, &quot;1&quot;, &quot;1&quot;, &quot;0&quot;]
 </code></pre>
                 
               

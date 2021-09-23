@@ -219,7 +219,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../quick-start/" class="md-nav__link">
+      <a href="../../Quick-start/" class="md-nav__link">
         Quick start
       </a>
     </li>
@@ -698,17 +698,17 @@
 </ul>
 <p>In the following example, default options are used. Whitespaces are skipped before each <code>'a'</code> and before the implicit token <code>$</code> (set option <code>complete</code> to <code>false</code> to avoid having an implicit <code>$</code> at the end of your peg expression):</p>
 <pre><code class="language-js">const g = peg`'a'+`;
-console.log(g.test(&quot;  aa  a  a a   a  &quot;)); // true
+g.test(&quot;  aa  a  a a   a  &quot;); // true
 </code></pre>
 <p>Next, let's disable skipping entirely:</p>
 <pre><code class="language-js">const g = peg`'a'+`;
-console.log(g.test(&quot;  aa  a  a a   a  &quot;, { skip: false })); // false
-console.log(g.test(&quot;aaaaaa&quot;, { skip: false }));             // true
+g.test(&quot;  aa  a  a a   a  &quot;, { skip: false }); // false
+g.test(&quot;aaaaaa&quot;, { skip: false });             // true
 </code></pre>
 <p>You can toggle skipping for specific parts of your peg expression by using the <code>@skip</code> and/or <code>@noskip</code> directives:</p>
 <pre><code class="language-js">const g = peg`('a'+ @noskip) 'b'`;
-console.log(g.test(&quot;  aa  a  a a   a  b&quot;)); // false
-console.log(g.test(&quot;aaaaaaa   b&quot;));         // true
+g.test(&quot;  aa  a  a a   a  b&quot;); // false
+g.test(&quot;aaaaaaa   b&quot;);         // true
 </code></pre>
 <p><strong>If none of these options suits your needs, you can use explicit whitespaces and disable auto-skipping once and for all:</strong></p>
 <pre><code class="language-js">const g = peg`
@@ -718,9 +718,9 @@ console.log(g.test(&quot;aaaaaaa   b&quot;));         // true
 
 g.defaultOptions.skip = false;
 
-console.log(g.test(&quot;[1,1,1]&quot;));      // false
-console.log(g.test(&quot;[  1,1,1  ]&quot;));  // true
-console.log(g.test(&quot;[  1, 1,1  ]&quot;)); // false
+g.test(&quot;[1,1,1]&quot;);      // false
+g.test(&quot;[  1,1,1  ]&quot;);  // true
+g.test(&quot;[  1, 1,1  ]&quot;); // false
 </code></pre>
                 
               

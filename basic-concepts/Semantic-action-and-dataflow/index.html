@@ -219,7 +219,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../quick-start/" class="md-nav__link">
+      <a href="../../Quick-start/" class="md-nav__link">
         Quick start
       </a>
     </li>
@@ -704,8 +704,8 @@
 <p>Now <code>children</code> are emitted and propagated during the parsing process:</p>
 <p><img alt="Parse tree" src="https://raw.githubusercontent.com/ostrebler/pegase/master/img/dataflow-2.png" /></p>
 <p>Indeed:</p>
-<pre><code class="language-js">console.log(prefix.parse(&quot;+ 5 * 2 6&quot;).children); // [&quot;+&quot;, &quot;5&quot;, &quot;*&quot;, &quot;2&quot;, &quot;6&quot;]
-console.log(prefix.children(&quot;+ 5 * 2 6&quot;));       // [&quot;+&quot;, &quot;5&quot;, &quot;*&quot;, &quot;2&quot;, &quot;6&quot;]
+<pre><code class="language-js">prefix.parse(&quot;+ 5 * 2 6&quot;).children; // [&quot;+&quot;, &quot;5&quot;, &quot;*&quot;, &quot;2&quot;, &quot;6&quot;]
+prefix.children(&quot;+ 5 * 2 6&quot;);       // [&quot;+&quot;, &quot;5&quot;, &quot;*&quot;, &quot;2&quot;, &quot;6&quot;]
 </code></pre>
 <p>That can already be pretty useful, but what you usually want to do is to process these <code>children</code> in certain ways at strategic steps during parse time in order to incrementally build your desired output. This is where <em>semantic actions</em> come into play.</p>
 <p><strong>A semantic action wraps around a <code>Parser</code> and calls a callback on success. If it returns <code>undefined</code>, children will be forwarded. Any other return value will be emitted as a single child.</strong></p>
@@ -728,11 +728,11 @@ const prefix = peg`
 <p>Recursively, this process will transform the entire input from prefix to postfix:</p>
 <p><img alt="Parse tree" src="https://raw.githubusercontent.com/ostrebler/pegase/master/img/dataflow-3.png" /></p>
 <p>Let's test this:</p>
-<pre><code class="language-js">console.log(prefix.children(&quot;+ 5 * 2 6&quot;)); // [&quot;5 2 6 * +&quot;]
+<pre><code class="language-js">prefix.children(&quot;+ 5 * 2 6&quot;); // [&quot;5 2 6 * +&quot;]
 </code></pre>
 <p><strong>When a <code>Parser</code> emits only a single child, it's called the <em>value</em> of that <code>Parser</code>.</strong></p>
-<pre><code class="language-js">console.log(prefix.parse(&quot;+ 5 * 2 6&quot;).value); // &quot;5 2 6 * +&quot;
-console.log(prefix.value(&quot;+ 5 * 2 6&quot;));       // &quot;5 2 6 * +&quot;
+<pre><code class="language-js">prefix.parse(&quot;+ 5 * 2 6&quot;).value; // &quot;5 2 6 * +&quot;
+prefix.value(&quot;+ 5 * 2 6&quot;);       // &quot;5 2 6 * +&quot;
 </code></pre>
 <p><code>value</code> is <code>undefined</code> if there is no child, or multiple children. You can quickly convince yourself that the <code>prefix</code> grammar can only ever return one child. Thus, except in case of a parse failure, there is always a <code>value</code> to be read from <code>prefix</code>. A well designed peg expression should always have easily predictable <code>children</code> for itself and all its nested parser parts. A quick glimpse at a grammar should always give you a good general picture of the dataflow. In most cases, a good design choice is to ensure that non-terminals always emit only up to one child but that's ultimately up to you.</p>
 <p>Great, but at the end of the day <code>children</code> are just unlabeled propagated values. Sometimes that's what you want (typically when you're parsing list-ish data: a list of phone numbers, a list of operators and operands, a list of arguments to a function, etc.), but very often in semantic actions, you want to be able to grab a specific parser's value by name. This is where <em>captures</em> will come in handy.</p>

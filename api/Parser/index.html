@@ -224,7 +224,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../quick-start/" class="md-nav__link">
+      <a href="../../Quick-start/" class="md-nav__link">
         Quick start
       </a>
     </li>
@@ -787,27 +787,27 @@
 <tbody>
 <tr>
 <td><code>defaultOptions</code></td>
-<td><code>Partial&lt;ParseOptions&lt;Context&gt;&gt;</code></td>
+<td><code>Partial&lt;Options&lt;Context&gt;&gt;</code></td>
 <td>Default parsing options. These are merged to the ones provided when calling one of the following method.</td>
 </tr>
 <tr>
 <td><code>parse</code></td>
-<td><code>(input: string, options?: Partial&lt;ParseOptions&lt;Context&gt;&gt;) =&gt; Result&lt;Value, Context&gt;</code></td>
+<td><code>(input: string, options?: Partial&lt;Options&lt;Context&gt;&gt;) =&gt; Result&lt;Value, Context&gt;</code></td>
 <td>Parses <code>input</code> and builds a <code>Result</code> object</td>
 </tr>
 <tr>
 <td><code>test</code></td>
-<td><code>(input: string, options?: Partial&lt;ParseOptions&lt;Context&gt;&gt;) =&gt; boolean</code></td>
+<td><code>(input: string, options?: Partial&lt;Options&lt;Context&gt;&gt;) =&gt; boolean</code></td>
 <td>Wrapper around <code>parse</code>. Returns the <code>Result</code> object's <code>success</code> field.</td>
 </tr>
 <tr>
 <td><code>value</code></td>
-<td><code>(input: string, options?: Partial&lt;ParseOptions&lt;Context&gt;&gt;) =&gt; Value</code></td>
+<td><code>(input: string, options?: Partial&lt;Options&lt;Context&gt;&gt;) =&gt; Value</code></td>
 <td>Wrapper around <code>parse</code>. Returns the <code>Result</code> object's <code>value</code> field in case of success. Throws an <code>Error</code> on failure.</td>
 </tr>
 <tr>
 <td><code>children</code></td>
-<td><code>(input: string, options?: Partial&lt;ParseOptions&lt;Context&gt;&gt;) =&gt; any[]</code></td>
+<td><code>(input: string, options?: Partial&lt;Options&lt;Context&gt;&gt;) =&gt; any[]</code></td>
 <td>Wrapper around <code>parse</code>. Returns the <code>Result</code> object's <code>children</code> field in case of success. Throws an <code>Error</code> on failure.</td>
 </tr>
 </tbody>
@@ -824,7 +824,7 @@
 <tbody>
 <tr>
 <td><code>exec</code></td>
-<td><code>(options: ParseOptions&lt;Context&gt;) =&gt; Match &vert; null</code></td>
+<td><code>(options: Options&lt;Context&gt;) =&gt; Match &vert; null</code></td>
 <td>Invokes the parser. Returns a <code>Match</code> on success and <code>null</code> on failure.</td>
 </tr>
 </tbody>

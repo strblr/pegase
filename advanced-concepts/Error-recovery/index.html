@@ -70,6 +70,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#gparse1-0-1-3-0-1-2-1loggerprint" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -219,7 +224,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../quick-start/" class="md-nav__link">
+      <a href="../../Quick-start/" class="md-nav__link">
         Quick start
       </a>
     </li>
@@ -438,9 +443,37 @@
       
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Error recovery
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         Error recovery
       </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#gparse1-0-1-3-0-1-2-1loggerprint" class="md-nav__link">
+    &gt; g.parse("[1, 0, 1, 3, 0, 1, 2, 1]").logger.print()
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -675,6 +708,36 @@
               </div>
             
             
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#gparse1-0-1-3-0-1-2-1loggerprint" class="md-nav__link">
+    &gt; g.parse("[1, 0, 1, 3, 0, 1, 2, 1]").logger.print()
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
           
           <div class="md-content" data-md-component="content">
             <article class="md-content__inner md-typeset">
@@ -694,13 +757,12 @@
 </ul>
 <p>Here is a grammar that parses an array of bits and tries to recover when a bit matching fails:</p>
 <pre><code class="language-ts">const g = peg`
-  bitArray: '[' (bit | (^ @commit) sync) % ',' ']'
+  bitArray: '[' (bit | sync) % ',' ']'
   bit: 0 | 1
-  sync: ...&amp;(',' | ']')
+  sync: (^ @commit) ...&amp;(',' | ']')
 `;
-
-console.log(g.parse(&quot;[1, 0, 1, 3, 0, 1, 2, 1]&quot;).logger.print());
 </code></pre>
+<h4 id="gparse1-0-1-3-0-1-2-1loggerprint">&gt; <code>g.parse("[1, 0, 1, 3, 0, 1, 2, 1]").logger.print()</code></h4>
 <pre><code>(1:11) Failure: Expected &quot;0&quot; or &quot;1&quot;
 
 &gt; 1 | [1, 0, 1, 3, 0, 1, 2, 1]

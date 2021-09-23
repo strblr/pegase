@@ -219,7 +219,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../quick-start/" class="md-nav__link">
+      <a href="../../Quick-start/" class="md-nav__link">
         Quick start
       </a>
     </li>
@@ -732,7 +732,7 @@
 </tr>
 <tr>
 <td><code>$options</code></td>
-<td><code>() =&gt; ParseOptions</code></td>
+<td><code>() =&gt; Options</code></td>
 <td>Semantic actions, visitors</td>
 <td>Returns the current parse options</td>
 </tr>
@@ -780,7 +780,7 @@
 </tr>
 <tr>
 <td><code>$visit</code></td>
-<td><code>(node: Node, options?: Partial&lt;ParseOptions&gt;, visitor?: Visitor) =&gt; any</code></td>
+<td><code>(node: Node, options?: Partial&lt;Options&gt;, visitor?: Visitor) =&gt; any</code></td>
 <td>Visitors</td>
 <td>Applies the current visitor (or <code>visitor</code> if the third argument is provided) to <code>node</code> and returns the result. New parse options can be merged to the current ones.</td>
 </tr>

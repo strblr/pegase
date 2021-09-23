@@ -70,6 +70,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#prefixparse-12-42-3-visit-sumvisitor-loggerprint" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -219,7 +224,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../quick-start/" class="md-nav__link">
+      <a href="../../Quick-start/" class="md-nav__link">
         Quick start
       </a>
     </li>
@@ -366,9 +371,37 @@
       
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          AST and visitors
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         AST and visitors
       </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prefixparse-12-42-3-visit-sumvisitor-loggerprint" class="md-nav__link">
+    &gt; prefix.parse("+ 12 + 42 3", { visit: sumVisitor }).logger.print()
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -675,6 +708,36 @@
               </div>
             
             
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prefixparse-12-42-3-visit-sumvisitor-loggerprint" class="md-nav__link">
+    &gt; prefix.parse("+ 12 + 42 3", { visit: sumVisitor }).logger.print()
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
           
           <div class="md-content" data-md-component="content">
             <article class="md-content__inner md-typeset">
@@ -811,11 +874,8 @@ prefix.value(&quot;+ 12 + 42 3&quot;, { visit: [doubleVisitor, sumVisitor] }); /
   },
   PLUS: node =&gt; $visit(node.a) + $visit(node.b)
 };
-
-console.log(
-  prefix.parse(&quot;+ 12 + 42 3&quot;, { visit: sumVisitor }).logger.print()
-);
 </code></pre>
+<h4 id="prefixparse-12-42-3-visit-sumvisitor-loggerprint">&gt; <code>prefix.parse("+ 12 + 42 3", { visit: sumVisitor }).logger.print()</code></h4>
 <pre><code>(1:8) Warning: 42 is too powerful
 
 &gt; 1 | + 12 + 42 3

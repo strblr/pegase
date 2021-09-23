@@ -219,7 +219,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../quick-start/" class="md-nav__link">
+      <a href="../../Quick-start/" class="md-nav__link">
         Quick start
       </a>
     </li>
@@ -706,7 +706,7 @@
 </code></pre>
 <p>You get the idea.</p>
 <p>Every <code>Parser</code> subclass, the standard and your custom ones, <strong>must</strong> satisfy two constraints: 1) Inheriting from <code>Parser</code>, obviously, and 2) implementing an <code>exec</code> method with the following signature:</p>
-<pre><code class="language-ts">exec(options: ParseOptions&lt;Context&gt;): Match | null;
+<pre><code class="language-ts">exec(options: Options&lt;Context&gt;): Match | null;
 </code></pre>
 <p>The <code>exec</code> method will be called when the parser is <em>invoked</em>. It must return <code>null</code> on failure and a <code>Match</code> object on success with the following signature:</p>
 <pre><code class="language-ts">type Match = {
