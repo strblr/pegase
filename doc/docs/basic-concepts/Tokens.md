@@ -1,3 +1,8 @@
+---
+hide:
+  - toc
+---
+
 To understand the need for a token concept, let's take a look at a quick example. Let's try and write a grammar to match and extract a coma-separated integer list:
 
 ```js

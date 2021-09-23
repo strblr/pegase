@@ -79,6 +79,7 @@ value:
 | escapedMeta
 | regexLiteral
 
+
 # Tokens:
 
 identifier @token('identifier'):

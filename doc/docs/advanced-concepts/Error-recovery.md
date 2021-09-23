@@ -1,3 +1,8 @@
+---
+hide:
+  - toc
+---
+
 Sometimes you may need to keep parsing even after encountering what would otherwise be a fatal input error. This is the case in various compilers to report as many errors and warnings as possible in a single pass. It's also common practice in most advanced code editors in order to provide correct syntax highlighting and autocompletion even when you're not done typing.
 
 The way Pegase works without error recovery is described in [Basic concepts > Failures and warnings](#failures-and-warnings): failures may be an instruction to backtrack or the sign of an actual input error. That's why emitted failures are not directly collected into an array, they are emitted as *candidates* and sorted out using the farthest failure heuristic. The general idea of error recovery is to *commit* the current farthest failure to the final failures array, and resume parsing after *skipping* the erroneous input section. Here is how it's done with Pegase:
