@@ -53,9 +53,9 @@ export type Node = {
 export type Visitor<Value = any> = Record<string, (node: Node) => Value>;
 
 export type Hooks = {
-  $from(): Match["from"];
-  $to(): Match["to"];
-  $children(): Match["children"];
+  $from(): Location;
+  $to(): Location;
+  $children(): any[];
   $value(): any;
   $raw(): string;
   $options(): Options;
@@ -64,7 +64,7 @@ export type Hooks = {
   $fail(message: string): void;
   $expected(expected: UncastArray<string | RegExp | Expectation>): void;
   $commit(): void;
-  $emit(children: Match["children"]): void;
+  $emit(children: any[]): void;
   $node(label: string, fields: Record<string, any>): Node;
   $visit(node: Node, options?: Partial<Options>, visitor?: Visitor): any;
 };
