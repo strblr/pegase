@@ -522,7 +522,8 @@ export class ActionParser extends Parser {
       },
       $node: (label, fields) => ({
         $label: label,
-        $match: match,
+        $from: match.from,
+        $to: match.to,
         ...fields
       }),
       $visit() {

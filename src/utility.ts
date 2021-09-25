@@ -187,12 +187,17 @@ export function applyVisitor<Value, Context>(
   options: Options<Context>
 ) {
   let value,
-    { from, to } = node.$match;
+    from = node.$from,
+    to = node.$to;
   hooks.push({
     $from: () => from,
     $to: () => to,
-    $children: () => node.$match.children,
-    $value: () => inferValue(node.$match.children),
+    $children() {
+      throw new Error("The $children hook is not available in visitors");
+    },
+    $value() {
+      throw new Error("The $value hook is not available in visitors");
+    },
     $raw: () => options.input.substring(from.index, to.index),
     $options: () => options,
     $context: () => options.context,
@@ -210,12 +215,13 @@ export function applyVisitor<Value, Context>(
     $commit() {
       throw new Error("The $commit hook is not available in visitors");
     },
-    $emit(children) {
-      node.$match.children = children;
+    $emit() {
+      throw new Error("The $emit hook is not available in visitors");
     },
     $node: (label, fields) => ({
       $label: label,
-      $match: node.$match,
+      $from: from,
+      $to: to,
       ...fields
     }),
     $visit: (node, opts, nextVisitor = visitor) =>

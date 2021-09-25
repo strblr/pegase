@@ -46,7 +46,8 @@ export type SemanticAction<Value = any> = (
 
 export type Node = {
   $label: string;
-  $match: Match;
+  $from: Location;
+  $to: Location;
   [field: string]: any;
 };
 
