@@ -741,7 +741,7 @@ prefix.value(&quot;+ 5 * 2 6&quot;);       // &quot;5 2 6 * +&quot;
 <ul>
 <li>If <code>a</code> is a non-terminal <code>id</code> and you want to bind its value to its own name, you can simply write <code>&lt;&gt;id</code> (equivalent to <code>&lt;id&gt;id</code>).</li>
 <li>Captures are propagated and accumulated upwards just like <code>children</code>, but are stopped at non-terminals. I.e. <code>'[' &lt;id&gt;rule ']'</code> will just capture <code>id</code>, but not forward the sub-captures done inside <code>rule</code>.</li>
-<li>There are two ways to read captures inside a semantic action: Either as a plain object via its first and unique argument, or as a <code>Map</code> by calling the <code>$captures</code> hook.</li>
+<li>Captures are passed as a semantic action's first and unique argument.</li>
 </ul>
 <p>Taking this into consideration, our prefix-to-postfix converter can be rewritten in a slightly nicer way:</p>
 <pre><code class="language-js">const prefix = peg`
