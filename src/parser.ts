@@ -77,6 +77,7 @@ export abstract class Parser<Value = any, Context = any> {
       cut: { current: false },
       captures: {},
       logger,
+      log: true,
       ...this.defaultOptions,
       ...options
     };
@@ -132,12 +133,13 @@ export class LiteralParser extends Parser {
         to: options.logger.at(to),
         children: this.emit ? [raw] : []
       };
-    options.logger.hang({
-      from,
-      to: from,
-      type: FailureType.Expectation,
-      expected: [{ type: ExpectationType.Literal, literal: this.literal }]
-    });
+    options.log &&
+      options.logger.ffExpectation({
+        from,
+        to: from,
+        type: FailureType.Expectation,
+        expected: [{ type: ExpectationType.Literal, literal: this.literal }]
+      });
     return null;
   }
 }
@@ -170,12 +172,13 @@ export class RegexParser extends Parser {
         children: result.slice(1)
       };
     }
-    options.logger.hang({
-      from,
-      to: from,
-      type: FailureType.Expectation,
-      expected: [{ type: ExpectationType.RegExp, regex: this.regex }]
-    });
+    options.log &&
+      options.logger.ffExpectation({
+        from,
+        to: from,
+        type: FailureType.Expectation,
+        expected: [{ type: ExpectationType.RegExp, regex: this.regex }]
+      });
     return null;
   }
 }
@@ -332,17 +335,17 @@ export class TokenParser extends Parser {
     if (from === null) return null;
     options = { ...options, from, skip: false };
     if (!this.displayName) return this.parser.exec(options);
-    const match = this.parser.exec({
-      ...options,
-      logger: options.logger.create()
-    });
+    const match = this.parser.exec({ ...options, log: false });
     if (match) return match;
-    options.logger.hang({
-      from,
-      to: from,
-      type: FailureType.Expectation,
-      expected: [{ type: ExpectationType.Token, displayName: this.displayName }]
-    });
+    options.log &&
+      options.logger.ffExpectation({
+        from,
+        to: from,
+        type: FailureType.Expectation,
+        expected: [
+          { type: ExpectationType.Token, displayName: this.displayName }
+        ]
+      });
     return null;
   }
 }
@@ -399,7 +402,7 @@ export class PredicateParser extends Parser {
   exec(options: Options): Match | null {
     const match = this.parser.exec({
       ...options,
-      ...(!this.polarity && { logger: options.logger.create() })
+      ...(!this.polarity && { log: false })
     });
     const success = () => ({
       from: options.from,
@@ -407,8 +410,8 @@ export class PredicateParser extends Parser {
       children: []
     });
     if (this.polarity === Boolean(match)) return success();
-    if (match)
-      options.logger.hang({
+    if (match && options.log)
+      options.logger.ffExpectation({
         from: match.from,
         to: match.to,
         type: FailureType.Expectation,
@@ -471,7 +474,7 @@ export class ActionParser extends Parser {
   }
 
   exec(options: Options): Match | null {
-    const save = options.logger.fork();
+    const save = options.logger.save();
     const match = this.parser.exec(options);
     if (match === null) return null;
     let value, emit, failed;
@@ -484,6 +487,7 @@ export class ActionParser extends Parser {
       $options: () => options,
       $context: () => options.context,
       $warn: message =>
+        options.log &&
         options.logger.warn({
           from: match.from,
           to: match.to,
@@ -493,22 +497,24 @@ export class ActionParser extends Parser {
       $fail(message) {
         failed = true;
         options.logger.sync(save);
-        options.logger.hang({
-          from: match.from,
-          to: match.to,
-          type: FailureType.Semantic,
-          message
-        });
+        options.log &&
+          options.logger.ffSemantic({
+            from: match.from,
+            to: match.to,
+            type: FailureType.Semantic,
+            message
+          });
       },
       $expected(expected) {
         failed = true;
         options.logger.sync(save);
-        options.logger.hang({
-          from: match.from,
-          to: match.to,
-          type: FailureType.Expectation,
-          expected: castExpectation(castArray(expected))
-        });
+        options.log &&
+          options.logger.ffExpectation({
+            from: match.from,
+            to: match.to,
+            type: FailureType.Expectation,
+            expected: castExpectation(castArray(expected))
+          });
       },
       $commit: () => options.logger.commit(),
       $emit(children) {

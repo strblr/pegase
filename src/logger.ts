@@ -1,10 +1,12 @@
 import {
   Expectation,
+  ExpectationFailure,
   ExpectationType,
   Failure,
   FailureType,
   Location,
   LogPrintOptions,
+  SemanticFailure,
   Warning,
   WarningType
 } from ".";
@@ -66,16 +68,19 @@ export class Logger {
     this.failures.push(failure);
   }
 
-  hang(failure: Failure) {
+  ffSemantic(failure: SemanticFailure) {
+    if (!this.pending || failure.from.index >= this.pending.from.index)
+      this.pending = failure;
+  }
+
+  ffExpectation(failure: ExpectationFailure) {
     if (!this.pending || failure.from.index > this.pending.from.index)
       this.pending = failure;
-    else if (failure.from.index === this.pending.from.index)
-      if (failure.type === FailureType.Semantic) this.pending = failure;
-      else if (this.pending.type !== FailureType.Semantic)
-        this.pending = {
-          ...this.pending,
-          expected: [...this.pending.expected, ...failure.expected]
-        };
+    else if (
+      failure.from.index === this.pending.from.index &&
+      this.pending.type !== FailureType.Semantic
+    )
+      this.pending.expected.push(...failure.expected);
   }
 
   commit() {
@@ -85,30 +90,26 @@ export class Logger {
     }
   }
 
-  create(): Logger {
-    const clone = Object.create(Logger.prototype);
-    clone.warnings = [];
-    clone.failures = [];
-    clone.pending = null;
-    clone.input = this.input;
-    clone.indexes = this.indexes;
-    return clone;
+  save(): [Warning[], Failure[], Failure | null] {
+    return [
+      this.warnings.concat(),
+      this.failures.concat(),
+      this.pending &&
+        (this.pending.type === "SEMANTIC"
+          ? this.pending
+          : {
+              ...this.pending,
+              expected: this.pending.expected.concat()
+            })
+    ];
   }
 
-  fork(): Logger {
-    const clone = Object.create(Logger.prototype);
-    clone.warnings = this.warnings.concat();
-    clone.failures = this.failures.concat();
-    clone.pending = this.pending;
-    clone.input = this.input;
-    clone.indexes = this.indexes;
-    return clone;
-  }
-
-  sync(logger: Logger) {
-    this.warnings = logger.warnings;
-    this.failures = logger.failures;
-    this.pending = logger.pending;
+  sync([warnings, failures, pending]: ReturnType<
+    typeof Logger.prototype.save
+  >) {
+    this.warnings = warnings;
+    this.failures = failures;
+    this.pending = pending;
   }
 
   print(options?: Partial<LogPrintOptions>) {

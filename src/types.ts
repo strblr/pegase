@@ -33,6 +33,7 @@ export type Options<Context = any> = {
   cut: { current: boolean };
   captures: Record<string, any>;
   logger: Logger;
+  log: boolean;
 };
 
 export type Match = Range & {
