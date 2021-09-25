@@ -31,12 +31,12 @@ export type Options<Context = any> = {
   context: Context;
   visit: UncastArray<Visitor>;
   cut: { current: boolean };
+  captures: Record<string, any>;
   logger: Logger;
 };
 
 export type Match = Range & {
   children: any[];
-  captures: Map<string, any>;
 };
 
 export type SemanticAction<Value = any> = (
@@ -55,7 +55,6 @@ export type Hooks = {
   $from(): Match["from"];
   $to(): Match["to"];
   $children(): Match["children"];
-  $captures(): Match["captures"];
   $value(): any;
   $raw(): string;
   $options(): Options;

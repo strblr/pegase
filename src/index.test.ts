@@ -16,6 +16,7 @@ import peg, {
   SuccessResult,
   Visitor
 } from ".";
+import * as competitor from "./competitor.test";
 
 function echo(entity: any) {
   console.log(
@@ -424,6 +425,49 @@ test("Grammar fragments should work", () => {
   `;
   const g = merge(f1, f2);
   expect(g.test("abcdabcd")).toBe(true);
+});
+
+test("Benchmark between Pegase and competitor", () => {
+  const lowOp = (left: number, op: string, right: number) => {
+    switch (op) {
+      case "+":
+        return left + right;
+      case "-":
+        return left - right;
+    }
+  };
+
+  const highOp = (left: number, op: string, right: number) => {
+    switch (op) {
+      case "*":
+        return left * right;
+      case "/":
+        return left / right;
+    }
+  };
+
+  const calc = peg<number>`
+    expr: term % ("+" | "-") @infix(${lowOp})
+    term: fact % ("*" | "/") @infix(${highOp})
+    fact: '(' expr ')' | integer
+    $integer @number: [0-9]+
+  `;
+
+  const a = new Date();
+  for (let i = 0; i !== 5000; ++i) {
+    calc.parse("42");
+    calc.parse("42 +  63");
+    calc.parse("42 +  63 * (12 / 3)");
+  }
+  const b = new Date();
+  for (let i = 0; i !== 5000; ++i) {
+    competitor.parse("42");
+    competitor.parse("42 +  63");
+    competitor.parse("42 +  63 * (12 / 3)");
+  }
+  const c = new Date();
+  console.log(b.getTime() - a.getTime(), "ms");
+  console.log(c.getTime() - b.getTime(), "ms");
 });
 
 test("Math expressions should be correctly calculated", () => {

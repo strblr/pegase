@@ -6,6 +6,8 @@
   <img alt="pegase" src="https://ostrebler.github.io/pegase/assets/images/pegase.png">  
 </p>
 
+> ⚠️ This library is still under development. This is a pre-release but some functionalities might still change.
+
 [Pegase](https://ostrebler.github.io/pegase/) is a PEG parser generator for JavaScript and TypeScript. It's:
 
 - **_Inline_**, meaning grammars are directly expressed as [tagged template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates). No generation step, no CLI. Pegase works in symbiosis with JS.

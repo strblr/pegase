@@ -5,7 +5,6 @@ Hooks are functions that can be called from semantic actions and visitor callbac
 | `$from`     | `() => Location`                                             | Semantic actions, visitors | Returns the start location of the current match in the input (included) |
 | `$to`       | `() => Location`                                             | Semantic actions, visitors | Returns the end location of the current match in the input (excluded) |
 | `$children` | `() => any[]`                                                | Semantic actions, visitors | Returns the `children` produced by the current match         |
-| `$captures` | `() => Map<string, any>`                                     | Semantic actions, visitors | Returns the captures produced by the current match           |
 | `$value`    | `() => any`                                                  | Semantic actions, visitors | Returns the value (i.e. the single child) produced by the current match. This is `undefined` if there is no child, or multiple children. |
 | `$raw`      | `() => string`                                               | Semantic actions, visitors | Returns the substring of the current match                   |
 | `$options`  | `() => Options`                                         | Semantic actions, visitors | Returns the current parse options                            |

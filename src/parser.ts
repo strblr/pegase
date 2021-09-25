@@ -75,6 +75,7 @@ export abstract class Parser<Value = any, Context = any> {
       context: undefined as any,
       visit: [],
       cut: { current: false },
+      captures: {},
       logger,
       ...this.defaultOptions,
       ...options
@@ -129,8 +130,7 @@ export class LiteralParser extends Parser {
       return {
         from,
         to: options.logger.at(to),
-        children: this.emit ? [raw] : [],
-        captures: new Map()
+        children: this.emit ? [raw] : []
       };
     options.logger.hang({
       from,
@@ -162,13 +162,14 @@ export class RegexParser extends Parser {
     const regex = this[options.ignoreCase ? "uncased" : "cased"];
     regex.lastIndex = from.index;
     const result = regex.exec(options.input);
-    if (result !== null)
+    if (result !== null) {
+      if (result.groups) Object.assign(options.captures, result.groups);
       return {
         from,
         to: options.logger.at(from.index + result[0].length),
-        children: result.slice(1),
-        captures: new Map(result.groups ? Object.entries(result.groups) : [])
+        children: result.slice(1)
       };
+    }
     options.logger.hang({
       from,
       to: from,
@@ -192,6 +193,8 @@ export class NonTerminalParser extends Parser {
   }
 
   exec(options: Options): Match | null {
+    const captures = options.captures;
+    options.captures = {};
     let parser = (options.grammar as GrammarParser | undefined)?.rules.get(
       this.rule
     );
@@ -213,6 +216,7 @@ export class NonTerminalParser extends Parser {
         options
       });
     const match = parser.exec(options);
+    options.captures = captures;
     if (match === null) {
       options.trace &&
         options.tracer({
@@ -229,7 +233,7 @@ export class NonTerminalParser extends Parser {
         options,
         match
       });
-    return { ...match, captures: new Map() };
+    return match;
   }
 }
 
@@ -241,8 +245,7 @@ export class CutParser extends Parser {
     return {
       from: options.from,
       to: options.from,
-      children: [],
-      captures: new Map()
+      children: []
     };
   }
 }
@@ -290,8 +293,7 @@ export class SequenceParser extends Parser {
     return {
       from: matches[0].from,
       to: from,
-      children: matches.flatMap(match => match.children),
-      captures: new Map(matches.flatMap(match => [...match.captures]))
+      children: matches.flatMap(match => match.children)
     };
   }
 }
@@ -367,8 +369,7 @@ export class RepetitionParser extends Parser {
       ...(matches.length === 0
         ? { from: options.from, to: options.from }
         : { from: matches[0].from, to: matches[matches.length - 1].to }),
-      children: matches.flatMap(match => match.children),
-      captures: new Map(matches.flatMap(match => [...match.captures]))
+      children: matches.flatMap(match => match.children)
     });
     while (true) {
       if (counter === this.max) return success();
@@ -403,8 +404,7 @@ export class PredicateParser extends Parser {
     const success = () => ({
       from: options.from,
       to: options.from,
-      children: [],
-      captures: match ? match.captures : new Map()
+      children: []
     });
     if (this.polarity === Boolean(match)) return success();
     if (match)
@@ -453,13 +453,8 @@ export class CaptureParser extends Parser {
   exec(options: Options): Match | null {
     const match = this.parser.exec(options);
     if (match === null) return null;
-    return {
-      ...match,
-      captures: new Map(match.captures).set(
-        this.name,
-        inferValue(match.children)
-      )
-    };
+    options.captures[this.name] = inferValue(match.children);
+    return match;
   }
 }
 
@@ -484,7 +479,6 @@ export class ActionParser extends Parser {
       $from: () => match.from,
       $to: () => match.to,
       $children: () => match.children,
-      $captures: () => match.captures,
       $value: () => inferValue(match.children),
       $raw: () => options.input.substring(match.from.index, match.to.index),
       $options: () => options,
@@ -530,7 +524,7 @@ export class ActionParser extends Parser {
       }
     });
     try {
-      value = this.action(Object.fromEntries(match.captures));
+      value = this.action(options.captures);
     } catch (e) {
       hooks.pop();
       throw e;

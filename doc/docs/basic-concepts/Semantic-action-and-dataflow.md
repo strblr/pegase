@@ -93,7 +93,7 @@ Three things to keep in mind:
 
 - If `a` is a non-terminal `id` and you want to bind its value to its own name, you can simply write `<>id` (equivalent to `<id>id`).
 - Captures are propagated and accumulated upwards just like `children`, but are stopped at non-terminals. I.e. `'[' <id>rule ']'` will just capture `id`, but not forward the sub-captures done inside `rule`.
-- There are two ways to read captures inside a semantic action: Either as a plain object via its first and unique argument, or as a `Map` by calling the `$captures` hook.
+- Captures are passed as a semantic action's first and unique argument.
 
 Taking this into consideration, our prefix-to-postfix converter can be rewritten in a slightly nicer way:
 

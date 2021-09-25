@@ -36,7 +36,6 @@ export const hooks: Hooks[] = [];
 export const $from = hook("$from");
 export const $to = hook("$to");
 export const $children = hook("$children");
-export const $captures = hook("$captures");
 export const $value = hook("$value");
 export const $raw = hook("$raw");
 export const $options = hook("$options");
@@ -193,7 +192,6 @@ export function applyVisitor<Value, Context>(
     $from: () => from,
     $to: () => to,
     $children: () => node.$match.children,
-    $captures: () => node.$match.captures,
     $value: () => inferValue(node.$match.children),
     $raw: () => options.input.substring(from.index, to.index),
     $options: () => options,
