@@ -30,9 +30,8 @@ import {
  * | NonTerminalParser
  * | CutParser
  * | AlternativeParser
- * | SequenceParser
- * | GrammarParser
  * | TokenParser
+ * | SequenceParser
  * | RepetitionParser
  * | PredicateParser
  * | TweakParser
@@ -194,29 +193,15 @@ export class RegexParser extends Parser {
 
 export class NonTerminalParser extends Parser {
   readonly rule: string;
-  readonly fallback?: Parser;
+  parser?: Parser;
 
-  constructor(rule: string, fallback?: Parser) {
+  constructor(rule: string, parser?: Parser) {
     super();
     this.rule = rule;
-    this.fallback = fallback;
+    this.parser = parser;
   }
 
   exec(options: Options): Match | null {
-    let parser = (options.grammar as GrammarParser | undefined)?.rules.get(
-      this.rule
-    );
-    if (!parser)
-      if (
-        (parser = (this.fallback as GrammarParser | undefined)?.rules.get(
-          this.rule
-        ))
-      )
-        options = { ...options, grammar: this.fallback };
-      else
-        throw new Error(
-          `Couldn't resolve rule "${this.rule}", you can add it by merging grammars or via peg.extend`
-        );
     options.trace &&
       options.tracer({
         type: TraceEventType.Enter,
@@ -225,7 +210,7 @@ export class NonTerminalParser extends Parser {
       });
     const { captures } = options;
     options.captures = {};
-    const match = parser.exec(options);
+    const match = this.parser!.exec(options);
     options.captures = captures;
     if (match === null) {
       options.trace &&
@@ -283,27 +268,6 @@ export class AlternativeParser extends Parser {
     }
     options.cut = cut;
     return null;
-  }
-}
-
-// GrammarParser
-
-export class GrammarParser extends Parser {
-  readonly rules: Map<string, Parser>;
-  private readonly entry: Parser;
-
-  constructor(rules: [string, Parser][]) {
-    super();
-    this.rules = new Map(rules);
-    this.entry = new NonTerminalParser(rules[0][0]);
-  }
-
-  exec(options: Options): Match | null {
-    const { grammar } = options;
-    options.grammar = this;
-    const match = this.entry.exec(options);
-    options.grammar = grammar;
-    return match;
   }
 }
 

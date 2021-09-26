@@ -6,7 +6,6 @@ import {
   Expectation,
   ExpectationType,
   FailureType,
-  GrammarParser,
   Hooks,
   LiteralParser,
   Node,
@@ -94,12 +93,15 @@ export function skip(options: Options) {
   return match && match.to;
 }
 
-// resolveFallback
+// resolveRule
 
-export function resolveFallback(plugins: Plugin[], rule: string) {
-  return plugins.find(plugin =>
-    (plugin.grammar as GrammarParser | undefined)?.rules?.get(rule)
-  )?.grammar;
+export function resolveRule(plugins: Plugin[], rule: string) {
+  const plugin = plugins.find(
+    plugin =>
+      plugin.resolve &&
+      Object.prototype.hasOwnProperty.call(plugin.resolve, rule)
+  );
+  return plugin?.resolve?.[rule];
 }
 
 // resolveCast
@@ -157,28 +159,6 @@ export function modulo(
   return new SequenceParser([
     item,
     new RepetitionParser(new SequenceParser([separator, item]), repetitionRange)
-  ]);
-}
-
-// merge
-
-export function merge<Value = any, Context = any>(
-  grammar: Parser<Value, Context>,
-  ...grammars: Parser[]
-): Parser<Value, Context> {
-  return new GrammarParser([
-    ...[grammar, ...grammars]
-      .reduce((acc, parser) => {
-        if (!(parser instanceof GrammarParser))
-          throw new Error("You can only merge grammar parsers");
-        for (const rule of parser.rules.keys())
-          if (acc.has(rule))
-            throw new Error(
-              `Conflicting declaration of rule "${rule}" in grammar merging`
-            );
-        return new Map([...acc, ...parser.rules]);
-      }, new Map<string, Parser>())
-      .entries()
   ]);
 }
 

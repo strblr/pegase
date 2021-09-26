@@ -1,17 +1,18 @@
-import { Logger, Parser } from ".";
+import { Logger, NonTerminalParser, Parser } from ".";
 
 // Related to parser generation
 
 export type MetaContext = {
   plugins: Plugin[];
   args: any[];
+  refs: NonTerminalParser[];
 };
 
 export type Plugin = {
   name?: string;
-  grammar?: Parser;
   castParser?(arg: any): Parser | undefined;
   directives?: Record<string, Directive>;
+  resolve?: Record<string, Parser>;
 };
 
 export type Directive = (parser: Parser, ...args: any[]) => Parser;
@@ -21,7 +22,6 @@ export type Directive = (parser: Parser, ...args: any[]) => Parser;
 export type Options<Context = any> = {
   input: string;
   from: Location;
-  grammar?: Parser;
   complete: boolean;
   skipper: Parser<any, Context>;
   skip: boolean;

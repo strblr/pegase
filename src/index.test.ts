@@ -11,7 +11,6 @@ import peg, {
   ActionParser,
   createTag,
   LiteralParser,
-  merge,
   RegexParser,
   SuccessResult,
   Visitor
@@ -138,7 +137,7 @@ test("Captures should work", () => {
   }
 });
 
-test("Modulos in grammars should work", () => {
+test("The modulo operator should work", () => {
   const i = (n: number) => [..."1".repeat(n)];
 
   const g1 = peg`"1" % ','`;
@@ -412,19 +411,6 @@ test("Hooks should work correctly", () => {
 > 1 | 00
     | ^
 `);
-});
-
-test("Grammar fragments should work", () => {
-  const f1 = peg`
-    a: "a" b
-    b: "b" c
-  `;
-  const f2 = peg`
-    c: "c" d
-    d: "d" a?
-  `;
-  const g = merge(f1, f2);
-  expect(g.test("abcdabcd")).toBe(true);
 });
 
 test("Benchmark between Pegase and competitor", () => {
