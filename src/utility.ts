@@ -87,7 +87,10 @@ export function castExpectation(
 
 export function skip(options: Options) {
   if (!options.skip) return options.from;
-  const match = options.skipper.exec({ ...options, skip: false });
+  const { skip } = options;
+  options.skip = false;
+  const match = options.skipper.exec(options);
+  options.skip = skip;
   return match && match.to;
 }
 

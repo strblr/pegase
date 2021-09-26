@@ -30,7 +30,7 @@ export type Options<Context = any> = {
   trace: boolean;
   context: Context;
   visit: UncastArray<Visitor>;
-  cut: { current: boolean };
+  cut: boolean;
   captures: Record<string, any>;
   logger: Logger;
   log: boolean;
@@ -163,7 +163,8 @@ export type TokenExpectation = {
 
 export type MismatchExpectation = {
   type: ExpectationType.Mismatch;
-  match: Match;
+  from: Location;
+  to: Location;
 };
 
 export type CustomExpectation = {

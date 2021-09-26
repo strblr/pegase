@@ -90,26 +90,25 @@ export class Logger {
     }
   }
 
-  save(): [Warning[], Failure[], Failure | null] {
-    return [
-      this.warnings.concat(),
-      this.failures.concat(),
-      this.pending &&
+  save() {
+    return {
+      warnings: this.warnings.concat(),
+      failures: this.failures.concat(),
+      pending:
+        this.pending &&
         (this.pending.type === "SEMANTIC"
           ? this.pending
           : {
               ...this.pending,
               expected: this.pending.expected.concat()
             })
-    ];
+    };
   }
 
-  sync([warnings, failures, pending]: ReturnType<
-    typeof Logger.prototype.save
-  >) {
-    this.warnings = warnings;
-    this.failures = failures;
-    this.pending = pending;
+  sync(save: ReturnType<typeof Logger.prototype.save>) {
+    this.warnings = save.warnings;
+    this.failures = save.failures;
+    this.pending = save.pending;
   }
 
   print(options?: Partial<LogPrintOptions>) {
@@ -153,8 +152,8 @@ export class Logger {
           return expectation.displayName;
         case ExpectationType.Mismatch:
           return `mismatch of "${this.input.substring(
-            expectation.match.from.index,
-            expectation.match.to.index
+            expectation.from.index,
+            expectation.to.index
           )}"`;
         case ExpectationType.Custom:
           return expectation.display;

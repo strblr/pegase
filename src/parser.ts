@@ -7,13 +7,16 @@ import {
   FailureType,
   hooks,
   inferValue,
+  LiteralExpectation,
   Logger,
   Match,
   Options,
+  RegexExpectation,
   Result,
   ResultCommon,
   SemanticAction,
   skip,
+  TokenExpectation,
   TraceEventType,
   Tracer,
   WarningType
@@ -74,7 +77,7 @@ export abstract class Parser<Value = any, Context = any> {
       trace: false,
       context: undefined as any,
       visit: [],
-      cut: { current: false },
+      cut: false,
       captures: {},
       logger,
       log: true,
@@ -110,13 +113,15 @@ export abstract class Parser<Value = any, Context = any> {
 // LiteralParser
 
 export class LiteralParser extends Parser {
-  literal: string;
-  emit: boolean;
+  readonly literal: string;
+  readonly emit: boolean;
+  private readonly expected: LiteralExpectation;
 
   constructor(literal: string, emit: boolean = false) {
     super();
     this.literal = literal;
     this.emit = emit;
+    this.expected = { type: ExpectationType.Literal, literal };
   }
 
   exec(options: Options): Match | null {
@@ -138,7 +143,7 @@ export class LiteralParser extends Parser {
         from,
         to: from,
         type: FailureType.Expectation,
-        expected: [{ type: ExpectationType.Literal, literal: this.literal }]
+        expected: [this.expected]
       });
     return null;
   }
@@ -147,15 +152,17 @@ export class LiteralParser extends Parser {
 // RegexParser
 
 export class RegexParser extends Parser {
-  regex: RegExp;
-  cased: RegExp;
-  uncased: RegExp;
+  readonly regex: RegExp;
+  private readonly cased: RegExp;
+  private readonly uncased: RegExp;
+  private readonly expected: RegexExpectation;
 
   constructor(regex: RegExp) {
     super();
     this.regex = regex;
     this.cased = extendFlags(regex, "y");
     this.uncased = extendFlags(regex, "iy");
+    this.expected = { type: ExpectationType.RegExp, regex };
   }
 
   exec(options: Options): Match | null {
@@ -177,7 +184,7 @@ export class RegexParser extends Parser {
         from,
         to: from,
         type: FailureType.Expectation,
-        expected: [{ type: ExpectationType.RegExp, regex: this.regex }]
+        expected: [this.expected]
       });
     return null;
   }
@@ -186,8 +193,8 @@ export class RegexParser extends Parser {
 // NonTerminalParser
 
 export class NonTerminalParser extends Parser {
-  rule: string;
-  fallback?: Parser;
+  readonly rule: string;
+  readonly fallback?: Parser;
 
   constructor(rule: string, fallback?: Parser) {
     super();
@@ -196,8 +203,6 @@ export class NonTerminalParser extends Parser {
   }
 
   exec(options: Options): Match | null {
-    const captures = options.captures;
-    options.captures = {};
     let parser = (options.grammar as GrammarParser | undefined)?.rules.get(
       this.rule
     );
@@ -218,6 +223,8 @@ export class NonTerminalParser extends Parser {
         rule: this.rule,
         options
       });
+    const { captures } = options;
+    options.captures = {};
     const match = parser.exec(options);
     options.captures = captures;
     if (match === null) {
@@ -244,7 +251,7 @@ export class NonTerminalParser extends Parser {
 
 export class CutParser extends Parser {
   exec(options: Options): Match | null {
-    options.cut.current = true;
+    options.cut = true;
     return {
       from: options.from,
       to: options.from,
@@ -256,7 +263,7 @@ export class CutParser extends Parser {
 // AlternativeParser
 
 export class AlternativeParser extends Parser {
-  parsers: Parser[];
+  readonly parsers: Parser[];
 
   constructor(parsers: Parser[]) {
     super();
@@ -264,48 +271,26 @@ export class AlternativeParser extends Parser {
   }
 
   exec(options: Options) {
-    options = { ...options, cut: { current: false } };
-    for (const parser of this.parsers) {
-      const match = parser.exec(options);
-      if (match) return match;
-      if (options.cut.current) break;
+    const { cut } = options;
+    options.cut = false;
+    for (let i = 0; i !== this.parsers.length; ++i) {
+      const match = this.parsers[i].exec(options);
+      if (match) {
+        options.cut = cut;
+        return match;
+      }
+      if (options.cut) break;
     }
+    options.cut = cut;
     return null;
-  }
-}
-
-// SequenceParser
-
-export class SequenceParser extends Parser {
-  parsers: Parser[];
-
-  constructor(parsers: Parser[]) {
-    super();
-    this.parsers = parsers;
-  }
-
-  exec(options: Options): Match | null {
-    let from = options.from;
-    const matches: Match[] = [];
-    for (const parser of this.parsers) {
-      const match = parser.exec({ ...options, from });
-      if (match === null) return null;
-      from = match.to;
-      matches.push(match);
-    }
-    return {
-      from: matches[0].from,
-      to: from,
-      children: matches.flatMap(match => match.children)
-    };
   }
 }
 
 // GrammarParser
 
 export class GrammarParser extends Parser {
-  rules: Map<string, Parser>;
-  entry: Parser;
+  readonly rules: Map<string, Parser>;
+  private readonly entry: Parser;
 
   constructor(rules: [string, Parser][]) {
     super();
@@ -314,48 +299,98 @@ export class GrammarParser extends Parser {
   }
 
   exec(options: Options): Match | null {
-    return this.entry.exec({ ...options, grammar: this });
+    const { grammar } = options;
+    options.grammar = this;
+    const match = this.entry.exec(options);
+    options.grammar = grammar;
+    return match;
   }
 }
 
 // TokenParser
 
 export class TokenParser extends Parser {
-  parser: Parser;
-  displayName?: string;
+  readonly parser: Parser;
+  readonly displayName?: string;
+  private readonly expected?: TokenExpectation;
 
   constructor(parser: Parser, displayName?: string) {
     super();
     this.parser = parser;
     this.displayName = displayName;
+    if (displayName)
+      this.expected = { type: ExpectationType.Token, displayName };
   }
 
   exec(options: Options) {
-    const from = skip(options);
-    if (from === null) return null;
-    options = { ...options, from, skip: false };
-    if (!this.displayName) return this.parser.exec(options);
-    const match = this.parser.exec({ ...options, log: false });
+    const skipped = skip(options);
+    if (skipped === null) return null;
+    let match;
+    const { from, skip: sskip } = options;
+    options.from = skipped;
+    options.skip = false;
+    if (!this.displayName) {
+      match = this.parser.exec(options);
+      options.from = from;
+      options.skip = sskip;
+      return match;
+    }
+    const { log } = options;
+    options.log = false;
+    match = this.parser.exec(options);
+    options.from = from;
+    options.skip = sskip;
+    options.log = log;
     if (match) return match;
     options.log &&
       options.logger.ffExpectation({
-        from,
-        to: from,
+        from: skipped,
+        to: skipped,
         type: FailureType.Expectation,
-        expected: [
-          { type: ExpectationType.Token, displayName: this.displayName }
-        ]
+        expected: [this.expected!]
       });
     return null;
+  }
+}
+
+// SequenceParser
+
+export class SequenceParser extends Parser {
+  readonly parsers: Parser[];
+
+  constructor(parsers: Parser[]) {
+    super();
+    this.parsers = parsers;
+  }
+
+  exec(options: Options): Match | null {
+    const { from } = options;
+    const matches: Match[] = [];
+    for (let i = 0; i !== this.parsers.length; ++i) {
+      const match = this.parsers[i].exec(options);
+      if (match === null) {
+        options.from = from;
+        return null;
+      }
+      options.from = match.to;
+      matches.push(match);
+    }
+    const result = {
+      from: matches[0].from,
+      to: options.from,
+      children: matches.flatMap(match => match.children)
+    };
+    options.from = from;
+    return result;
   }
 }
 
 // RepetitionParser
 
 export class RepetitionParser extends Parser {
-  parser: Parser;
-  min: number;
-  max: number;
+  readonly parser: Parser;
+  readonly min: number;
+  readonly max: number;
 
   constructor(parser: Parser, [min, max]: [number, number]) {
     super();
@@ -365,33 +400,37 @@ export class RepetitionParser extends Parser {
   }
 
   exec(options: Options): Match | null {
-    let from = options.from,
-      counter = 0;
+    const { from } = options;
     const matches: Match[] = [];
-    const success = () => ({
-      ...(matches.length === 0
-        ? { from: options.from, to: options.from }
-        : { from: matches[0].from, to: matches[matches.length - 1].to }),
-      children: matches.flatMap(match => match.children)
-    });
+    let counter = 0;
     while (true) {
-      if (counter === this.max) return success();
-      const match = this.parser.exec({ ...options, from });
+      const match = this.parser.exec(options);
       if (match) {
+        options.from = match.to;
         matches.push(match);
-        from = match.to;
         counter++;
-      } else if (counter < this.min) return null;
-      else return success();
+      } else if (counter < this.min) {
+        options.from = from;
+        return null;
+      } else break;
+      if (counter === this.max) break;
     }
+    const result = {
+      ...(matches.length === 0
+        ? { from, to: from }
+        : { from: matches[0].from, to: options.from }),
+      children: matches.flatMap(match => match.children)
+    };
+    options.from = from;
+    return result;
   }
 }
 
 // PredicateParser
 
 export class PredicateParser extends Parser {
-  parser: Parser;
-  polarity: boolean;
+  readonly parser: Parser;
+  readonly polarity: boolean;
 
   constructor(parser: Parser, polarity: boolean) {
     super();
@@ -400,32 +439,40 @@ export class PredicateParser extends Parser {
   }
 
   exec(options: Options): Match | null {
-    const match = this.parser.exec({
-      ...options,
-      ...(!this.polarity && { log: false })
-    });
-    const success = () => ({
+    if (this.polarity) {
+      const match = this.parser.exec(options);
+      if (match === null) return null;
+    } else {
+      const { log } = options;
+      options.log = false;
+      const match = this.parser.exec(options);
+      options.log = log;
+      if (match !== null) {
+        options.log &&
+          options.logger.ffExpectation({
+            from: match.from,
+            to: match.to,
+            type: FailureType.Expectation,
+            expected: [
+              { type: ExpectationType.Mismatch, from: match.from, to: match.to }
+            ]
+          });
+        return null;
+      }
+    }
+    return {
       from: options.from,
       to: options.from,
       children: []
-    });
-    if (this.polarity === Boolean(match)) return success();
-    if (match && options.log)
-      options.logger.ffExpectation({
-        from: match.from,
-        to: match.to,
-        type: FailureType.Expectation,
-        expected: [{ type: ExpectationType.Mismatch, match }]
-      });
-    return null;
+    };
   }
 }
 
 // TweakParser
 
 export class TweakParser extends Parser {
-  parser: Parser;
-  options: (options: Options) => Partial<Options>;
+  readonly parser: Parser;
+  readonly options: (options: Options) => Partial<Options>;
 
   constructor(
     parser: Parser,
@@ -437,15 +484,28 @@ export class TweakParser extends Parser {
   }
 
   exec(options: Options) {
-    return this.parser.exec({ ...options, ...this.options(options) });
+    const next = this.options(options);
+    const save: Record<string, any> = {};
+    const keys = Object.keys(next);
+    for (let i = 0; i !== keys.length; ++i) {
+      const key = keys[i];
+      save[key] = (options as any)[key];
+      (options as any)[key] = (next as any)[key];
+    }
+    const match = this.parser.exec(options);
+    for (let i = 0; i !== keys.length; ++i) {
+      const key = keys[i];
+      (options as any)[key] = save[key];
+    }
+    return match;
   }
 }
 
 // CaptureParser
 
 export class CaptureParser extends Parser {
-  parser: Parser;
-  name: string;
+  readonly parser: Parser;
+  readonly name: string;
 
   constructor(parser: Parser, name: string) {
     super();
@@ -464,8 +524,8 @@ export class CaptureParser extends Parser {
 // ActionParser
 
 export class ActionParser extends Parser {
-  parser: Parser;
-  action: SemanticAction;
+  readonly parser: Parser;
+  readonly action: SemanticAction;
 
   constructor(parser: Parser, action: SemanticAction) {
     super();
@@ -537,12 +597,9 @@ export class ActionParser extends Parser {
       throw e;
     }
     hooks.pop();
-    return failed
-      ? null
-      : {
-          ...match,
-          children: emit ?? (value === undefined ? match.children : [value])
-        };
+    if (failed) return null;
+    match.children = emit ?? (value === undefined ? match.children : [value]);
+    return match;
   }
 }
 
