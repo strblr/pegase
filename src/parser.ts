@@ -1,10 +1,11 @@
 import {
+  $from,
+  $to,
   applyVisitor,
   castArray,
   castExpectation,
   ExpectationType,
   extendFlags,
-  FailureType,
   hooks,
   inferValue,
   LiteralExpectation,
@@ -67,7 +68,7 @@ export abstract class Parser<Value = any, Context = any> {
     const logger = new Logger(input);
     const opts: Options<Context> = {
       input,
-      from: logger.at(0),
+      from: 0,
       complete: true,
       skipper: defaultSkipper,
       skip: true,
@@ -100,11 +101,13 @@ export abstract class Parser<Value = any, Context = any> {
     );
     return {
       ...common,
-      ...match,
       success: true,
+      from: logger.at(match.from),
+      to: logger.at(match.to),
       value: inferValue(match.children),
-      raw: input.substring(match.from.index, match.to.index),
-      complete: match.to.index === input.length
+      children: match.children,
+      raw: input.substring(match.from, match.to),
+      complete: match.to === input.length
     };
   }
 }
@@ -126,24 +129,13 @@ export class LiteralParser extends Parser {
   exec(options: Options): Match | null {
     const from = skip(options);
     if (from === null) return null;
-    const to = from.index + this.literal.length;
-    const raw = options.input.substring(from.index, to);
+    const to = from + this.literal.length;
+    const raw = options.input.substring(from, to);
     const result = options.ignoreCase
       ? this.literal.toLowerCase() === raw.toLowerCase()
       : this.literal === raw;
-    if (result)
-      return {
-        from,
-        to: options.logger.at(to),
-        children: this.emit ? [raw] : []
-      };
-    options.log &&
-      options.logger.ffExpectation({
-        from,
-        to: from,
-        type: FailureType.Expectation,
-        expected: [this.expected]
-      });
+    if (result) return { from, to, children: this.emit ? [raw] : [] };
+    options.log && options.logger.ffExpectation(from, this.expected);
     return null;
   }
 }
@@ -168,23 +160,13 @@ export class RegexParser extends Parser {
     const from = skip(options);
     if (from === null) return null;
     const regex = this[options.ignoreCase ? "uncased" : "cased"];
-    regex.lastIndex = from.index;
+    regex.lastIndex = from;
     const result = regex.exec(options.input);
     if (result !== null) {
       if (result.groups) Object.assign(options.captures, result.groups);
-      return {
-        from,
-        to: options.logger.at(from.index + result[0].length),
-        children: result.slice(1)
-      };
+      return { from, to: from + result[0].length, children: result.slice(1) };
     }
-    options.log &&
-      options.logger.ffExpectation({
-        from,
-        to: from,
-        type: FailureType.Expectation,
-        expected: [this.expected]
-      });
+    options.log && options.logger.ffExpectation(from, this.expected);
     return null;
   }
 }
@@ -206,6 +188,7 @@ export class NonTerminalParser extends Parser {
       options.tracer({
         type: TraceEventType.Enter,
         rule: this.rule,
+        from: options.logger.at(options.from),
         options
       });
     const { captures } = options;
@@ -217,6 +200,7 @@ export class NonTerminalParser extends Parser {
         options.tracer({
           type: TraceEventType.Fail,
           rule: this.rule,
+          from: options.logger.at(options.from),
           options
         });
       return null;
@@ -225,8 +209,9 @@ export class NonTerminalParser extends Parser {
       options.tracer({
         type: TraceEventType.Match,
         rule: this.rule,
-        options,
-        match
+        from: options.logger.at(match.from),
+        to: options.logger.at(match.to),
+        options
       });
     return match;
   }
@@ -306,13 +291,7 @@ export class TokenParser extends Parser {
     options.skip = sskip;
     options.log = log;
     if (match) return match;
-    options.log &&
-      options.logger.ffExpectation({
-        from: skipped,
-        to: skipped,
-        type: FailureType.Expectation,
-        expected: [this.expected!]
-      });
+    options.log && options.logger.ffExpectation(skipped, this.expected!);
     return null;
   }
 }
@@ -413,13 +392,9 @@ export class PredicateParser extends Parser {
       options.log = log;
       if (match !== null) {
         options.log &&
-          options.logger.ffExpectation({
-            from: match.from,
-            to: match.to,
-            type: FailureType.Expectation,
-            expected: [
-              { type: ExpectationType.Mismatch, from: match.from, to: match.to }
-            ]
+          options.logger.ffExpectation(match.from, {
+            type: ExpectationType.Mismatch,
+            match: options.input.substring(match.from, match.to)
           });
         return null;
       }
@@ -503,42 +478,36 @@ export class ActionParser extends Parser {
     if (match === null) return null;
     let value, emit, failed;
     hooks.push({
-      $from: () => match.from,
-      $to: () => match.to,
+      $from: () => options.logger.at(match.from),
+      $to: () => options.logger.at(match.to),
       $children: () => match.children,
       $value: () => inferValue(match.children),
-      $raw: () => options.input.substring(match.from.index, match.to.index),
+      $raw: () => options.input.substring(match.from, match.to),
       $options: () => options,
       $context: () => options.context,
-      $warn: message =>
+      $warn(message) {
         options.log &&
-        options.logger.warn({
-          from: match.from,
-          to: match.to,
-          type: WarningType.Message,
-          message
-        }),
+          options.logger.warn({
+            from: $from(),
+            to: $to(),
+            type: WarningType.Message,
+            message
+          });
+      },
       $fail(message) {
         failed = true;
         options.logger.sync(save);
-        options.log &&
-          options.logger.ffSemantic({
-            from: match.from,
-            to: match.to,
-            type: FailureType.Semantic,
-            message
-          });
+        options.log && options.logger.ffSemantic(match.from, message);
       },
       $expected(expected) {
         failed = true;
         options.logger.sync(save);
         options.log &&
-          options.logger.ffExpectation({
-            from: match.from,
-            to: match.to,
-            type: FailureType.Expectation,
-            expected: castExpectation(castArray(expected))
-          });
+          castArray(expected)
+            .map(castExpectation)
+            .forEach(expected =>
+              options.logger.ffExpectation(match.from, expected)
+            );
       },
       $commit: () => options.logger.commit(),
       $emit(children) {
@@ -546,12 +515,17 @@ export class ActionParser extends Parser {
       },
       $node: (label, fields) => ({
         $label: label,
-        $from: match.from,
-        $to: match.to,
+        $from: $from(),
+        $to: $to(),
         ...fields
       }),
       $visit() {
         throw new Error("The $visit hook is not available in semantic actions");
+      },
+      $parent() {
+        throw new Error(
+          "The $parent hook is not available in semantic actions"
+        );
       }
     });
     try {
@@ -579,22 +553,22 @@ export const endOfInput = new TokenParser(
 );
 
 export const defaultTracer: Tracer = event => {
-  const at = event.options.from;
+  const { from } = event;
   let adjective = "";
   let complement = "";
   switch (event.type) {
     case TraceEventType.Enter:
       adjective = "Entered";
-      complement = `at (${at.line}:${at.column})`;
+      complement = `at (${from.line}:${from.column})`;
       break;
     case TraceEventType.Match:
-      const { from, to } = event.match;
+      const { to } = event;
       adjective = "Matched";
       complement = `from (${from.line}:${from.column}) to (${to.line}:${to.column})`;
       break;
     case TraceEventType.Fail:
       adjective = "Failed";
-      complement = `at (${at.line}:${at.column})`;
+      complement = `at (${from.line}:${from.column})`;
       break;
   }
   console.log(adjective, `"${event.rule}"`, complement);

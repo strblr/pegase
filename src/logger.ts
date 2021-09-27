@@ -1,12 +1,10 @@
 import {
   Expectation,
-  ExpectationFailure,
   ExpectationType,
   Failure,
   FailureType,
   Location,
   LogPrintOptions,
-  SemanticFailure,
   Warning,
   WarningType
 } from ".";
@@ -16,14 +14,18 @@ import {
 export class Logger {
   warnings: Warning[];
   failures: Failure[];
-  pending: Failure | null;
-  readonly input: string;
-  readonly indexes: number[];
+  private fpos: number;
+  private ftype?: FailureType;
+  private fsemantic?: string;
+  private fexpectations: Expectation[];
+  private readonly input: string;
+  private readonly indexes: number[];
 
   constructor(input: string) {
     this.warnings = [];
     this.failures = [];
-    this.pending = null;
+    this.fpos = 0;
+    this.fexpectations = [];
     this.input = input;
     let acc = 0;
     this.indexes = input.split(/[\r\n]/).map(chunk => {
@@ -68,25 +70,41 @@ export class Logger {
     this.failures.push(failure);
   }
 
-  ffSemantic(failure: SemanticFailure) {
-    if (!this.pending || failure.from.index >= this.pending.from.index)
-      this.pending = failure;
+  ffSemantic(from: number, message: string) {
+    if (this.fpos <= from) {
+      this.fpos = from;
+      this.ftype = FailureType.Semantic;
+      this.fsemantic = message;
+    }
   }
 
-  ffExpectation(failure: ExpectationFailure) {
-    if (!this.pending || failure.from.index > this.pending.from.index)
-      this.pending = failure;
-    else if (
-      failure.from.index === this.pending.from.index &&
-      this.pending.type !== FailureType.Semantic
-    )
-      this.pending.expected.push(...failure.expected);
+  ffExpectation(from: number, expectation: Expectation) {
+    if (this.fpos < from) {
+      this.fpos = from;
+      this.ftype = FailureType.Expectation;
+      this.fexpectations = [expectation];
+    } else if (this.fpos === from && this.ftype === FailureType.Expectation)
+      this.fexpectations.push(expectation);
   }
 
   commit() {
-    if (this.pending) {
-      this.failures.push(this.pending);
-      this.pending = null;
+    if (this.ftype) {
+      const pos = this.at(this.fpos);
+      if (this.ftype === FailureType.Expectation)
+        this.failures.push({
+          from: pos,
+          to: pos,
+          type: FailureType.Expectation,
+          expected: this.fexpectations
+        });
+      else
+        this.failures.push({
+          from: pos,
+          to: pos,
+          type: FailureType.Semantic,
+          message: this.fsemantic!
+        });
+      this.ftype = undefined;
     }
   }
 
@@ -94,21 +112,20 @@ export class Logger {
     return {
       warnings: this.warnings.concat(),
       failures: this.failures.concat(),
-      pending:
-        this.pending &&
-        (this.pending.type === "SEMANTIC"
-          ? this.pending
-          : {
-              ...this.pending,
-              expected: this.pending.expected.concat()
-            })
+      farthestPos: this.fpos,
+      farthestType: this.ftype,
+      farthestSemantic: this.fsemantic,
+      farthestExpectations: this.fexpectations.concat()
     };
   }
 
   sync(save: ReturnType<typeof Logger.prototype.save>) {
     this.warnings = save.warnings;
     this.failures = save.failures;
-    this.pending = save.pending;
+    this.fpos = save.farthestPos;
+    this.ftype = save.farthestType;
+    this.fsemantic = save.farthestSemantic;
+    this.fexpectations = save.farthestExpectations;
   }
 
   print(options?: Partial<LogPrintOptions>) {
@@ -151,10 +168,7 @@ export class Logger {
         case ExpectationType.Token:
           return expectation.displayName;
         case ExpectationType.Mismatch:
-          return `mismatch of "${this.input.substring(
-            expectation.from.index,
-            expectation.to.index
-          )}"`;
+          return `mismatch of "${expectation.match}"`;
         case ExpectationType.Custom:
           return expectation.display;
       }

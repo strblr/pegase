@@ -21,7 +21,7 @@ export type Directive = (parser: Parser, ...args: any[]) => Parser;
 
 export type Options<Context = any> = {
   input: string;
-  from: Location;
+  from: number;
   complete: boolean;
   skipper: Parser<any, Context>;
   skip: boolean;
@@ -36,7 +36,9 @@ export type Options<Context = any> = {
   log: boolean;
 };
 
-export type Match = Range & {
+export type Match = {
+  from: number;
+  to: number;
   children: any[];
 };
 
@@ -68,6 +70,7 @@ export type Hooks = {
   $emit(children: any[]): void;
   $node(label: string, fields: Record<string, any>): Node;
   $visit(node: Node, options?: Partial<Options>, visitor?: Visitor): any;
+  $parent(): Node | null;
 };
 
 // Related to tracing
@@ -85,7 +88,7 @@ export type EnterEvent<Context = any> = TraceCommon<Context> & {
 
 export type MatchEvent<Context = any> = TraceCommon<Context> & {
   type: TraceEventType.Match;
-  match: Match;
+  to: Location;
 };
 
 export type FailEvent<Context = any> = TraceCommon<Context> & {
@@ -100,6 +103,7 @@ export enum TraceEventType {
 
 export type TraceCommon<Context = any> = {
   rule: string;
+  from: Location;
   options: Options<Context>;
 };
 
@@ -163,8 +167,7 @@ export type TokenExpectation = {
 
 export type MismatchExpectation = {
   type: ExpectationType.Mismatch;
-  from: Location;
-  to: Location;
+  match: string;
 };
 
 export type CustomExpectation = {
@@ -188,9 +191,10 @@ export type Result<Value = any, Context = any> =
   | FailResult<Context>;
 
 export type SuccessResult<Value = any, Context = any> = ResultCommon<Context> &
-  Match & {
+  Range & {
     success: true;
     value: Value;
+    children: any[];
     raw: string;
     complete: boolean;
   };

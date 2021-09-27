@@ -71,15 +71,13 @@ export function castArray<T>(value: T | T[]) {
 // castExpectation
 
 export function castExpectation(
-  expected: (string | RegExp | Expectation)[]
-): Expectation[] {
-  return expected.map(expected =>
-    typeof expected === "string"
-      ? { type: ExpectationType.Literal, literal: expected }
-      : expected instanceof RegExp
-      ? { type: ExpectationType.RegExp, regex: expected }
-      : expected
-  );
+  expected: string | RegExp | Expectation
+): Expectation {
+  return typeof expected === "string"
+    ? { type: ExpectationType.Literal, literal: expected }
+    : expected instanceof RegExp
+    ? { type: ExpectationType.RegExp, regex: expected }
+    : expected;
 }
 
 // skip
@@ -167,7 +165,8 @@ export function modulo(
 export function applyVisitor<Value, Context>(
   node: Node,
   visitor: Visitor<Value>,
-  options: Options<Context>
+  options: Options<Context>,
+  parent: Node | null = null
 ) {
   let value,
     from = node.$from,
@@ -184,17 +183,23 @@ export function applyVisitor<Value, Context>(
     $raw: () => options.input.substring(from.index, to.index),
     $options: () => options,
     $context: () => options.context,
-    $warn: message =>
-      options.logger.warn({ from, to, type: WarningType.Message, message }),
-    $fail: message =>
-      options.logger.fail({ from, to, type: FailureType.Semantic, message }),
-    $expected: expected =>
-      options.logger.fail({
-        from,
-        to,
-        type: FailureType.Expectation,
-        expected: castExpectation(castArray(expected))
-      }),
+    $warn(message) {
+      options.log &&
+        options.logger.warn({ from, to, type: WarningType.Message, message });
+    },
+    $fail(message) {
+      options.log &&
+        options.logger.fail({ from, to, type: FailureType.Semantic, message });
+    },
+    $expected(expected) {
+      options.log &&
+        options.logger.fail({
+          from,
+          to,
+          type: FailureType.Expectation,
+          expected: castArray(expected).map(castExpectation)
+        });
+    },
     $commit() {
       throw new Error("The $commit hook is not available in visitors");
     },
@@ -207,8 +212,9 @@ export function applyVisitor<Value, Context>(
       $to: to,
       ...fields
     }),
-    $visit: (node, opts, nextVisitor = visitor) =>
-      applyVisitor(node, nextVisitor, { ...options, ...opts })
+    $visit: (nextNode, opts, nextVisitor = visitor) =>
+      applyVisitor(nextNode, nextVisitor, { ...options, ...opts }, node),
+    $parent: () => parent
   });
   try {
     if (Object.prototype.hasOwnProperty.call(visitor, node.$label))

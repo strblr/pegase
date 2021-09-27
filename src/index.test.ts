@@ -286,38 +286,41 @@ test("Warnings should work correctly", () => {
 });
 
 test("AST and visitors should work", () => {
-  const g = peg`
-    expr:
-    | <>integer ${({ integer }) => $node("INT", { integer })}
-    | "+" <a>expr <b>expr ${({ a, b }) => $node("PLUS", { a, b })}
+  for (let i = 0; i !== 1000; ++i) {
+    const g = peg`
+      expr:
+      | <>integer ${({ integer }) => $node("INT", { integer })}
+      | "+" <a>expr <b>expr ${({ a, b }) => $node("PLUS", { a, b })}
+  
+      $integer @raw: \d+
+    `;
 
-    $integer @raw: \d+
-  `;
+    const double: Visitor = {
+      PLUS: node => ($visit(node.a), $visit(node.b), node),
+      INT: node => ((node.integer *= 2), node)
+    };
 
-  const double: Visitor = {
-    PLUS: node => ($visit(node.a), $visit(node.b), node),
-    INT: node => ((node.integer *= 2), node)
-  };
+    const fold: Visitor = {
+      PLUS: node => $visit(node.a) + $visit(node.b),
+      INT: node => Number(node.integer)
+    };
 
-  const fold: Visitor = {
-    PLUS: node => $visit(node.a) + $visit(node.b),
-    INT: node => Number(node.integer)
-  };
+    const logDemo: Visitor = {
+      PLUS: node => ($visit(node.a), $visit(node.b), node),
+      INT: node => {
+        if (node.integer === "42") $warn("The number 42 is dangerous");
+        if (node.integer === "3") $fail("The number 3 is forbidden");
+        return node;
+      }
+    };
 
-  const logDemo: Visitor = {
-    PLUS: node => ($visit(node.a), $visit(node.b), node),
-    INT: node => {
-      if (node.integer === "42") $warn("The number 42 is dangerous");
-      if (node.integer === "3") $fail("The number 3 is forbidden");
-      return node;
-    }
-  };
-
-  expect(g.value("+ 12 + 42 3 ", { visit: fold })).toBe(57);
-  expect(g.value("+ 12 + 42 3 ", { visit: [double, fold] })).toBe(114);
-  expect(g.value("+ 12 + 42 3 ", { visit: [double, double, fold] })).toBe(228);
-  expect(g.parse("+ 12 + 42 3 ", { visit: logDemo }).logger.print())
-    .toBe(`(1:8) Warning: The number 42 is dangerous
+    expect(g.value("+ 12 + 42 3 ", { visit: fold })).toBe(57);
+    expect(g.value("+ 12 + 42 3 ", { visit: [double, fold] })).toBe(114);
+    expect(g.value("+ 12 + 42 3 ", { visit: [double, double, fold] })).toBe(
+      228
+    );
+    expect(g.parse("+ 12 + 42 3 ", { visit: logDemo }).logger.print())
+      .toBe(`(1:8) Warning: The number 42 is dangerous
 
 > 1 | + 12 + 42 3 
     |        ^
@@ -327,6 +330,7 @@ test("AST and visitors should work", () => {
 > 1 | + 12 + 42 3 
     |           ^
 `);
+  }
 });
 
 test("Failure recovery should work", () => {
