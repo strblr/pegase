@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="An inline, powerful and lightweight PEG parser generator for JavaScript and TypeScript, with semantic actions, support for native regexps, error recovery, warnings, grammar fragments, AST generation, AST visitors, cut operator, and a lot more.">
+        <meta name="description" content="An inline, fast, powerful and lightweight PEG parser generator for JavaScript and TypeScript, with semantic actions, support for native regexps, error recovery, warnings, AST generation, AST visitors, cut operator, and a lot more.">
       
       
       
@@ -419,18 +419,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../Grammar-fragments/" class="md-nav__link">
-        Grammar fragments
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../Error-recovery/" class="md-nav__link">
         Error recovery
       </a>
@@ -710,13 +698,12 @@
 </code></pre>
 <p>The <code>exec</code> method will be called when the parser is <em>invoked</em>. It must return <code>null</code> on failure and a <code>Match</code> object on success with the following signature:</p>
 <pre><code class="language-ts">type Match = {
-  from: Location;
-  to: Location;
+  from: number;
+  to: number;
   children: any[];
-  captures: Map&lt;string, any&gt;;
 }
 </code></pre>
-<p>The state of the parsing process at the time of invocation is expressed by the <code>options</code> argument with info like the current position, the input string, the current grammar, the skipping state (on or off), the expected case sensitivity, etc. The exhaustive list is described in <a href="#typescript-types">API &gt; TypeScript types</a>.</p>
+<p>The state of the parsing process at the time of invocation is expressed by the <code>options</code> argument with info like the current position, the input string, the skipping state (on or off), the expected case sensitivity, etc. The exhaustive list is described in <a href="#typescript-types">API &gt; TypeScript types</a>. For performance reasons, this object is never recreated and always directly mutated.</p>
 <p>Log events (warning and failures) must be emitted as side-effects using the <code>Logger</code> instance provided by <code>options.logger</code>. The logger is also used to efficiently build <code>Location</code> objects based on absolute input indexes. Please refer to <a href="#logger">API &gt; <code>Logger</code></a> for a list of supported methods.</p>
 <p>Great. Once you wrote a custom <code>Parser</code> subclass, there are basically three options for using it, depending on your needs:</p>
 <ul>
@@ -742,7 +729,7 @@ const g = peg`0 | 1 | ${_(&quot;foo&quot;)} | ${_(&quot;bar&quot;)}`;
 const g = peg`42 | ${new Set([&quot;a&quot;, &quot;b&quot;])}`;
 </code></pre>
 <ul>
-<li>Lastly, if your class is a composition class, you can define custom directives that generate instances of it:</li>
+<li>If your class is a composition class, you can define custom directives that generate instances of it:</li>
 </ul>
 <pre><code class="language-js">peg.plugins.push({
   directives: {
@@ -753,6 +740,17 @@ const g = peg`42 | ${new Set([&quot;a&quot;, &quot;b&quot;])}`;
 });
 
 const p = peg`\d+ @custom`; // p is a MyParser instance
+</code></pre>
+<ul>
+<li>If you class is a singleton-type class that doesn't rely on any attribute, you can bind its instance to an external non-terminal:</li>
+</ul>
+<pre><code class="language-ts">peg.plugins.push({
+  resolve: {
+    myparser: new MyParser()
+  }
+});
+
+const g = peg`42 | myparser`;
 </code></pre>
                 
               

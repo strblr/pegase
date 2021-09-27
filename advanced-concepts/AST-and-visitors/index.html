@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="An inline, powerful and lightweight PEG parser generator for JavaScript and TypeScript, with semantic actions, support for native regexps, error recovery, warnings, grammar fragments, AST generation, AST visitors, cut operator, and a lot more.">
+        <meta name="description" content="An inline, fast, powerful and lightweight PEG parser generator for JavaScript and TypeScript, with semantic actions, support for native regexps, error recovery, warnings, AST generation, AST visitors, cut operator, and a lot more.">
       
       
       
@@ -462,18 +462,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../Grammar-fragments/" class="md-nav__link">
-        Grammar fragments
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../Error-recovery/" class="md-nav__link">
         Error recovery
       </a>
@@ -758,11 +746,12 @@
 <p>Given a label to distinguish between node types and some custom fields, it builds and returns a <code>Node</code> object with the following signature:</p>
 <pre><code class="language-ts">type Node = {
   $label: string;
-  $match: Match;
+  $from: Location;
+  $to: Location;
   [field: string]: any;
 }
 </code></pre>
-<p>The <code>$label</code> field and the custom fields simply correspond to <code>$node</code>'s arguments. The <code>$match</code> key is <em>automatically</em> set and stores the success match object that was returned by the parser your semantic action is wrapped around. It contains the keys <code>from</code> (where the match started), <code>to</code> (where the match ended), <code>children</code> and <code>captures</code>.</p>
+<p>The <code>$label</code> field and the custom fields simply correspond to <code>$node</code>'s arguments. The <code>$from</code> and <code>$to</code> keys are <em>automatically</em> set and indicate the boundaries of the match that produced the node.</p>
 <p><strong>Nodes can then be emitted, propagated and captured during the parsing process just like any <code>children</code>.</strong></p>
 <p>The specifics of how this happens is totally up to you (see <a href="#semantic-actions-and-dataflow">Basic concepts &gt; Semantic actions and dataflow</a>). Here is an example of a grammar generating an AST for sums written in prefix notation:</p>
 <pre><code class="language-ts">const prefix = peg`
@@ -870,7 +859,7 @@ prefix.value(&quot;182&quot;, { visit: [doubleVisitor, sumVisitor] });         /
 prefix.value(&quot;+ 12 + 42 3&quot;, { visit: [doubleVisitor, sumVisitor] }); // 114
 </code></pre>
 <p>You get the idea. Have fun !</p>
-<p><strong>A visitor callback has access to all the hooks available in semantic actions</strong>, except <code>$commit</code>. So it's totally fine to emit warnings and failures from visitors:</p>
+<p><strong>A visitor callback has access to all the hooks available in semantic actions</strong>, except <code>$children</code>, <code>$value</code>, <code>$commit</code> and <code>$emit</code>. So it's totally fine to emit warnings and failures from visitors:</p>
 <pre><code class="language-ts">const sumVisitor = {
   INT: node =&gt; {
     if (node.integer === &quot;42&quot;) $warn(&quot;42 is too powerful&quot;);
@@ -885,7 +874,7 @@ prefix.value(&quot;+ 12 + 42 3&quot;, { visit: [doubleVisitor, sumVisitor] }); /
 &gt; 1 | + 12 + 42 3
     |        ^
 </code></pre>
-<p>The effect of some hooks differ when used in a semantic action vs. a visitor. In semantic actions, <code>$emit</code> propagates <code>children</code>. In visitors, <code>$emit</code> replaces the array at <code>node.$match.children</code> where <code>node</code> is the current node. In semantic actions, <code>$fail</code> and <code>$expected</code> don't commit failures, they emit failure <em>candidates</em> which are then merged or filtered out using the farthest failure heuristic (see <a href="#failures-and-warnings">Basic concepts &gt; Failures and warnings</a>). In visitors, these hooks commit failures directly. The heuristic wouldn't make much sense outside of a backtracking syntactic analysis. Please refer to <a href="#hooks">API &gt; Hooks</a> for an exhaustive doc of all hooks.</p>
+<p>The effect of some hooks differs when used in a semantic action vs. a visitor. In semantic actions, <code>$fail</code> and <code>$expected</code> don't commit failures, they emit failure <em>candidates</em> which are then merged or filtered out using the farthest failure heuristic (see <a href="#failures-and-warnings">Basic concepts &gt; Failures and warnings</a>). In visitors, these hooks commit failures directly. The heuristic wouldn't make much sense outside of a backtracking syntactic analysis. Please refer to <a href="#hooks">API &gt; Hooks</a> for an exhaustive doc of all hooks.</p>
                 
                   
                 

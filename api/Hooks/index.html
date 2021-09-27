@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="An inline, powerful and lightweight PEG parser generator for JavaScript and TypeScript, with semantic actions, support for native regexps, error recovery, warnings, grammar fragments, AST generation, AST visitors, cut operator, and a lot more.">
+        <meta name="description" content="An inline, fast, powerful and lightweight PEG parser generator for JavaScript and TypeScript, with semantic actions, support for native regexps, error recovery, warnings, AST generation, AST visitors, cut operator, and a lot more.">
       
       
       
@@ -417,18 +417,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../advanced-concepts/Grammar-fragments/" class="md-nav__link">
-        Grammar fragments
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../advanced-concepts/Error-recovery/" class="md-nav__link">
         Error recovery
       </a>
@@ -709,13 +697,13 @@
 <tr>
 <td><code>$children</code></td>
 <td><code>() =&gt; any[]</code></td>
-<td>Semantic actions, visitors</td>
+<td>Semantic actions</td>
 <td>Returns the <code>children</code> produced by the current match</td>
 </tr>
 <tr>
 <td><code>$value</code></td>
 <td><code>() =&gt; any</code></td>
-<td>Semantic actions, visitors</td>
+<td>Semantic actions</td>
 <td>Returns the value (i.e. the single child) produced by the current match. This is <code>undefined</code> if there is no child, or multiple children.</td>
 </tr>
 <tr>
@@ -763,8 +751,8 @@
 <tr>
 <td><code>$emit</code></td>
 <td><code>(children: any[]) =&gt; void</code></td>
-<td>Semantic actions, visitors</td>
-<td>In semantic actions, emits the given children. In visitors, replaces <code>node.$match.children</code> where <code>node</code> is the current node.</td>
+<td>Semantic actions</td>
+<td>Emits the given children.</td>
 </tr>
 <tr>
 <td><code>$node</code></td>
@@ -777,6 +765,12 @@
 <td><code>(node: Node, options?: Partial&lt;Options&gt;, visitor?: Visitor) =&gt; any</code></td>
 <td>Visitors</td>
 <td>Applies the current visitor (or <code>visitor</code> if the third argument is provided) to <code>node</code> and returns the result. New parse options can be merged to the current ones.</td>
+</tr>
+<tr>
+<td><code>$parent</code></td>
+<td><code>() =&gt; Node | null</code></td>
+<td>Visitors</td>
+<td>Returns the current node's parent or <code>null</code> if the current node is the root node</td>
 </tr>
 </tbody>
 </table>
