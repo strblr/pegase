@@ -676,7 +676,7 @@
 <li><strong>Fatal failures</strong>. Whether they're emitted in semantic actions or visitors, failures are emitted as side-effects and don't stop the current process. You <em>could</em> stop everything by throwing an exception, sure. But maybe fatal failures should be treated as first-class citizens. It's unclear whether Pegase should catch exceptions internally and transform them into top-priority semantic failures before short-exiting, or if emitting failures and short-exiting should remain two separate things. A <code>$stop</code> hook could be implemented to short-exit from parsers and visitors without any other side-effect, for example.</li>
 <li><strong>Cuts for repetitions</strong>. The idea would be to have a cut operator, similar to <code>^</code>, but to break repetitions (like <code>a+</code>, <code>a*</code>, etc.). A sort of <code>break</code> statement for peg expressions. Peg repetitions are greedy by nature, but this might not always be what you want.</li>
 <li><strong>Default values for captures</strong>. The syntax would be something like <code>&lt;id = 0&gt;a</code>, <code>&lt;id = ${expr}&gt;a</code> (where <code>expr</code> is a JS expression), etc. The default value would be captured as <code>id</code> if <code>a</code>'s value is <code>undefined</code>.</li>
-<li><strong>A <code>$parent</code> hook for visitors</strong>, to access get the parent node from a visit on the current node.</li>
+<li><strong><code>children</code> captures</strong>. With a syntax like <code>&lt;...id&gt;a</code>, one would be able to capture the <code>children</code> of <code>a</code> as an array. Convenient when building nodes relying on accumulated children values, for example.</li>
 </ul>
                 
               
