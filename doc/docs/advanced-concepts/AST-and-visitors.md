@@ -18,12 +18,13 @@ Given a label to distinguish between node types and some custom fields, it build
 ```ts
 type Node = {
   $label: string;
-  $match: Match;
+  $from: Location;
+  $to: Location;
   [field: string]: any;
 }
 ```
 
-The `$label` field and the custom fields simply correspond to `$node`'s arguments. The `$match` key is *automatically* set and stores the success match object that was returned by the parser your semantic action is wrapped around. It contains the keys `from` (where the match started), `to` (where the match ended), `children` and `captures`.
+The `$label` field and the custom fields simply correspond to `$node`'s arguments. The `$from` and `$to` keys are *automatically* set and indicate the boundaries of the match that produced the node.
 
 **Nodes can then be emitted, propagated and captured during the parsing process just like any `children`.**
 
@@ -168,7 +169,7 @@ prefix.value("+ 12 + 42 3", { visit: [doubleVisitor, sumVisitor] }); // 114
 
 You get the idea. Have fun !
 
-**A visitor callback has access to all the hooks available in semantic actions**, except `$commit`. So it's totally fine to emit warnings and failures from visitors:
+**A visitor callback has access to all the hooks available in semantic actions**, except `$children`, `$value`, `$commit` and `$emit`. So it's totally fine to emit warnings and failures from visitors:
 
 ```ts
 const sumVisitor = {
@@ -189,4 +190,4 @@ const sumVisitor = {
     |        ^
 ```
 
-The effect of some hooks differ when used in a semantic action vs. a visitor. In semantic actions, `$emit` propagates `children`. In visitors, `$emit` replaces the array at `node.$match.children` where `node` is the current node. In semantic actions, `$fail` and `$expected` don't commit failures, they emit failure *candidates* which are then merged or filtered out using the farthest failure heuristic (see [Basic concepts > Failures and warnings](#failures-and-warnings)). In visitors, these hooks commit failures directly. The heuristic wouldn't make much sense outside of a backtracking syntactic analysis. Please refer to [API > Hooks](#hooks) for an exhaustive doc of all hooks.
+The effect of some hooks differs when used in a semantic action vs. a visitor. In semantic actions, `$fail` and `$expected` don't commit failures, they emit failure *candidates* which are then merged or filtered out using the farthest failure heuristic (see [Basic concepts > Failures and warnings](#failures-and-warnings)). In visitors, these hooks commit failures directly. The heuristic wouldn't make much sense outside of a backtracking syntactic analysis. Please refer to [API > Hooks](#hooks) for an exhaustive doc of all hooks.

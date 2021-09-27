@@ -37,14 +37,13 @@ The `exec` method will be called when the parser is *invoked*. It must return `n
 
 ```ts
 type Match = {
-  from: Location;
-  to: Location;
+  from: number;
+  to: number;
   children: any[];
-  captures: Map<string, any>;
 }
 ```
 
-The state of the parsing process at the time of invocation is expressed by the `options` argument with info like the current position, the input string, the current grammar, the skipping state (on or off), the expected case sensitivity, etc. The exhaustive list is described in [API > TypeScript types](#typescript-types).
+The state of the parsing process at the time of invocation is expressed by the `options` argument with info like the current position, the input string, the skipping state (on or off), the expected case sensitivity, etc. The exhaustive list is described in [API > TypeScript types](#typescript-types). For performance reasons, this object is never recreated and always directly mutated.
 
 Log events (warning and failures) must be emitted as side-effects using the `Logger` instance provided by `options.logger`. The logger is also used to efficiently build `Location` objects based on absolute input indexes. Please refer to [API > `Logger`](#logger) for a list of supported methods.
 
@@ -77,7 +76,7 @@ peg.plugins.push({
 const g = peg`42 | ${new Set(["a", "b"])}`;
 ```
 
-- Lastly, if your class is a composition class, you can define custom directives that generate instances of it:
+- If your class is a composition class, you can define custom directives that generate instances of it:
 
 ```js
 peg.plugins.push({
@@ -90,3 +89,16 @@ peg.plugins.push({
   
 const p = peg`\d+ @custom`; // p is a MyParser instance
 ```
+
+- If you class is a singleton-type class that doesn't rely on any attribute, you can bind its instance to an external non-terminal:
+
+```ts
+peg.plugins.push({
+  resolve: {
+    myparser: new MyParser()
+  }
+});
+
+const g = peg`42 | myparser`;
+```
+
