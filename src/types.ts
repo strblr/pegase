@@ -69,7 +69,7 @@ export type Hooks = {
   $commit(): void;
   $emit(children: any[]): void;
   $node(label: string, fields: Record<string, any>): Node;
-  $visit(node: Node, options?: Partial<Options>, visitor?: Visitor): any;
+  $visit(node: Node, visitor?: Visitor, context?: any): any;
   $parent(): Node | null;
 };
 

@@ -15,5 +15,5 @@ Hooks are functions that can be called from semantic actions and visitor callbac
 | `$commit`   | `() => void`                                                 | Semantic actions           | Flushes the current farthest failure to the final failure output (see [Error recovery](#error-recovery)) |
 | `$emit`     | `(children: any[]) => void`                                  | Semantic actions           | Emits the given children.                                    |
 | `$node`     | `(label: string, fields: Record<string, any>): Node`         | Semantic actions, visitors | Creates a `Node` with the given label, fields, and the current match |
-| `$visit`    | `(node: Node, options?: Partial<Options>, visitor?: Visitor) => any` | Visitors                   | Applies the current visitor (or `visitor` if the third argument is provided) to `node` and returns the result. New parse options can be merged to the current ones. |
+| `$visit`    | `(node: Node, visitor?: Visitor, context?: any) => any`      | Visitors                   | Applies the current visitor (or `visitor` if the second argument is provided) to `node` and returns the result. A new context can be passed down. |
 | `$parent`   | `() => Node | null`                                          | Visitors                   | Returns the current node's parent or `null` if the current node is the root node |

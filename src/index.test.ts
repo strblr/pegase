@@ -107,6 +107,8 @@ test("Captures should work", () => {
   const g6 = peg`'a' <val3>(${/(?<val>(?<val1>[bc])(?<val2>[de]))/} @raw) 'f'`;
   const g7 = peg`&(<val>("0" | "1")) ("0" | "1")`;
 
+  // TODO: Add tests to verify scopes of captures
+
   /*expect((g1.parse("a") as SuccessResult).captures.get("val")).toBe("a");
   expect((g2.parse("abc") as SuccessResult).captures.get("val")).toBe("c");
   expect(

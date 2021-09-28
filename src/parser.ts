@@ -411,32 +411,16 @@ export class PredicateParser extends Parser {
 
 export class TweakParser extends Parser {
   readonly parser: Parser;
-  readonly options: (options: Options) => Partial<Options>;
+  readonly tweaker: (options: Options) => (match: Match | null) => Match | null;
 
-  constructor(
-    parser: Parser,
-    options: Partial<Options> | ((options: Options) => Partial<Options>)
-  ) {
+  constructor(parser: Parser, tweaker: typeof TweakParser.prototype.tweaker) {
     super();
     this.parser = parser;
-    this.options = typeof options === "function" ? options : () => options;
+    this.tweaker = tweaker;
   }
 
-  exec(options: Options) {
-    const next = this.options(options);
-    const save: Record<string, any> = {};
-    const keys = Object.keys(next);
-    for (let i = 0; i !== keys.length; ++i) {
-      const key = keys[i];
-      save[key] = (options as any)[key];
-      (options as any)[key] = (next as any)[key];
-    }
-    const match = this.parser.exec(options);
-    for (let i = 0; i !== keys.length; ++i) {
-      const key = keys[i];
-      (options as any)[key] = save[key];
-    }
-    return match;
+  exec(options: Options): Match | null {
+    return this.tweaker(options)(this.parser.exec(options));
   }
 }
 

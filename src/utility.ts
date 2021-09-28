@@ -47,6 +47,12 @@ export const $emit = hook("$emit");
 export const $node = hook("$node");
 export const $visit = hook("$visit");
 
+// has
+
+export function has(object: object, key: string) {
+  return Object.prototype.hasOwnProperty.call(object, key);
+}
+
 // extendFlags
 
 export function extendFlags(regex: RegExp, flags: string) {
@@ -95,9 +101,7 @@ export function skip(options: Options) {
 
 export function resolveRule(plugins: Plugin[], rule: string) {
   const plugin = plugins.find(
-    plugin =>
-      plugin.resolve &&
-      Object.prototype.hasOwnProperty.call(plugin.resolve, rule)
+    plugin => plugin.resolve && has(plugin.resolve, rule)
   );
   return plugin?.resolve?.[rule];
 }
@@ -118,9 +122,7 @@ export function resolveCast(plugins: Plugin[], value: any) {
 
 export function resolveDirective(plugins: Plugin[], directive: string) {
   const plugin = plugins.find(
-    plugin =>
-      plugin.directives &&
-      Object.prototype.hasOwnProperty.call(plugin.directives, directive)
+    plugin => plugin.directives && has(plugin.directives, directive)
   );
   if (!plugin)
     $fail(
@@ -212,15 +214,18 @@ export function applyVisitor<Value, Context>(
       $to: to,
       ...fields
     }),
-    $visit: (nextNode, opts, nextVisitor = visitor) =>
-      applyVisitor(nextNode, nextVisitor, { ...options, ...opts }, node),
+    $visit(nextNode, nextVisitor = visitor, nextContext = options.context) {
+      const { context } = options;
+      options.context = nextContext;
+      const result = applyVisitor(nextNode, nextVisitor, options, node);
+      options.context = context;
+      return result;
+    },
     $parent: () => parent
   });
   try {
-    if (Object.prototype.hasOwnProperty.call(visitor, node.$label))
-      value = visitor[node.$label](node);
-    else if (Object.prototype.hasOwnProperty.call(visitor, "$default"))
-      value = visitor.$default(node);
+    if (has(visitor, node.$label)) value = visitor[node.$label](node);
+    else if (has(visitor, "$default")) value = visitor.$default(node);
     else
       throw new Error(
         `Missing visitor callback for "${node.$label}" labeled nodes`
@@ -254,15 +259,73 @@ export const defaultPlugin: Plugin = {
   },
   directives: {
     // Option tweaks
-    skip: (parser, skipper?: Parser) =>
-      new TweakParser(parser, { skip: true, ...(skipper && { skipper }) }),
-    noskip: parser => new TweakParser(parser, { skip: false }),
-    case: parser => new TweakParser(parser, { ignoreCase: false }),
-    nocase: parser => new TweakParser(parser, { ignoreCase: true }),
-    trace: (parser, tracer?: Tracer) =>
-      new TweakParser(parser, { trace: true, ...(tracer && { tracer }) }),
-    notrace: parser => new TweakParser(parser, { trace: false }),
-    context: (parser, context: any) => new TweakParser(parser, { context }),
+    skip: (parser, nextSkipper?: Parser) =>
+      new TweakParser(parser, options => {
+        const { skip, skipper } = options;
+        options.skip = true;
+        options.skipper = nextSkipper ?? skipper;
+        return match => {
+          options.skip = skip;
+          options.skipper = skipper;
+          return match;
+        };
+      }),
+    noskip: parser =>
+      new TweakParser(parser, options => {
+        const { skip } = options;
+        options.skip = false;
+        return match => {
+          options.skip = skip;
+          return match;
+        };
+      }),
+    case: parser =>
+      new TweakParser(parser, options => {
+        const { ignoreCase } = options;
+        options.ignoreCase = false;
+        return match => {
+          options.ignoreCase = ignoreCase;
+          return match;
+        };
+      }),
+    nocase: parser =>
+      new TweakParser(parser, options => {
+        const { ignoreCase } = options;
+        options.ignoreCase = true;
+        return match => {
+          options.ignoreCase = ignoreCase;
+          return match;
+        };
+      }),
+    trace: (parser, nextTracer?: Tracer) =>
+      new TweakParser(parser, options => {
+        const { trace, tracer } = options;
+        options.trace = true;
+        options.tracer = nextTracer ?? tracer;
+        return match => {
+          options.trace = trace;
+          options.tracer = tracer;
+          return match;
+        };
+      }),
+    notrace: parser =>
+      new TweakParser(parser, options => {
+        const { trace } = options;
+        options.trace = false;
+        return match => {
+          options.trace = trace;
+          return match;
+        };
+      }),
+    context: (parser, nextContext: any) =>
+      new TweakParser(parser, options => {
+        const { context } = options;
+        options.context = nextContext;
+        return match => {
+          options.context = context;
+          return match;
+        };
+      }),
     // Children transforms
     omit: action(() => $emit([])),
     raw: action(() => $raw()),
