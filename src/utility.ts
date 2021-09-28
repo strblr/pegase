@@ -109,8 +109,13 @@ export function buildOptions<Context>(
         this.fpos = from;
         this.ftype = FailureType.Expectation;
         this.fexpectations = [expected];
-      } else if (this.fpos === from && this.ftype === FailureType.Expectation)
+      } else if (
+        this.fpos === from &&
+        (this.ftype === FailureType.Expectation || !this.ftype)
+      ) {
+        this.ftype = FailureType.Expectation;
         this.fexpectations.push(expected);
+      }
     },
     mayFail(from: number, message: string) {
       if (this.fpos <= from) {
