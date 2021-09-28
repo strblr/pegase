@@ -520,8 +520,8 @@ export class ActionParser extends TweakParser {
         }
         hooks.pop();
         if (failed) return null;
-        match.children =
-          emit ?? (value === undefined ? match.children : [value]);
+        if (emit) match.children = emit;
+        else if (value !== undefined) match.children = [value];
         return match;
       };
     });

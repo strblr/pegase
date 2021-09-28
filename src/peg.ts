@@ -53,7 +53,7 @@ export function createTag() {
       {
         skipper: pegSkipper,
         trace: peg.trace,
-        context: { plugins: peg.plugins, args, refs: [] }
+        context: { plugins: peg.plugins, args, refs: new Set() }
       }
     );
   }
@@ -95,7 +95,20 @@ const _ = {
   actionTagArgument: new NonTerminalParser("actionTagArgument")
 };
 
-_.parser.parser = new AlternativeParser([_.grammarParser, _.optionsParser]);
+_.parser.parser = new ActionParser(
+  new AlternativeParser([_.grammarParser, _.optionsParser]),
+  () => {
+    const { plugins, refs } = $context() as MetaContext;
+    for (const ref of refs) {
+      const definition = resolveRule(plugins, ref.rule);
+      if (definition) ref.parser = definition;
+      else
+        return $fail(
+          `Couldn't resolve non-terminal "${ref.rule}", you can define it in a grammar or via peg.extend`
+        );
+    }
+  }
+);
 
 _.grammarParser.parser = new ActionParser(
   new RepetitionParser(
@@ -121,16 +134,15 @@ _.grammarParser.parser = new ActionParser(
     [1, Infinity]
   ),
   () => {
-    const { plugins, refs } = $context() as MetaContext;
+    const { refs } = $context() as MetaContext;
     const rules = $children();
-    const mapped = new Map<string, Parser>($children());
+    const mapped = new Map<string, Parser>(rules);
     for (const ref of refs) {
-      const definition = mapped.get(ref.rule) ?? resolveRule(plugins, ref.rule);
-      if (definition) ref.parser = definition;
-      else
-        return $fail(
-          `Couldn't resolve non-terminal "${ref.rule}", you can define it in a grammar or via peg.extend`
-        );
+      const definition = mapped.get(ref.rule);
+      if (definition) {
+        ref.parser = definition;
+        refs.delete(ref);
+      }
     }
     return new NonTerminalParser(rules[0][0], rules[0][1]);
   }
@@ -289,7 +301,7 @@ _.primaryParser.parser = new AlternativeParser([
       )
     ]),
     () => {
-      $context().refs.push($children()[0]);
+      $context().refs.add($children()[0]);
     }
   ),
   new ActionParser(
@@ -382,7 +394,7 @@ _.value.parser = new AlternativeParser([
   new ActionParser(_.stringLiteral, () => $children()[0][0]),
   _.numberLiteral,
   new ActionParser(_.nonTerminal, () => {
-    $context().refs.push($children()[0]);
+    $context().refs.add($children()[0]);
   }),
   _.characterClass,
   _.escapedMeta,

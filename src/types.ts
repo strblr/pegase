@@ -5,7 +5,7 @@ import { NonTerminalParser, Parser } from ".";
 export type MetaContext = {
   plugins: Plugin[];
   args: any[];
-  refs: NonTerminalParser[];
+  refs: Set<NonTerminalParser>;
 };
 
 export type Plugin = {
