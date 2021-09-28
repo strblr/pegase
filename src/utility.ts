@@ -82,10 +82,10 @@ export function buildOptions<Context>(
     log: true,
     warnings: [],
     failures: [],
-    fpos: 0,
-    ftype: undefined,
-    fsemantic: undefined,
-    fexpectations: [],
+    ffIndex: 0,
+    ffType: null,
+    ffSemantic: null,
+    ffExpectations: [],
     at(index) {
       let line = 0;
       let n = this.indexes.length - 1;
@@ -104,44 +104,41 @@ export function buildOptions<Context>(
         column: index - this.indexes[line] + 1
       };
     },
-    mayExpect(from, expected) {
-      if (this.fpos < from) {
-        this.fpos = from;
-        this.ftype = FailureType.Expectation;
-        this.fexpectations = [expected];
-      } else if (
-        this.fpos === from &&
-        (this.ftype === FailureType.Expectation || !this.ftype)
-      ) {
-        this.ftype = FailureType.Expectation;
-        this.fexpectations.push(expected);
+    ffExpect(from, expected) {
+      if (this.ffIndex === from && this.ffType !== FailureType.Semantic) {
+        this.ffType = FailureType.Expectation;
+        this.ffExpectations.push(expected);
+      } else if (this.ffIndex < from) {
+        this.ffIndex = from;
+        this.ffType = FailureType.Expectation;
+        this.ffExpectations = [expected];
       }
     },
-    mayFail(from: number, message: string) {
-      if (this.fpos <= from) {
-        this.fpos = from;
-        this.ftype = FailureType.Semantic;
-        this.fsemantic = message;
+    ffFail(from: number, message: string) {
+      if (this.ffIndex <= from) {
+        this.ffIndex = from;
+        this.ffType = FailureType.Semantic;
+        this.ffSemantic = message;
       }
     },
     commit() {
-      if (this.ftype) {
-        const pos = this.at(this.fpos);
-        if (this.ftype === FailureType.Expectation)
+      if (this.ffType !== null) {
+        const pos = this.at(this.ffIndex);
+        if (this.ffType === FailureType.Expectation)
           this.failures.push({
             from: pos,
             to: pos,
             type: FailureType.Expectation,
-            expected: this.fexpectations
+            expected: this.ffExpectations
           });
         else
           this.failures.push({
             from: pos,
             to: pos,
             type: FailureType.Semantic,
-            message: this.fsemantic!
+            message: this.ffSemantic!
           });
-        this.ftype = undefined;
+        this.ffType = null;
       }
     },
     ...partial

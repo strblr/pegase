@@ -72,7 +72,7 @@ Okay, the `test` method is fun but what if you want to do something more elabora
 ```js
 const result = nestedBitArray.parse("[[0]");
 if(!result.success)
-  console.log(result.logger.print());
+  console.log(result.log());
 ```
 
 This will output:

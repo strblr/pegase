@@ -13,7 +13,7 @@ This is well explained in [this paper](http://scg.unibe.ch/archive/masters/Ruef1
 
 The general idea is that a failure emitted at input position *n* will generally be more relevant than a failure emitted at position *n - x*, where *x* is a positive integer, because *x* more characters have been successfully recognized by the parser at that point.
 
-Failures and warnings (called *log events*) are tracked using a [`Logger`](#logger) instance, which is just a special object. The logger is attached to the parse result, whether the match fails or succeeds (a successful match can produce failures, see [Advanced concepts > Error recovery](#error-recovery)).
+Failures and warnings (called *log events*) are tracked at parse time. `warnings` and `failures` are then attached to the parse result as arrays, whether the match fails or succeeds (a successful match can produce failures, see [Advanced concepts > Error recovery](#error-recovery)).
 
 **In Pegase, there are two types of failures**:
 
@@ -25,7 +25,7 @@ These are automatically emitted when a literal, a regexp or a token mismatched, 
 const g = peg`'a' ('b' | 'c' | 'd' @token("the awesome letter d") | ![b-e] .)`;
 ```
 
-#### > `g.parse('ae').logger.print()`
+#### > `g.parse('ae').log()`
 
 ```
 (1:2) Failure: Expected "b", "c", the awesome letter d or mismatch of "e"
@@ -42,7 +42,7 @@ const g = peg`'a' ('b' | . ${() => {
 }})`;
 ```
 
-#### > `g.parse("ae").logger.print()`
+#### > `g.parse("ae").log()`
 
 ```
 (1:2) Failure: Expected "b", "c" or "d"
@@ -71,7 +71,7 @@ const context = new Map([["foo", 42], ["bar", 18]]);
 42
 ```
 
-#### `g.parse("baz", { context }).logger.print()`
+#### `g.parse("baz", { context }).log()`
 
 ```
 (1:1) Failure: Undeclared identifier "baz"
@@ -103,7 +103,7 @@ const p = peg`
 `;
 ```
 
-#### > `p.parse("class test {").logger.print()`
+#### > `p.parse("class test {").log()`
 
 ```
 (1:7) Warning: Class names should be capitalized
@@ -117,5 +117,5 @@ const p = peg`
     |             ^
 ```
 
-- If you want to do more elaborated stuff than to simply pretty-print the logs, like processing them programmatically, you have direct access using `logger.warnings` and `logger.failures`. These are just arrays of objects describing the log events. Please see [API > `Logger`](#logger) for more details.
+- If you want to do more elaborated stuff than to simply pretty-print the logs, like processing them programmatically, you have direct access using the `warnings` and `failures` properties on the result object. These are just arrays of objects describing the log events. Please see [API > `Parser`](#parser) for more details.
 - Warnings and failures can also be emitted during AST visits. See [Advanced concepts > AST and visitors](#ast-and-visitors).

@@ -123,7 +123,7 @@ export class LiteralParser extends Parser {
       ? this.literal.toLowerCase() === raw.toLowerCase()
       : this.literal === raw;
     if (result) return { from, to, children: this.emit ? [raw] : [] };
-    options.log && options.mayExpect(from, this.expected);
+    options.log && options.ffExpect(from, this.expected);
     return null;
   }
 }
@@ -154,7 +154,7 @@ export class RegexParser extends Parser {
       if (result.groups) Object.assign(options.captures, result.groups);
       return { from, to: from + result[0].length, children: result.slice(1) };
     }
-    options.log && options.mayExpect(from, this.expected);
+    options.log && options.ffExpect(from, this.expected);
     return null;
   }
 }
@@ -279,7 +279,7 @@ export class TokenParser extends Parser {
     options.skip = sskip;
     options.log = log;
     if (match) return match;
-    options.log && options.mayExpect(skipped, this.expected!);
+    options.log && options.ffExpect(skipped, this.expected!);
     return null;
   }
 }
@@ -394,7 +394,7 @@ export class PredicateParser extends TweakParser {
         options.log = log;
         if (match !== null) {
           options.log &&
-            options.mayExpect(match.from, {
+            options.ffExpect(match.from, {
               type: ExpectationType.Mismatch,
               match: options.input.substring(match.from, match.to)
             });
@@ -442,12 +442,12 @@ export class CaptureParser extends TweakParser {
 export class ActionParser extends TweakParser {
   constructor(parser: Parser, action: SemanticAction) {
     super(parser, options => {
-      const swarnings = options.warnings.concat(),
-        sfailures = options.failures.concat(),
-        sfpos = options.fpos,
-        sftype = options.ftype,
-        sfsemantic = options.fsemantic,
-        sfexpectations = options.fexpectations.concat();
+      const warnings = options.warnings.concat(),
+        failures = options.failures.concat(),
+        ffIndex = options.ffIndex,
+        ffType = options.ffType,
+        ffSemantic = options.ffSemantic,
+        ffExpectations = options.ffExpectations.concat();
       return match => {
         if (match === null) return null;
         let value, emit, failed;
@@ -470,26 +470,26 @@ export class ActionParser extends TweakParser {
           },
           $fail(message) {
             failed = true;
-            options.warnings = swarnings;
-            options.failures = sfailures;
-            options.fpos = sfpos;
-            options.ftype = sftype;
-            options.fsemantic = sfsemantic;
-            options.fexpectations = sfexpectations;
-            options.log && options.mayFail(match.from, message);
+            options.warnings = warnings;
+            options.failures = failures;
+            options.ffIndex = ffIndex;
+            options.ffType = ffType;
+            options.ffSemantic = ffSemantic;
+            options.ffExpectations = ffExpectations;
+            options.log && options.ffFail(match.from, message);
           },
           $expected(expected) {
             failed = true;
-            options.warnings = swarnings;
-            options.failures = sfailures;
-            options.fpos = sfpos;
-            options.ftype = sftype;
-            options.fsemantic = sfsemantic;
-            options.fexpectations = sfexpectations;
+            options.warnings = warnings;
+            options.failures = failures;
+            options.ffIndex = ffIndex;
+            options.ffType = ffType;
+            options.ffSemantic = ffSemantic;
+            options.ffExpectations = ffExpectations;
             options.log &&
               castArray(expected)
                 .map(castExpectation)
-                .forEach(expected => options.mayExpect(match.from, expected));
+                .forEach(expected => options.ffExpect(match.from, expected));
           },
           $commit: () => options.commit(),
           $emit(children) {

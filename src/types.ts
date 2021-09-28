@@ -36,13 +36,13 @@ export type Options<Context = any> = {
   log: boolean;
   warnings: Warning[];
   failures: Failure[];
-  fpos: number;
-  ftype?: FailureType;
-  fsemantic?: string;
-  fexpectations: Expectation[];
+  ffIndex: number;
+  ffType: FailureType | null;
+  ffSemantic: string | null;
+  ffExpectations: Expectation[];
   at(index: number): Location;
-  mayExpect(from: number, expected: Expectation): void;
-  mayFail(from: number, message: string): void;
+  ffExpect(from: number, expected: Expectation): void;
+  ffFail(from: number, message: string): void;
   commit(): void;
 };
 

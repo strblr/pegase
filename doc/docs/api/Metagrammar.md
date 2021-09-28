@@ -41,7 +41,7 @@ primaryParser:
 | '$' - identifier
 | 'ε'
 | '^'
-| '(' ^ parser ')'
+| '(' ^ optionsParser ')'
 | nonTerminal !(directives ':')
 | numberLiteral
 | stringLiteral

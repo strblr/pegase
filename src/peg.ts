@@ -276,7 +276,7 @@ _.primaryParser.parser = new AlternativeParser([
   new SequenceParser([
     new LiteralParser("("),
     new CutParser(),
-    _.parser,
+    _.optionsParser,
     new LiteralParser(")")
   ]),
 

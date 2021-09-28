@@ -28,7 +28,6 @@ nav:
   - API:
       - api/peg-createTag.md
       - api/Parser.md
-      - api/Logger.md
       - api/defaultPlugin.md
       - api/Hooks.md
       - api/Utility-functions.md
