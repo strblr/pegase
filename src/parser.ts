@@ -29,16 +29,16 @@ import {
  * Parser
  * | LiteralParser
  * | RegexParser
- * | NonTerminalParser
  * | CutParser
  * | AlternativeParser
- * | TokenParser
  * | SequenceParser
  * | RepetitionParser
+ * | TokenParser
  * | TweakParser
- * | PredicateParser
- * | CaptureParser
- * | ActionParser
+ * | | NonTerminalParser
+ * | | PredicateParser
+ * | | CaptureParser
+ * | | ActionParser
  */
 
 export abstract class Parser<Value = any, Context = any> {
@@ -159,52 +159,6 @@ export class RegexParser extends Parser {
   }
 }
 
-// NonTerminalParser
-
-export class NonTerminalParser extends Parser {
-  readonly rule: string;
-  parser?: Parser;
-
-  constructor(rule: string, parser?: Parser) {
-    super();
-    this.rule = rule;
-    this.parser = parser;
-  }
-
-  exec(options: Options): Match | null {
-    options.trace &&
-      options.tracer({
-        type: TraceEventType.Enter,
-        rule: this.rule,
-        from: options.at(options.from),
-        options
-      });
-    const { captures } = options;
-    options.captures = {};
-    const match = this.parser!.exec(options);
-    options.captures = captures;
-    if (match === null) {
-      options.trace &&
-        options.tracer({
-          type: TraceEventType.Fail,
-          rule: this.rule,
-          from: options.at(options.from),
-          options
-        });
-      return null;
-    }
-    options.trace &&
-      options.tracer({
-        type: TraceEventType.Match,
-        rule: this.rule,
-        from: options.at(match.from),
-        to: options.at(match.to),
-        options
-      });
-    return match;
-  }
-}
-
 // CutParser
 
 export class CutParser extends Parser {
@@ -240,46 +194,6 @@ export class AlternativeParser extends Parser {
       if (options.cut) break;
     }
     options.cut = cut;
-    return null;
-  }
-}
-
-// TokenParser
-
-export class TokenParser extends Parser {
-  readonly parser: Parser;
-  readonly displayName?: string;
-  private readonly expected?: TokenExpectation;
-
-  constructor(parser: Parser, displayName?: string) {
-    super();
-    this.parser = parser;
-    this.displayName = displayName;
-    if (displayName)
-      this.expected = { type: ExpectationType.Token, displayName };
-  }
-
-  exec(options: Options) {
-    const skipped = skip(options);
-    if (skipped === null) return null;
-    let match;
-    const { from, skip: sskip } = options;
-    options.from = skipped;
-    options.skip = false;
-    if (!this.displayName) {
-      match = this.parser.exec(options);
-      options.from = from;
-      options.skip = sskip;
-      return match;
-    }
-    const { log } = options;
-    options.log = false;
-    match = this.parser.exec(options);
-    options.from = from;
-    options.skip = sskip;
-    options.log = log;
-    if (match) return match;
-    options.log && options.ffExpect(skipped, this.expected!);
     return null;
   }
 }
@@ -357,20 +271,104 @@ export class RepetitionParser extends Parser {
   }
 }
 
+// TokenParser
+
+export class TokenParser extends Parser {
+  readonly parser: Parser;
+  readonly displayName?: string;
+  private readonly expected?: TokenExpectation;
+
+  constructor(parser: Parser, displayName?: string) {
+    super();
+    this.parser = parser;
+    this.displayName = displayName;
+    if (displayName)
+      this.expected = { type: ExpectationType.Token, displayName };
+  }
+
+  exec(options: Options) {
+    const skipped = skip(options);
+    if (skipped === null) return null;
+    let match;
+    const { from, skip: sskip } = options;
+    options.from = skipped;
+    options.skip = false;
+    if (!this.displayName) {
+      match = this.parser.exec(options);
+      options.from = from;
+      options.skip = sskip;
+      return match;
+    }
+    const { log } = options;
+    options.log = false;
+    match = this.parser.exec(options);
+    options.from = from;
+    options.skip = sskip;
+    options.log = log;
+    if (match) return match;
+    options.log && options.ffExpect(skipped, this.expected!);
+    return null;
+  }
+}
+
 // TweakParser
 
 export class TweakParser extends Parser {
-  readonly parser: Parser;
+  parser?: Parser;
   readonly tweaker: (options: Options) => (match: Match | null) => Match | null;
 
-  constructor(parser: Parser, tweaker: typeof TweakParser.prototype.tweaker) {
+  constructor(
+    parser: Parser | undefined,
+    tweaker: typeof TweakParser.prototype.tweaker
+  ) {
     super();
     this.parser = parser;
     this.tweaker = tweaker;
   }
 
   exec(options: Options): Match | null {
-    return this.tweaker(options)(this.parser.exec(options));
+    return this.tweaker(options)(this.parser!.exec(options));
+  }
+}
+
+// NonTerminalParser
+
+export class NonTerminalParser extends TweakParser {
+  readonly rule: string;
+
+  constructor(rule: string, parser?: Parser) {
+    super(parser, options => {
+      options.trace &&
+        options.tracer({
+          type: TraceEventType.Enter,
+          rule: this.rule,
+          from: options.at(options.from),
+          options
+        });
+      const { captures } = options;
+      options.captures = {};
+      return match => {
+        options.captures = captures;
+        if (options.trace)
+          if (match === null)
+            options.tracer({
+              type: TraceEventType.Fail,
+              rule: this.rule,
+              from: options.at(options.from),
+              options
+            });
+          else
+            options.tracer({
+              type: TraceEventType.Match,
+              rule: this.rule,
+              from: options.at(match.from),
+              to: options.at(match.to),
+              options
+            });
+        return match;
+      };
+    });
+    this.rule = rule;
   }
 }
 
@@ -405,21 +403,6 @@ export class PredicateParser extends TweakParser {
           to: options.from,
           children: []
         };
-      };
-    });
-  }
-}
-
-// CaptureScopeParser
-
-export class CaptureScopeParser extends TweakParser {
-  constructor(parser: Parser) {
-    super(parser, options => {
-      const { captures } = options;
-      options.captures = {};
-      return match => {
-        options.captures = captures;
-        return match;
       };
     });
   }
