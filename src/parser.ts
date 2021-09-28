@@ -2,6 +2,7 @@ import {
   $from,
   $to,
   applyVisitor,
+  buildOptions,
   castArray,
   castExpectation,
   ExpectationType,
@@ -9,7 +10,7 @@ import {
   hooks,
   inferValue,
   LiteralExpectation,
-  Logger,
+  log,
   Match,
   Options,
   RegexExpectation,
@@ -34,8 +35,8 @@ import {
  * | TokenParser
  * | SequenceParser
  * | RepetitionParser
- * | PredicateParser
  * | TweakParser
+ * | PredicateParser
  * | CaptureParser
  * | ActionParser
  */
@@ -51,13 +52,13 @@ export abstract class Parser<Value = any, Context = any> {
 
   value(input: string, options?: Partial<Options<Context>>) {
     const result = this.parse(input, options);
-    if (!result.success) throw new Error(result.logger.print());
+    if (!result.success) throw new Error(result.log());
     return result.value;
   }
 
   children(input: string, options?: Partial<Options<Context>>) {
     const result = this.parse(input, options);
-    if (!result.success) throw new Error(result.logger.print());
+    if (!result.success) throw new Error(result.log());
     return result.children;
   }
 
@@ -65,32 +66,19 @@ export abstract class Parser<Value = any, Context = any> {
     input: string,
     options?: Partial<Options<Context>>
   ): Result<Value, Context> {
-    const logger = new Logger(input);
-    const opts: Options<Context> = {
-      input,
-      from: 0,
-      complete: true,
-      skipper: defaultSkipper,
-      skip: true,
-      ignoreCase: false,
-      tracer: defaultTracer,
-      trace: false,
-      context: undefined as any,
-      visit: [],
-      cut: false,
-      captures: {},
-      logger,
-      log: true,
-      ...this.defaultOptions,
-      ...options
-    };
+    const opts = buildOptions(input, { ...this.defaultOptions, ...options });
     const parser = opts.complete
       ? new SequenceParser([this, endOfInput])
       : this;
     const match = parser.exec(opts);
-    const common: ResultCommon = { options: opts, logger };
+    const common: ResultCommon = {
+      options: opts,
+      warnings: opts.warnings,
+      failures: opts.failures,
+      log: options => log(opts, options)
+    };
     if (!match) {
-      logger.commit();
+      opts.commit();
       return { ...common, success: false };
     }
     match.children = match.children.map(child =>
@@ -102,8 +90,8 @@ export abstract class Parser<Value = any, Context = any> {
     return {
       ...common,
       success: true,
-      from: logger.at(match.from),
-      to: logger.at(match.to),
+      from: opts.at(match.from),
+      to: opts.at(match.to),
       value: inferValue(match.children),
       children: match.children,
       raw: input.substring(match.from, match.to),
@@ -135,7 +123,7 @@ export class LiteralParser extends Parser {
       ? this.literal.toLowerCase() === raw.toLowerCase()
       : this.literal === raw;
     if (result) return { from, to, children: this.emit ? [raw] : [] };
-    options.log && options.logger.ffExpectation(from, this.expected);
+    options.log && options.mayExpect(from, this.expected);
     return null;
   }
 }
@@ -166,7 +154,7 @@ export class RegexParser extends Parser {
       if (result.groups) Object.assign(options.captures, result.groups);
       return { from, to: from + result[0].length, children: result.slice(1) };
     }
-    options.log && options.logger.ffExpectation(from, this.expected);
+    options.log && options.mayExpect(from, this.expected);
     return null;
   }
 }
@@ -188,7 +176,7 @@ export class NonTerminalParser extends Parser {
       options.tracer({
         type: TraceEventType.Enter,
         rule: this.rule,
-        from: options.logger.at(options.from),
+        from: options.at(options.from),
         options
       });
     const { captures } = options;
@@ -200,7 +188,7 @@ export class NonTerminalParser extends Parser {
         options.tracer({
           type: TraceEventType.Fail,
           rule: this.rule,
-          from: options.logger.at(options.from),
+          from: options.at(options.from),
           options
         });
       return null;
@@ -209,8 +197,8 @@ export class NonTerminalParser extends Parser {
       options.tracer({
         type: TraceEventType.Match,
         rule: this.rule,
-        from: options.logger.at(match.from),
-        to: options.logger.at(match.to),
+        from: options.at(match.from),
+        to: options.at(match.to),
         options
       });
     return match;
@@ -291,7 +279,7 @@ export class TokenParser extends Parser {
     options.skip = sskip;
     options.log = log;
     if (match) return match;
-    options.log && options.logger.ffExpectation(skipped, this.expected!);
+    options.log && options.mayExpect(skipped, this.expected!);
     return null;
   }
 }
@@ -369,44 +357,6 @@ export class RepetitionParser extends Parser {
   }
 }
 
-// PredicateParser
-
-export class PredicateParser extends Parser {
-  readonly parser: Parser;
-  readonly polarity: boolean;
-
-  constructor(parser: Parser, polarity: boolean) {
-    super();
-    this.parser = parser;
-    this.polarity = polarity;
-  }
-
-  exec(options: Options): Match | null {
-    if (this.polarity) {
-      const match = this.parser.exec(options);
-      if (match === null) return null;
-    } else {
-      const { log } = options;
-      options.log = false;
-      const match = this.parser.exec(options);
-      options.log = log;
-      if (match !== null) {
-        options.log &&
-          options.logger.ffExpectation(match.from, {
-            type: ExpectationType.Mismatch,
-            match: options.input.substring(match.from, match.to)
-          });
-        return null;
-      }
-    }
-    return {
-      from: options.from,
-      to: options.from,
-      children: []
-    };
-  }
-}
-
 // TweakParser
 
 export class TweakParser extends Parser {
@@ -424,104 +374,157 @@ export class TweakParser extends Parser {
   }
 }
 
+// PredicateParser
+
+export class PredicateParser extends TweakParser {
+  constructor(parser: Parser, polarity: boolean) {
+    super(parser, options => {
+      if (polarity)
+        return match => {
+          if (match === null) return null;
+          return {
+            from: options.from,
+            to: options.from,
+            children: []
+          };
+        };
+      const { log } = options;
+      options.log = false;
+      return match => {
+        options.log = log;
+        if (match !== null) {
+          options.log &&
+            options.mayExpect(match.from, {
+              type: ExpectationType.Mismatch,
+              match: options.input.substring(match.from, match.to)
+            });
+          return null;
+        }
+        return {
+          from: options.from,
+          to: options.from,
+          children: []
+        };
+      };
+    });
+  }
+}
+
+// CaptureScopeParser
+
+export class CaptureScopeParser extends TweakParser {
+  constructor(parser: Parser) {
+    super(parser, options => {
+      const { captures } = options;
+      options.captures = {};
+      return match => {
+        options.captures = captures;
+        return match;
+      };
+    });
+  }
+}
+
 // CaptureParser
 
-export class CaptureParser extends Parser {
-  readonly parser: Parser;
-  readonly name: string;
-
+export class CaptureParser extends TweakParser {
   constructor(parser: Parser, name: string) {
-    super();
-    this.parser = parser;
-    this.name = name;
-  }
-
-  exec(options: Options): Match | null {
-    const match = this.parser.exec(options);
-    if (match === null) return null;
-    options.captures[this.name] = inferValue(match.children);
-    return match;
+    super(parser, options => match => {
+      if (match === null) return null;
+      options.captures[name] = inferValue(match.children);
+      return match;
+    });
   }
 }
 
 // ActionParser
 
-export class ActionParser extends Parser {
-  readonly parser: Parser;
-  readonly action: SemanticAction;
-
+export class ActionParser extends TweakParser {
   constructor(parser: Parser, action: SemanticAction) {
-    super();
-    this.parser = parser;
-    this.action = action;
-  }
-
-  exec(options: Options): Match | null {
-    const save = options.logger.save();
-    const match = this.parser.exec(options);
-    if (match === null) return null;
-    let value, emit, failed;
-    hooks.push({
-      $from: () => options.logger.at(match.from),
-      $to: () => options.logger.at(match.to),
-      $children: () => match.children,
-      $value: () => inferValue(match.children),
-      $raw: () => options.input.substring(match.from, match.to),
-      $options: () => options,
-      $context: () => options.context,
-      $warn(message) {
-        options.log &&
-          options.logger.warn({
-            from: $from(),
-            to: $to(),
-            type: WarningType.Message,
-            message
-          });
-      },
-      $fail(message) {
-        failed = true;
-        options.logger.sync(save);
-        options.log && options.logger.ffSemantic(match.from, message);
-      },
-      $expected(expected) {
-        failed = true;
-        options.logger.sync(save);
-        options.log &&
-          castArray(expected)
-            .map(castExpectation)
-            .forEach(expected =>
-              options.logger.ffExpectation(match.from, expected)
+    super(parser, options => {
+      const swarnings = options.warnings.concat(),
+        sfailures = options.failures.concat(),
+        sfpos = options.fpos,
+        sftype = options.ftype,
+        sfsemantic = options.fsemantic,
+        sfexpectations = options.fexpectations.concat();
+      return match => {
+        if (match === null) return null;
+        let value, emit, failed;
+        hooks.push({
+          $from: () => options.at(match.from),
+          $to: () => options.at(match.to),
+          $children: () => match.children,
+          $value: () => inferValue(match.children),
+          $raw: () => options.input.substring(match.from, match.to),
+          $options: () => options,
+          $context: () => options.context,
+          $warn(message) {
+            options.log &&
+              options.warnings.push({
+                from: $from(),
+                to: $to(),
+                type: WarningType.Message,
+                message
+              });
+          },
+          $fail(message) {
+            failed = true;
+            options.warnings = swarnings;
+            options.failures = sfailures;
+            options.fpos = sfpos;
+            options.ftype = sftype;
+            options.fsemantic = sfsemantic;
+            options.fexpectations = sfexpectations;
+            options.log && options.mayFail(match.from, message);
+          },
+          $expected(expected) {
+            failed = true;
+            options.warnings = swarnings;
+            options.failures = sfailures;
+            options.fpos = sfpos;
+            options.ftype = sftype;
+            options.fsemantic = sfsemantic;
+            options.fexpectations = sfexpectations;
+            options.log &&
+              castArray(expected)
+                .map(castExpectation)
+                .forEach(expected => options.mayExpect(match.from, expected));
+          },
+          $commit: () => options.commit(),
+          $emit(children) {
+            emit = children;
+          },
+          $node: (label, fields) => ({
+            $label: label,
+            $from: $from(),
+            $to: $to(),
+            ...fields
+          }),
+          $visit() {
+            throw new Error(
+              "The $visit hook is not available in semantic actions"
             );
-      },
-      $commit: () => options.logger.commit(),
-      $emit(children) {
-        emit = children;
-      },
-      $node: (label, fields) => ({
-        $label: label,
-        $from: $from(),
-        $to: $to(),
-        ...fields
-      }),
-      $visit() {
-        throw new Error("The $visit hook is not available in semantic actions");
-      },
-      $parent() {
-        throw new Error(
-          "The $parent hook is not available in semantic actions"
-        );
-      }
+          },
+          $parent() {
+            throw new Error(
+              "The $parent hook is not available in semantic actions"
+            );
+          }
+        });
+        try {
+          value = action(options.captures);
+        } catch (e) {
+          hooks.pop();
+          throw e;
+        }
+        hooks.pop();
+        if (failed) return null;
+        match.children =
+          emit ?? (value === undefined ? match.children : [value]);
+        return match;
+      };
     });
-    try {
-      value = this.action(options.captures);
-    } catch (e) {
-      hooks.pop();
-      throw e;
-    }
-    hooks.pop();
-    if (failed) return null;
-    match.children = emit ?? (value === undefined ? match.children : [value]);
-    return match;
   }
 }
 

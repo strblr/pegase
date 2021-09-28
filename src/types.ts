@@ -1,4 +1,4 @@
-import { Logger, NonTerminalParser, Parser } from ".";
+import { NonTerminalParser, Parser } from ".";
 
 // Related to parser generation
 
@@ -32,8 +32,18 @@ export type Options<Context = any> = {
   visit: UncastArray<Visitor>;
   cut: boolean;
   captures: Record<string, any>;
-  logger: Logger;
+  indexes: number[];
   log: boolean;
+  warnings: Warning[];
+  failures: Failure[];
+  fpos: number;
+  ftype?: FailureType;
+  fsemantic?: string;
+  fexpectations: Expectation[];
+  at(index: number): Location;
+  mayExpect(from: number, expected: Expectation): void;
+  mayFail(from: number, message: string): void;
+  commit(): void;
 };
 
 export type Match = {
@@ -109,7 +119,7 @@ export type TraceCommon<Context = any> = {
 
 // Related to logging
 
-export type LogPrintOptions = {
+export type LogOptions = {
   warnings: boolean;
   failures: boolean;
   codeFrames: boolean;
@@ -205,7 +215,9 @@ export type FailResult<Context = any> = ResultCommon<Context> & {
 
 export type ResultCommon<Context = any> = {
   options: Options<Context>;
-  logger: Logger;
+  warnings: Warning[];
+  failures: Failure[];
+  log(options?: Partial<LogOptions>): string;
 };
 
 // Shared

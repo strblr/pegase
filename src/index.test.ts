@@ -274,7 +274,7 @@ test("Warnings should work correctly", () => {
     $identifier @raw: [a-zA-Z]+
   `;
 
-  expect(g.parse("class test {").logger.print())
+  expect(g.parse("class test {").log())
     .toBe(`(1:7) Warning: Class names should be capitalized
 
 > 1 | class test {
@@ -321,7 +321,7 @@ test("AST and visitors should work", () => {
     expect(g.value("+ 12 + 42 3 ", { visit: [double, double, fold] })).toBe(
       228
     );
-    expect(g.parse("+ 12 + 42 3 ", { visit: logDemo }).logger.print())
+    expect(g.parse("+ 12 + 42 3 ", { visit: logDemo }).log())
       .toBe(`(1:8) Warning: The number 42 is dangerous
 
 > 1 | + 12 + 42 3 
@@ -345,7 +345,7 @@ test("Failure recovery should work", () => {
   const result = g.parse("[1, 0, 1, 3, 0, 1, 2, 1]");
 
   expect(result.success).toBe(true);
-  expect(result.logger.print()).toBe(`(1:11) Failure: Expected "0" or "1"
+  expect(result.log()).toBe(`(1:11) Failure: Expected "0" or "1"
 
 > 1 | [1, 0, 1, 3, 0, 1, 2, 1]
     |           ^
@@ -370,7 +370,7 @@ test("Failure heuristic should work correctly", () => {
   ]);
 
   expect(g1.value("foo", { context })).toBe(42);
-  expect(g1.parse("baz", { context }).logger.print())
+  expect(g1.parse("baz", { context }).log())
     .toBe(`(1:1) Failure: Undeclared identifier "baz"
 
 > 1 | baz
@@ -388,7 +388,7 @@ test("Hooks should work correctly", () => {
 
   const r = b.parse("1") as SuccessResult;
   expect(r.value).toBe("1");
-  expect(r.logger.print()).toBe(`(1:1) Warning: This is a warning
+  expect(r.log()).toBe(`(1:1) Warning: This is a warning
 
 > 1 | 1
     | ^
@@ -411,7 +411,7 @@ test("Hooks should work correctly", () => {
           }
         }
       })
-      .logger.print()
+      .log()
   ).toBe(`(1:1) Warning: This is a warning
 
 > 1 | 00

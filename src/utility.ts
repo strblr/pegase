@@ -2,12 +2,17 @@ import {
   ActionParser,
   AlternativeParser,
   CutParser,
+  defaultSkipper,
+  defaultTracer,
   Directive,
   Expectation,
   ExpectationType,
+  Failure,
   FailureType,
   Hooks,
   LiteralParser,
+  Location,
+  LogOptions,
   Node,
   Options,
   Parser,
@@ -20,6 +25,7 @@ import {
   Tracer,
   TweakParser,
   Visitor,
+  Warning,
   WarningType
 } from "."; // Hooks
 
@@ -46,6 +52,96 @@ export const $commit = hook("$commit");
 export const $emit = hook("$emit");
 export const $node = hook("$node");
 export const $visit = hook("$visit");
+
+// buildOptions
+
+export function buildOptions<Context>(
+  input: string,
+  partial: Partial<Options<Context>>
+): Options<Context> {
+  let acc = 0;
+  const indexes = input.split(/[\r\n]/).map(chunk => {
+    const start = acc;
+    acc += chunk.length + 1;
+    return start;
+  });
+  return {
+    input,
+    from: 0,
+    complete: true,
+    skipper: defaultSkipper,
+    skip: true,
+    ignoreCase: false,
+    tracer: defaultTracer,
+    trace: false,
+    context: undefined as any,
+    visit: [],
+    cut: false,
+    captures: {},
+    indexes,
+    log: true,
+    warnings: [],
+    failures: [],
+    fpos: 0,
+    ftype: undefined,
+    fsemantic: undefined,
+    fexpectations: [],
+    at(index) {
+      let line = 0;
+      let n = this.indexes.length - 1;
+      while (line < n) {
+        const k = line + ((n - line) >> 1);
+        if (index < this.indexes[k]) n = k - 1;
+        else if (index >= this.indexes[k + 1]) line = k + 1;
+        else {
+          line = k;
+          break;
+        }
+      }
+      return {
+        index,
+        line: line + 1,
+        column: index - this.indexes[line] + 1
+      };
+    },
+    mayExpect(from, expected) {
+      if (this.fpos < from) {
+        this.fpos = from;
+        this.ftype = FailureType.Expectation;
+        this.fexpectations = [expected];
+      } else if (this.fpos === from && this.ftype === FailureType.Expectation)
+        this.fexpectations.push(expected);
+    },
+    mayFail(from: number, message: string) {
+      if (this.fpos <= from) {
+        this.fpos = from;
+        this.ftype = FailureType.Semantic;
+        this.fsemantic = message;
+      }
+    },
+    commit() {
+      if (this.ftype) {
+        const pos = this.at(this.fpos);
+        if (this.ftype === FailureType.Expectation)
+          this.failures.push({
+            from: pos,
+            to: pos,
+            type: FailureType.Expectation,
+            expected: this.fexpectations
+          });
+        else
+          this.failures.push({
+            from: pos,
+            to: pos,
+            type: FailureType.Semantic,
+            message: this.fsemantic!
+          });
+        this.ftype = undefined;
+      }
+    },
+    ...partial
+  };
+}
 
 // has
 
@@ -95,6 +191,97 @@ export function skip(options: Options) {
   const match = options.skipper.exec(options);
   options.skip = skip;
   return match && match.to;
+}
+
+// log
+
+export function log(options: Options, logOptions?: Partial<LogOptions>) {
+  const opts: LogOptions = {
+    warnings: true,
+    failures: true,
+    codeFrames: true,
+    linesBefore: 2,
+    linesAfter: 2,
+    ...logOptions
+  };
+
+  const entries = [
+    ...(opts.warnings ? options.warnings : []),
+    ...(opts.failures ? options.failures : [])
+  ].sort((a, b) => a.from.index - b.from.index);
+
+  const stringifyEntry = (entry: Warning | Failure) => {
+    switch (entry.type) {
+      case WarningType.Message:
+        return `Warning: ${entry.message}`;
+      case FailureType.Semantic:
+        return `Failure: ${entry.message}`;
+      case FailureType.Expectation:
+        const expectations = entry.expected
+          .map(expectation => stringifyExpectation(expectation))
+          .reduce(
+            (acc, expected, index, { length }) =>
+              `${acc}${index === length - 1 ? " or " : ", "}${expected}`
+          );
+        return `Failure: Expected ${expectations}`;
+    }
+  };
+
+  const stringifyExpectation = (expectation: Expectation) => {
+    switch (expectation.type) {
+      case ExpectationType.Literal:
+        return `"${expectation.literal}"`;
+      case ExpectationType.RegExp:
+        return String(expectation.regex);
+      case ExpectationType.Token:
+        return expectation.displayName;
+      case ExpectationType.Mismatch:
+        return `mismatch of "${expectation.match}"`;
+      case ExpectationType.Custom:
+        return expectation.display;
+    }
+  };
+
+  const codeFrame = (location: Location) => {
+    const start = Math.max(1, location.line - opts.linesBefore);
+    const end = Math.min(
+      options.indexes.length,
+      location.line + opts.linesAfter
+    );
+    const maxLineNum = String(end).length;
+    const padding = " ".repeat(maxLineNum);
+    let acc = "";
+    for (let i = start; i !== end + 1; i++) {
+      const lineNum = (padding + i).slice(-maxLineNum);
+      const current = options.input.substring(
+        options.indexes[i - 1],
+        (options.indexes[i] ?? options.input.length + 1) - 1
+      );
+      const normalized = current.replace(/\t+/, tabs =>
+        "  ".repeat(tabs.length)
+      );
+      if (i !== location.line) acc += `  ${lineNum} | ${normalized}\n`;
+      else {
+        const count = Math.max(
+          0,
+          normalized.length - current.length + location.column - 1
+        );
+        acc += `> ${lineNum} | ${normalized}\n`;
+        acc += `  ${padding} | ${" ".repeat(count)}^\n`;
+      }
+    }
+    return acc;
+  };
+
+  return entries
+    .map(entry => {
+      let acc = `(${entry.from.line}:${entry.from.column}) ${stringifyEntry(
+        entry
+      )}`;
+      if (opts.codeFrames) acc += `\n\n${codeFrame(entry.from)}`;
+      return acc;
+    })
+    .join("\n");
 }
 
 // resolveRule
@@ -187,15 +374,20 @@ export function applyVisitor<Value, Context>(
     $context: () => options.context,
     $warn(message) {
       options.log &&
-        options.logger.warn({ from, to, type: WarningType.Message, message });
+        options.warnings.push({ from, to, type: WarningType.Message, message });
     },
     $fail(message) {
       options.log &&
-        options.logger.fail({ from, to, type: FailureType.Semantic, message });
+        options.failures.push({
+          from,
+          to,
+          type: FailureType.Semantic,
+          message
+        });
     },
     $expected(expected) {
       options.log &&
-        options.logger.fail({
+        options.failures.push({
           from,
           to,
           type: FailureType.Expectation,
