@@ -529,18 +529,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/Logger/" class="md-nav__link">
-        Logger
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../api/defaultPlugin/" class="md-nav__link">
         defaultPlugin
       </a>
@@ -704,7 +692,7 @@
 }
 </code></pre>
 <p>The state of the parsing process at the time of invocation is expressed by the <code>options</code> argument with info like the current position, the input string, the skipping state (on or off), the expected case sensitivity, etc. The exhaustive list is described in <a href="#typescript-types">API &gt; TypeScript types</a>. For performance reasons, this object is never recreated and always directly mutated.</p>
-<p>Log events (warning and failures) must be emitted as side-effects using the <code>Logger</code> instance provided by <code>options.logger</code>. The logger is also used to efficiently build <code>Location</code> objects based on absolute input indexes. Please refer to <a href="#logger">API &gt; <code>Logger</code></a> for a list of supported methods.</p>
+<p>Log events (warning and failures) must be emitted as side-effects using the methods provided by <code>options</code>. Please refer to <a href="#parser">API &gt; <code>Parser</code></a>.</p>
 <p>Great. Once you wrote a custom <code>Parser</code> subclass, there are basically three options for using it, depending on your needs:</p>
 <ul>
 <li>You can create an <strong>explicit instance</strong> and inject it into a peg expression as a tag argument:</li>

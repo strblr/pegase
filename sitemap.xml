@@ -61,11 +61,6 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://ostrebler.github.io/pegase/api/Logger/</loc>
-         <lastmod>2021-09-28</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
          <loc>https://ostrebler.github.io/pegase/api/Metagrammar/</loc>
          <lastmod>2021-09-28</lastmod>
          <changefreq>daily</changefreq>

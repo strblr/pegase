@@ -71,7 +71,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#intlistparse1-1loggerprint" class="md-skip">
+        <a href="#intlistparse1-1log" class="md-skip">
           Skip to content
         </a>
       
@@ -329,22 +329,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#intlistparse1-1loggerprint" class="md-nav__link">
-    &gt; intList.parse("1 , 1").logger.print();
+  <a href="#intlistparse1-1log" class="md-nav__link">
+    &gt; intList.parse("1 , 1").log();
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#intlistparse23-4-45loggerprint" class="md-nav__link">
-    &gt; intList.parse("23 4, 45").logger.print()
+  <a href="#intlistparse23-4-45log" class="md-nav__link">
+    &gt; intList.parse("23 4, 45").log()
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#intlistparse12-loggerprint" class="md-nav__link">
-    &gt; intList.parse("12, ").logger.print()
+  <a href="#intlistparse12-log" class="md-nav__link">
+    &gt; intList.parse("12, ").log()
   </a>
   
 </li>
@@ -578,18 +578,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/Logger/" class="md-nav__link">
-        Logger
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../api/defaultPlugin/" class="md-nav__link">
         defaultPlugin
       </a>
@@ -731,22 +719,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#intlistparse1-1loggerprint" class="md-nav__link">
-    &gt; intList.parse("1 , 1").logger.print();
+  <a href="#intlistparse1-1log" class="md-nav__link">
+    &gt; intList.parse("1 , 1").log();
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#intlistparse23-4-45loggerprint" class="md-nav__link">
-    &gt; intList.parse("23 4, 45").logger.print()
+  <a href="#intlistparse23-4-45log" class="md-nav__link">
+    &gt; intList.parse("23 4, 45").log()
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#intlistparse12-loggerprint" class="md-nav__link">
-    &gt; intList.parse("12, ").logger.print()
+  <a href="#intlistparse12-log" class="md-nav__link">
+    &gt; intList.parse("12, ").log()
   </a>
   
 </li>
@@ -782,7 +770,7 @@
 `;
 </code></pre>
 <p>But this doesn't work either, because now you don't allow for whitespaces <em>before</em> integers. So a simple <code>"1 , 1"</code> would fail when it should not:</p>
-<h4 id="intlistparse1-1loggerprint">&gt; <code>intList.parse("1 , 1").logger.print();</code></h4>
+<h4 id="intlistparse1-1log">&gt; <code>intList.parse("1 , 1").log();</code></h4>
 <pre><code>(1:4) Failure: Expected /\d/
 
 &gt; 1 | 1 , 1
@@ -796,7 +784,7 @@
   integer @raw @token: \d+
 `;
 </code></pre>
-<h4 id="intlistparse23-4-45loggerprint">&gt; <code>intList.parse("23 4, 45").logger.print()</code></h4>
+<h4 id="intlistparse23-4-45log">&gt; <code>intList.parse("23 4, 45").log()</code></h4>
 <pre><code>(1:4) Failure: Expected &quot;,&quot; or end of input
 
 &gt; 1 | 23 4, 45
@@ -809,7 +797,7 @@
   integer @raw @token(&quot;fancy integer&quot;): \d+
 `;
 </code></pre>
-<h4 id="intlistparse12-loggerprint">&gt; <code>intList.parse("12, ").logger.print()</code></h4>
+<h4 id="intlistparse12-log">&gt; <code>intList.parse("12, ").log()</code></h4>
 <pre><code>(1:5) Failure: Expected fancy integer
 
 &gt; 1 | 12, 
