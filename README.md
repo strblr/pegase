@@ -59,7 +59,7 @@ const expr = peg`
 false
 ```
 
-#### > `expr.parse("2* (4 + )/32").logger.print()`
+#### > `expr.parse("2* (4 + )/32").log()`
 
 ```
 (1:9) Failure: Expected integer or "("
@@ -116,7 +116,7 @@ const g = peg`
 `;
 ```
 
-#### > `g.parse("class test {").logger.print()`
+#### > `g.parse("class test {").log()`
 
 ```
 (1:7) Warning: Class names should be capitalized
@@ -142,7 +142,7 @@ const g = peg`
 `;
 ```
 
-#### > `g.parse("[1, 0, 1, 3, 0, 1, 2, 1]").logger.print()`
+#### > `g.parse("[1, 0, 1, 3, 0, 1, 2, 1]").log()`
 
 ```
 (1:11) Failure: Expected "0" or "1"
