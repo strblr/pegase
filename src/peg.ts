@@ -45,11 +45,15 @@ export function createTag() {
     | ((...args: any[]) => any);
 
   function peg<Value = any, Context = any>(
-    chunks: TemplateStringsArray,
+    chunks: TemplateStringsArray | string,
     ...args: Any[]
   ): Parser<Value, Context> {
     return _.parser.value(
-      chunks.raw.reduce((acc, chunk, index) => acc + `~${index - 1}` + chunk),
+      typeof chunks === "string"
+        ? chunks
+        : chunks.raw.reduce(
+            (acc, chunk, index) => acc + `~${index - 1}` + chunk
+          ),
       {
         skipper: pegSkipper,
         trace: peg.trace,
