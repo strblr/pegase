@@ -151,10 +151,16 @@ export function has(object: object, key: string) {
   return Object.prototype.hasOwnProperty.call(object, key);
 }
 
+// unique
+
+export function unique<T>(items: Iterable<T>) {
+  return [...new Set(items)];
+}
+
 // extendFlags
 
 export function extendFlags(regex: RegExp, flags: string) {
-  return new RegExp(regex, [...new Set([...regex.flags, ...flags])].join(""));
+  return new RegExp(regex, unique(flags).join(""));
 }
 
 // spaceCase
@@ -219,12 +225,12 @@ export function log(options: Options, logOptions?: Partial<LogOptions>) {
       case FailureType.Semantic:
         return `Failure: ${entry.message}`;
       case FailureType.Expectation:
-        const expectations = entry.expected
-          .map(expectation => stringifyExpectation(expectation))
-          .reduce(
-            (acc, expected, index, { length }) =>
-              `${acc}${index === length - 1 ? " or " : ", "}${expected}`
-          );
+        const expectations = unique(
+          entry.expected.map(stringifyExpectation)
+        ).reduce(
+          (acc, expected, index, { length }) =>
+            `${acc}${index === length - 1 ? " or " : ", "}${expected}`
+        );
         return `Failure: Expected ${expectations}`;
     }
   };
