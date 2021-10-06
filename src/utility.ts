@@ -160,7 +160,7 @@ export function unique<T>(items: Iterable<T>) {
 // extendFlags
 
 export function extendFlags(regex: RegExp, flags: string) {
-  return new RegExp(regex, unique(flags).join(""));
+  return new RegExp(regex, unique([...regex.flags, ...flags]).join(""));
 }
 
 // spaceCase

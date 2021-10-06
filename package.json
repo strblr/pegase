@@ -1,6 +1,6 @@
 {
   "name": "pegase",
-  "version": "0.3.16",
+  "version": "0.3.17",
   "description": "An inline, fast, powerful and lightweight PEG parser generator for JavaScript and TypeScript, with semantic actions, support for native regexps, error recovery, warnings, AST generation, AST visitors, cut operator, and a lot more.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
