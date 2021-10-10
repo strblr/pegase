@@ -1,4 +1,4 @@
-import { NonTerminalParser, Parser } from ".";
+import { Logger, NonTerminalParser, Parser } from ".";
 
 // Related to parser generation
 
@@ -19,7 +19,7 @@ export type Directive = (parser: Parser, ...args: any[]) => Parser;
 
 // Related to parsing processing
 
-export type Options<Context = any> = {
+export type ParseOptions<Context = any> = {
   input: string;
   from: number;
   complete: boolean;
@@ -28,22 +28,19 @@ export type Options<Context = any> = {
   ignoreCase: boolean;
   tracer: Tracer<Context>;
   trace: boolean;
+  logger: Logger;
+  log: boolean;
   context: Context;
-  visit: UncastArray<Visitor>;
+  visit: Visitor | Visitor[];
   cut: boolean;
   captures: Record<string, any>;
-  indexes: number[];
-  log: boolean;
-  warnings: Warning[];
-  failures: Failure[];
-  ffIndex: number;
-  ffType: FailureType | null;
-  ffSemantic: string | null;
-  ffExpectations: Expectation[];
-  at(index: number): Location;
-  ffExpect(from: number, expected: Expectation): void;
-  ffFail(from: number, message: string): void;
-  commit(): void;
+  _ffIndex: number;
+  _ffType: FailureType | null;
+  _ffSemantic: string | null;
+  _ffExpectations: Expectation[];
+  _ffExpect(from: number, expected: Expectation): void;
+  _ffFail(from: number, message: string): void;
+  _ffCommit(): void;
 };
 
 export type Match = {
@@ -71,11 +68,11 @@ export type Hooks = {
   $children(): any[];
   $value(): any;
   $raw(): string;
-  $options(): Options;
+  $options(): ParseOptions;
   $context(): any;
   $warn(message: string): void;
   $fail(message: string): void;
-  $expected(expected: UncastArray<string | RegExp | Expectation>): void;
+  $expected(expected: (string | RegExp | Expectation)[]): void;
   $commit(): void;
   $emit(children: any[]): void;
   $node(label: string, fields: Record<string, any>): Node;
@@ -114,7 +111,7 @@ export enum TraceEventType {
 export type TraceCommon<Context = any> = {
   rule: string;
   from: Location;
-  options: Options<Context>;
+  options: ParseOptions<Context>;
 };
 
 // Related to logging
@@ -196,28 +193,24 @@ export enum ExpectationType {
 
 // Related to parsing results
 
-export type Result<Value = any, Context = any> =
-  | SuccessResult<Value, Context>
-  | FailResult<Context>;
+export type ParseResult<Value = any, Context = any> =
+  | SuccessParseResult<Value, Context>
+  | FailParseResult<Context>;
 
-export type SuccessResult<Value = any, Context = any> = ResultCommon<Context> &
-  Range & {
-    success: true;
-    value: Value;
-    children: any[];
-    raw: string;
-    complete: boolean;
-  };
-
-export type FailResult<Context = any> = ResultCommon<Context> & {
-  success: false;
+export type SuccessParseResult<Value = any, Context = any> = Range & {
+  success: true;
+  value: Value;
+  children: any[];
+  raw: string;
+  complete: boolean;
+  options: ParseOptions<Context>;
+  logger: Logger;
 };
 
-export type ResultCommon<Context = any> = {
-  options: Options<Context>;
-  warnings: Warning[];
-  failures: Failure[];
-  log(options?: Partial<LogOptions>): string;
+export type FailParseResult<Context = any> = {
+  success: false;
+  options: ParseOptions<Context>;
+  logger: Logger;
 };
 
 // Shared
@@ -228,11 +221,23 @@ export type Range = {
 };
 
 export type Location = {
+  input: string;
   index: number;
   line: number;
   column: number;
 };
 
-// Helpers
+// Other
 
-export type UncastArray<T> = T | T[];
+// This is basically a hack to replace "any" but without an "implicit any" error
+// on function parameter destructuration
+export type Any =
+  | null
+  | undefined
+  | string
+  | number
+  | boolean
+  | symbol
+  | bigint
+  | object
+  | ((...args: any[]) => any);

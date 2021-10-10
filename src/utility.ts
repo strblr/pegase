@@ -7,14 +7,12 @@ import {
   Directive,
   Expectation,
   ExpectationType,
-  Failure,
   FailureType,
   Hooks,
   LiteralParser,
-  Location,
-  LogOptions,
+  Logger,
   Node,
-  Options,
+  ParseOptions,
   Parser,
   Plugin,
   RegexParser,
@@ -25,9 +23,8 @@ import {
   Tracer,
   TweakParser,
   Visitor,
-  Warning,
   WarningType
-} from "."; // Hooks
+} from ".";
 
 // Hooks
 
@@ -37,7 +34,7 @@ function hook<K extends keyof Hooks>(key: K): Hooks[K] {
   };
 }
 
-export const hooks: Hooks[] = [];
+export const hooks: Partial<Hooks>[] = [];
 export const $from = hook("$from");
 export const $to = hook("$to");
 export const $children = hook("$children");
@@ -52,19 +49,15 @@ export const $commit = hook("$commit");
 export const $emit = hook("$emit");
 export const $node = hook("$node");
 export const $visit = hook("$visit");
+export const $parent = hook("$parent");
 
 // buildOptions
 
 export function buildOptions<Context>(
   input: string,
-  partial: Partial<Options<Context>>
-): Options<Context> {
-  let acc = 0;
-  const indexes = input.split(/[\r\n]/).map(chunk => {
-    const start = acc;
-    acc += chunk.length + 1;
-    return start;
-  });
+  partial: Partial<ParseOptions<Context>>
+): ParseOptions<Context> {
+  input = partial.input ?? input;
   return {
     input,
     from: 0,
@@ -74,71 +67,51 @@ export function buildOptions<Context>(
     ignoreCase: false,
     tracer: defaultTracer,
     trace: false,
+    logger: new Logger(input),
+    log: true,
     context: undefined as any,
     visit: [],
     cut: false,
     captures: {},
-    indexes,
-    log: true,
-    warnings: [],
-    failures: [],
-    ffIndex: 0,
-    ffType: null,
-    ffSemantic: null,
-    ffExpectations: [],
-    at(index) {
-      let line = 0;
-      let n = this.indexes.length - 1;
-      while (line < n) {
-        const k = line + ((n - line) >> 1);
-        if (index < this.indexes[k]) n = k - 1;
-        else if (index >= this.indexes[k + 1]) line = k + 1;
-        else {
-          line = k;
-          break;
-        }
-      }
-      return {
-        index,
-        line: line + 1,
-        column: index - this.indexes[line] + 1
-      };
-    },
-    ffExpect(from, expected) {
-      if (this.ffIndex === from && this.ffType !== FailureType.Semantic) {
-        this.ffType = FailureType.Expectation;
-        this.ffExpectations.push(expected);
-      } else if (this.ffIndex < from) {
-        this.ffIndex = from;
-        this.ffType = FailureType.Expectation;
-        this.ffExpectations = [expected];
+    _ffIndex: 0,
+    _ffType: null,
+    _ffSemantic: null,
+    _ffExpectations: [],
+    _ffExpect(from, expected) {
+      if (this._ffIndex === from && this._ffType !== FailureType.Semantic) {
+        this._ffType = FailureType.Expectation;
+        this._ffExpectations.push(expected);
+      } else if (this._ffIndex < from) {
+        this._ffIndex = from;
+        this._ffType = FailureType.Expectation;
+        this._ffExpectations = [expected];
       }
     },
-    ffFail(from: number, message: string) {
-      if (this.ffIndex <= from) {
-        this.ffIndex = from;
-        this.ffType = FailureType.Semantic;
-        this.ffSemantic = message;
+    _ffFail(from: number, message: string) {
+      if (this._ffIndex <= from) {
+        this._ffIndex = from;
+        this._ffType = FailureType.Semantic;
+        this._ffSemantic = message;
       }
     },
-    commit() {
-      if (this.ffType !== null) {
-        const pos = this.at(this.ffIndex);
-        if (this.ffType === FailureType.Expectation)
-          this.failures.push({
+    _ffCommit() {
+      if (this._ffType !== null) {
+        const pos = this.logger.at(this._ffIndex);
+        if (this._ffType === FailureType.Expectation)
+          this.logger.failures.push({
             from: pos,
             to: pos,
             type: FailureType.Expectation,
-            expected: this.ffExpectations
+            expected: this._ffExpectations
           });
         else
-          this.failures.push({
+          this.logger.failures.push({
             from: pos,
             to: pos,
             type: FailureType.Semantic,
-            message: this.ffSemantic!
+            message: this._ffSemantic!
           });
-        this.ffType = null;
+        this._ffType = null;
       }
     },
     ...partial
@@ -192,104 +165,13 @@ export function castExpectation(
 
 // skip
 
-export function skip(options: Options) {
+export function skip(options: ParseOptions) {
   if (!options.skip) return options.from;
   const { skip } = options;
   options.skip = false;
   const match = options.skipper.exec(options);
   options.skip = skip;
   return match && match.to;
-}
-
-// log
-
-export function log(options: Options, logOptions?: Partial<LogOptions>) {
-  const opts: LogOptions = {
-    warnings: true,
-    failures: true,
-    codeFrames: true,
-    linesBefore: 2,
-    linesAfter: 2,
-    ...logOptions
-  };
-
-  const entries = [
-    ...(opts.warnings ? options.warnings : []),
-    ...(opts.failures ? options.failures : [])
-  ].sort((a, b) => a.from.index - b.from.index);
-
-  const stringifyEntry = (entry: Warning | Failure) => {
-    switch (entry.type) {
-      case WarningType.Message:
-        return `Warning: ${entry.message}`;
-      case FailureType.Semantic:
-        return `Failure: ${entry.message}`;
-      case FailureType.Expectation:
-        const expectations = unique(
-          entry.expected.map(stringifyExpectation)
-        ).reduce(
-          (acc, expected, index, { length }) =>
-            `${acc}${index === length - 1 ? " or " : ", "}${expected}`
-        );
-        return `Failure: Expected ${expectations}`;
-    }
-  };
-
-  const stringifyExpectation = (expectation: Expectation) => {
-    switch (expectation.type) {
-      case ExpectationType.Literal:
-        return `"${expectation.literal}"`;
-      case ExpectationType.RegExp:
-        return String(expectation.regex);
-      case ExpectationType.Token:
-        return expectation.displayName;
-      case ExpectationType.Mismatch:
-        return `mismatch of "${expectation.match}"`;
-      case ExpectationType.Custom:
-        return expectation.display;
-    }
-  };
-
-  const codeFrame = (location: Location) => {
-    const start = Math.max(1, location.line - opts.linesBefore);
-    const end = Math.min(
-      options.indexes.length,
-      location.line + opts.linesAfter
-    );
-    const maxLineNum = String(end).length;
-    const padding = " ".repeat(maxLineNum);
-    let acc = "";
-    for (let i = start; i !== end + 1; i++) {
-      const lineNum = (padding + i).slice(-maxLineNum);
-      const current = options.input.substring(
-        options.indexes[i - 1],
-        (options.indexes[i] ?? options.input.length + 1) - 1
-      );
-      const normalized = current.replace(/\t+/, tabs =>
-        "  ".repeat(tabs.length)
-      );
-      if (i !== location.line) acc += `  ${lineNum} | ${normalized}\n`;
-      else {
-        const count = Math.max(
-          0,
-          normalized.length - current.length + location.column - 1
-        );
-        acc += `> ${lineNum} | ${normalized}\n`;
-        acc += `  ${padding} | ${" ".repeat(count)}^\n`;
-      }
-    }
-    return acc;
-  };
-
-  return entries
-    .map(entry => {
-      let acc = `(${entry.from.line}:${entry.from.column}) ${stringifyEntry(
-        entry
-      )}`;
-      if (opts.codeFrames) acc += `\n\n${codeFrame(entry.from)}`;
-      return acc;
-    })
-    .join("\n");
 }
 
 // resolveRule
@@ -362,7 +244,7 @@ export function modulo(
 export function applyVisitor<Value, Context>(
   node: Node,
   visitor: Visitor<Value>,
-  options: Options<Context>,
+  options: ParseOptions<Context>,
   parent: Node | null = null
 ) {
   let value,
@@ -371,22 +253,21 @@ export function applyVisitor<Value, Context>(
   hooks.push({
     $from: () => from,
     $to: () => to,
-    $children() {
-      throw new Error("The $children hook is not available in visitors");
-    },
-    $value() {
-      throw new Error("The $value hook is not available in visitors");
-    },
     $raw: () => options.input.substring(from.index, to.index),
     $options: () => options,
     $context: () => options.context,
     $warn(message) {
       options.log &&
-        options.warnings.push({ from, to, type: WarningType.Message, message });
+        options.logger.warnings.push({
+          from,
+          to,
+          type: WarningType.Message,
+          message
+        });
     },
     $fail(message) {
       options.log &&
-        options.failures.push({
+        options.logger.failures.push({
           from,
           to,
           type: FailureType.Semantic,
@@ -395,18 +276,12 @@ export function applyVisitor<Value, Context>(
     },
     $expected(expected) {
       options.log &&
-        options.failures.push({
+        options.logger.failures.push({
           from,
           to,
           type: FailureType.Expectation,
           expected: castArray(expected).map(castExpectation)
         });
-    },
-    $commit() {
-      throw new Error("The $commit hook is not available in visitors");
-    },
-    $emit() {
-      throw new Error("The $emit hook is not available in visitors");
     },
     $node: (label, fields) => ({
       $label: label,
@@ -459,6 +334,7 @@ export const defaultPlugin: Plugin = {
   },
   directives: {
     // Option tweaks
+    tweak: (parser, tweaker) => new TweakParser(parser, tweaker),
     skip: (parser, nextSkipper?: Parser) =>
       new TweakParser(parser, options => {
         const { skip, skipper } = options;

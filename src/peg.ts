@@ -7,6 +7,7 @@ import {
   $value,
   ActionParser,
   AlternativeParser,
+  Any,
   CaptureParser,
   CutParser,
   defaultPlugin,
@@ -31,19 +32,6 @@ import {
 // createTag
 
 export function createTag() {
-  // This is basically a hack to replace "any" but without an "implicit any" error
-  // on function parameter destructuration (don't know why, but hey)
-  type Any =
-    | null
-    | undefined
-    | string
-    | number
-    | boolean
-    | symbol
-    | bigint
-    | object
-    | ((...args: any[]) => any);
-
   function peg<Value = any, Context = any>(
     chunks: TemplateStringsArray | string,
     ...args: Any[]
