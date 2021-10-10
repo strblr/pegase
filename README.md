@@ -112,7 +112,7 @@ const g = peg`
     }})
     '{' '}'
 
-  $identifier @raw: [a-zA-Z]+
+  $identifier: [a-zA-Z]+
 `;
 ```
 
