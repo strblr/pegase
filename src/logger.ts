@@ -12,8 +12,8 @@ import {
 
 export class Logger {
   readonly input: string;
-  warnings: Warning[] = [];
-  failures: Failure[] = [];
+  readonly warnings: Warning[] = [];
+  readonly failures: Failure[] = [];
   private readonly indexes;
 
   constructor(input: string) {
