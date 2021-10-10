@@ -138,7 +138,7 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
     </tr>
     <tr>
       <td><pre>&lt;...id&gt;a</pre></td>
-      <td>Captures the children of <code>a</code> and assigns them to the identifier <i>"id"</i></td>
+      <td>Captures the children of <code>a</code> and assigns them to the identifier <i>"id"</i> as an array</td>
       <td>Forwarded from <code>a</code></td>
     </tr>
     <tr>
@@ -200,4 +200,3 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
     </tr>
   </tbody>
 </table>
-
