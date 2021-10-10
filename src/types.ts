@@ -17,6 +17,10 @@ export type Plugin = {
 
 export type Directive = (parser: Parser, ...args: any[]) => Parser;
 
+export type Tweaker = (
+  options: ParseOptions
+) => (match: Match | null) => Match | null;
+
 // Related to parsing processing
 
 export type ParseOptions<Context = any> = {

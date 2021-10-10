@@ -28,7 +28,7 @@ forwardParser:
   '...'? captureParser
 
 captureParser:
-  ('<' identifier? '>')? predicateParser
+  ('<' '...'? identifier? '>')? predicateParser
 
 predicateParser:
   ('&' | '!')? repetitionParser

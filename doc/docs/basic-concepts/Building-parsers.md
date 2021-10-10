@@ -129,11 +129,21 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
       <td><pre>&lt;id&gt;a</pre></td>
       <td>If <code>a</code> emits a single child (called <i>value of <code>a</code></i>), it's captured and assigned to the identifier <i>"id"</i>, which can then be used in semantic actions. Otherwise, <i>"id"</i> will be set to <code>undefined</code>.</td>
       <td>Forwarded from <code>a</code></td>
-      <td align="center" rowspan="2">3</td>
+      <td align="center" rowspan="4">3</td>
     </tr>
     <tr>
       <td><pre>&lt;&gt;id</pre></td>
       <td>Shortcut for <code>&lt;id&gt;id</code>, where <code>id</code> is a non-terminal</td>
+      <td>Forwarded from the non-terminal <code>id</code></td>
+    </tr>
+    <tr>
+      <td><pre>&lt;...id&gt;a</pre></td>
+      <td>Captures the children of <code>a</code> and assigns them to the identifier <i>"id"</i></td>
+      <td>Forwarded from <code>a</code></td>
+    </tr>
+    <tr>
+      <td><pre>&lt;...&gt;id</pre></td>
+      <td>Shortcut for <code>&lt;...id&gt;id</code>, where <code>id</code> is a non-terminal</td>
       <td>Forwarded from the non-terminal <code>id</code></td>
     </tr>
     <tr>

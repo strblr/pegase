@@ -210,27 +210,34 @@ _.forwardParser.parser = new ActionParser(
 _.captureParser.parser = new ActionParser(
   new SequenceParser([
     new RepetitionParser(
-      new SequenceParser([
-        new LiteralParser("<"),
-        new AlternativeParser([
-          _.identifier,
-          new ActionParser(new CutParser(), () => null)
+      new ActionParser(
+        new SequenceParser([
+          new LiteralParser("<"),
+          new RepetitionParser(new LiteralParser("...", true), [0, 1]),
+          new AlternativeParser([
+            _.identifier,
+            new ActionParser(new CutParser(), () => null)
+          ]),
+          new LiteralParser(">")
         ]),
-        new LiteralParser(">")
-      ]),
+        () =>
+          $children().length === 1
+            ? [false, $children()[0]]
+            : [true, $children()[1]]
+      ),
       [0, 1]
     ),
     _.predicateParser
   ]),
   () => {
     if ($children().length === 1) return $children()[0];
-    let name = $children()[0];
+    let [all, name] = $children()[0];
     if (name === null) {
       if (!($children()[1] instanceof NonTerminalParser))
         return $fail("Auto-captures can only be applied to non-terminals");
       name = $children()[1].rule;
     }
-    return new CaptureParser($children()[1], name);
+    return new CaptureParser($children()[1], name, all);
   }
 );
 

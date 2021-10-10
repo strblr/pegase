@@ -2,7 +2,7 @@ import {
   $from,
   $to,
   applyVisitor,
-  buildOptions,
+  buildParseOptions,
   castArray,
   castExpectation,
   ExpectationType,
@@ -19,6 +19,7 @@ import {
   TokenExpectation,
   TraceEventType,
   Tracer,
+  Tweaker,
   WarningType
 } from ".";
 
@@ -64,7 +65,10 @@ export abstract class Parser<Value = any, Context = any> {
     input: string,
     options?: Partial<ParseOptions<Context>>
   ): ParseResult<Value, Context> {
-    const opts = buildOptions(input, { ...this.defaultOptions, ...options });
+    const opts = buildParseOptions(input, {
+      ...this.defaultOptions,
+      ...options
+    });
     const parser = opts.complete
       ? new SequenceParser([this, endOfInput])
       : this;
@@ -308,14 +312,9 @@ export class TokenParser extends Parser {
 
 export class TweakParser extends Parser {
   parser?: Parser;
-  readonly tweaker: (
-    options: ParseOptions
-  ) => (match: Match | null) => Match | null;
+  readonly tweaker: Tweaker;
 
-  constructor(
-    parser: Parser | undefined,
-    tweaker: typeof TweakParser.prototype.tweaker
-  ) {
+  constructor(parser: Parser | undefined, tweaker: Tweaker) {
     super();
     this.parser = parser;
     this.tweaker = tweaker;
@@ -332,12 +331,11 @@ export class NonTerminalParser extends TweakParser {
   readonly rule: string;
 
   constructor(rule: string, parser?: Parser) {
-    // TODO: can be optimized by factoring by options.trace
     super(parser, options => {
       options.trace &&
         options.tracer({
           type: TraceEventType.Enter,
-          rule: this.rule,
+          rule,
           from: options.logger.at(options.from),
           options
         });
@@ -349,14 +347,14 @@ export class NonTerminalParser extends TweakParser {
           if (match === null)
             options.tracer({
               type: TraceEventType.Fail,
-              rule: this.rule,
+              rule,
               from: options.logger.at(options.from),
               options
             });
           else
             options.tracer({
               type: TraceEventType.Match,
-              rule: this.rule,
+              rule,
               from: options.logger.at(match.from),
               to: options.logger.at(match.to),
               options
@@ -407,10 +405,12 @@ export class PredicateParser extends TweakParser {
 // CaptureParser
 
 export class CaptureParser extends TweakParser {
-  constructor(parser: Parser, name: string) {
+  constructor(parser: Parser, name: string, all: boolean) {
     super(parser, options => match => {
       if (match === null) return null;
-      options.captures[name] = inferValue(match.children);
+      options.captures[name] = all
+        ? match.children
+        : inferValue(match.children);
       return match;
     });
   }

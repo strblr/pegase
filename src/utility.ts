@@ -53,7 +53,7 @@ export const $parent = hook("$parent");
 
 // buildOptions
 
-export function buildOptions<Context>(
+export function buildParseOptions<Context>(
   input: string,
   partial: Partial<ParseOptions<Context>>
 ): ParseOptions<Context> {
