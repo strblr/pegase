@@ -57,7 +57,7 @@ Let's see how this plays out :
 false
 ```
 
-#### > `expr.parse("2* (4 + )/32").log()`
+#### > `expr.parse("2* (4 + )/32").logger.toString()`
 
 ```
 (1:9) Failure: Expected integer or "("

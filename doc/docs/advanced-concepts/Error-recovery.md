@@ -23,7 +23,7 @@ const g = peg`
 `;
 ```
 
-#### > `g.parse("[1, 0, 1, 3, 0, 1, 2, 1]").log()`
+#### > `g.parse("[1, 0, 1, 3, 0, 1, 2, 1]").logger.toString()`
 
 ```
 (1:11) Failure: Expected "0" or "1"

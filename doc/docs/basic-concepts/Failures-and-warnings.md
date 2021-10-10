@@ -25,7 +25,7 @@ These are automatically emitted when a literal, a regexp or a token mismatched, 
 const g = peg`'a' ('b' | 'c' | 'd' @token("the awesome letter d") | ![b-e] .)`;
 ```
 
-#### > `g.parse('ae').log()`
+#### > `g.parse('ae').logger.toString()`
 
 ```
 (1:2) Failure: Expected "b", "c", the awesome letter d or mismatch of "e"
@@ -42,7 +42,7 @@ const g = peg`'a' ('b' | . ${() => {
 }})`;
 ```
 
-#### > `g.parse("ae").log()`
+#### > `g.parse("ae").logger.toString()`
 
 ```
 (1:2) Failure: Expected "b", "c" or "d"
@@ -71,7 +71,7 @@ const context = new Map([["foo", 42], ["bar", 18]]);
 42
 ```
 
-#### `g.parse("baz", { context }).log()`
+#### `g.parse("baz", { context }).logger.toString()`
 
 ```
 (1:1) Failure: Undeclared identifier "baz"
@@ -103,7 +103,7 @@ const p = peg`
 `;
 ```
 
-#### > `p.parse("class test {").log()`
+#### > `p.parse("class test {").logger.toString()`
 
 ```
 (1:7) Warning: Class names should be capitalized
