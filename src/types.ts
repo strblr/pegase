@@ -100,6 +100,7 @@ export type EnterEvent<Context = any> = TraceCommon<Context> & {
 export type MatchEvent<Context = any> = TraceCommon<Context> & {
   type: TraceEventType.Match;
   to: Location;
+  children: any[];
 };
 
 export type FailEvent<Context = any> = TraceCommon<Context> & {

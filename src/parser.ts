@@ -352,6 +352,7 @@ export class NonTerminalParser extends TweakParser {
               rule,
               from: options.logger.at(match.from),
               to: options.logger.at(match.to),
+              children: match.children,
               options
             });
         return match;
