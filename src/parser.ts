@@ -182,16 +182,11 @@ export class AlternativeParser extends Parser {
   exec(options: ParseOptions) {
     const { cut } = options;
     options.cut = false;
-    for (let i = 0; i !== this.parsers.length; ++i) {
-      const match = this.parsers[i].exec(options);
-      if (match) {
-        options.cut = cut;
-        return match;
-      }
-      if (options.cut) break;
-    }
+    let match: Match | null;
+    for (let i = 0; i !== this.parsers.length; ++i)
+      if ((match = this.parsers[i].exec(options)) || options.cut) break;
     options.cut = cut;
-    return null;
+    return match!;
   }
 }
 
