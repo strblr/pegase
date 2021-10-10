@@ -687,7 +687,7 @@ forwardParser:
   '...'? captureParser
 
 captureParser:
-  ('&lt;' identifier? '&gt;')? predicateParser
+  ('&lt;' '...'? identifier? '&gt;')? predicateParser
 
 predicateParser:
   ('&amp;' | '!')? repetitionParser

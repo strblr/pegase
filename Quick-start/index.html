@@ -701,7 +701,7 @@ const nestedBitArray = peg`
 <p>Okay, the <code>test</code> method is fun but what if you want to do something more elaborated like collecting values, reading warnings or parse failures ? The <code>parse</code> method is what you're asking for. It returns a result object containing all the info you might be interested in after a parsing. In fact, all other <code>Parser</code> methods (<code>test</code>, <code>value</code> and <code>children</code>) are <em>wrappers</em> around <code>parse</code>.</p>
 <pre><code class="language-js">const result = nestedBitArray.parse(&quot;[[0]&quot;);
 if(!result.success)
-  console.log(result.log());
+  console.log(result.logger.toString());
 </code></pre>
 <p>This will output:</p>
 <pre><code>(1:5) Failure: Expected &quot;,&quot; or &quot;]&quot;

@@ -71,7 +71,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#prefixparse-12-42-3-visit-sumvisitor-log" class="md-skip">
+        <a href="#prefixparse-12-42-3-visit-sumvisitor-loggertostring" class="md-skip">
           Skip to content
         </a>
       
@@ -395,8 +395,8 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#prefixparse-12-42-3-visit-sumvisitor-log" class="md-nav__link">
-    &gt; prefix.parse("+ 12 + 42 3", { visit: sumVisitor }).log()
+  <a href="#prefixparse-12-42-3-visit-sumvisitor-loggertostring" class="md-nav__link">
+    &gt; prefix.parse("+ 12 + 42 3", { visit: sumVisitor }).logger.toString()
   </a>
   
 </li>
@@ -705,8 +705,8 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#prefixparse-12-42-3-visit-sumvisitor-log" class="md-nav__link">
-    &gt; prefix.parse("+ 12 + 42 3", { visit: sumVisitor }).log()
+  <a href="#prefixparse-12-42-3-visit-sumvisitor-loggertostring" class="md-nav__link">
+    &gt; prefix.parse("+ 12 + 42 3", { visit: sumVisitor }).logger.toString()
   </a>
   
 </li>
@@ -856,7 +856,7 @@ prefix.value(&quot;+ 12 + 42 3&quot;, { visit: [doubleVisitor, sumVisitor] }); /
   PLUS: node =&gt; $visit(node.a) + $visit(node.b)
 };
 </code></pre>
-<h4 id="prefixparse-12-42-3-visit-sumvisitor-log">&gt; <code>prefix.parse("+ 12 + 42 3", { visit: sumVisitor }).log()</code></h4>
+<h4 id="prefixparse-12-42-3-visit-sumvisitor-loggertostring">&gt; <code>prefix.parse("+ 12 + 42 3", { visit: sumVisitor }).logger.toString()</code></h4>
 <pre><code>(1:8) Warning: 42 is too powerful
 
 &gt; 1 | + 12 + 42 3

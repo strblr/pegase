@@ -71,7 +71,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#gparseaelog" class="md-skip">
+        <a href="#gparseaeloggertostring" class="md-skip">
           Skip to content
         </a>
       
@@ -353,15 +353,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#gparseaelog" class="md-nav__link">
-    &gt; g.parse('ae').log()
+  <a href="#gparseaeloggertostring" class="md-nav__link">
+    &gt; g.parse('ae').logger.toString()
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#gparseaelog_1" class="md-nav__link">
-    &gt; g.parse("ae").log()
+  <a href="#gparseaeloggertostring_1" class="md-nav__link">
+    &gt; g.parse("ae").logger.toString()
   </a>
   
 </li>
@@ -374,15 +374,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gparsebaz-context-log" class="md-nav__link">
-    g.parse("baz", { context }).log()
+  <a href="#gparsebaz-context-loggertostring" class="md-nav__link">
+    g.parse("baz", { context }).logger.toString()
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#pparseclass-test-log" class="md-nav__link">
-    &gt; p.parse("class test {").log()
+  <a href="#pparseclass-test-loggertostring" class="md-nav__link">
+    &gt; p.parse("class test {").logger.toString()
   </a>
   
 </li>
@@ -733,15 +733,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#gparseaelog" class="md-nav__link">
-    &gt; g.parse('ae').log()
+  <a href="#gparseaeloggertostring" class="md-nav__link">
+    &gt; g.parse('ae').logger.toString()
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#gparseaelog_1" class="md-nav__link">
-    &gt; g.parse("ae").log()
+  <a href="#gparseaeloggertostring_1" class="md-nav__link">
+    &gt; g.parse("ae").logger.toString()
   </a>
   
 </li>
@@ -754,15 +754,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gparsebaz-context-log" class="md-nav__link">
-    g.parse("baz", { context }).log()
+  <a href="#gparsebaz-context-loggertostring" class="md-nav__link">
+    g.parse("baz", { context }).logger.toString()
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#pparseclass-test-log" class="md-nav__link">
-    &gt; p.parse("class test {").log()
+  <a href="#pparseclass-test-loggertostring" class="md-nav__link">
+    &gt; p.parse("class test {").logger.toString()
   </a>
   
 </li>
@@ -795,7 +795,7 @@
 <p>These are automatically emitted when a literal, a regexp or a token mismatched, or if a portion of the input matched where it should not have (cf. <em>negative predicates</em> (<code>!a</code>)).</p>
 <pre><code class="language-js">const g = peg`'a' ('b' | 'c' | 'd' @token(&quot;the awesome letter d&quot;) | ![b-e] .)`;
 </code></pre>
-<h4 id="gparseaelog">&gt; <code>g.parse('ae').log()</code></h4>
+<h4 id="gparseaeloggertostring">&gt; <code>g.parse('ae').logger.toString()</code></h4>
 <pre><code>(1:2) Failure: Expected &quot;b&quot;, &quot;c&quot;, the awesome letter d or mismatch of &quot;e&quot;
 
 &gt; 1 | ae
@@ -806,7 +806,7 @@
   if (![&quot;c&quot;, &quot;d&quot;].includes($raw())) $expected([&quot;c&quot;, &quot;d&quot;]);
 }})`;
 </code></pre>
-<h4 id="gparseaelog_1">&gt; <code>g.parse("ae").log()</code></h4>
+<h4 id="gparseaeloggertostring_1">&gt; <code>g.parse("ae").logger.toString()</code></h4>
 <pre><code>(1:2) Failure: Expected &quot;b&quot;, &quot;c&quot; or &quot;d&quot;
 
 &gt; 1 | ae
@@ -827,7 +827,7 @@ const context = new Map([[&quot;foo&quot;, 42], [&quot;bar&quot;, 18]]);
 <h4 id="gvaluefoo-context"><code>g.value("foo", { context })</code></h4>
 <pre><code class="language-js">42
 </code></pre>
-<h4 id="gparsebaz-context-log"><code>g.parse("baz", { context }).log()</code></h4>
+<h4 id="gparsebaz-context-loggertostring"><code>g.parse("baz", { context }).logger.toString()</code></h4>
 <pre><code>(1:1) Failure: Undeclared identifier &quot;baz&quot;
 
 &gt; 1 | baz
@@ -852,7 +852,7 @@ const context = new Map([[&quot;foo&quot;, 42], [&quot;bar&quot;, 18]]);
   $identifier @raw: [a-zA-Z]+
 `;
 </code></pre>
-<h4 id="pparseclass-test-log">&gt; <code>p.parse("class test {").log()</code></h4>
+<h4 id="pparseclass-test-loggertostring">&gt; <code>p.parse("class test {").logger.toString()</code></h4>
 <pre><code>(1:7) Warning: Class names should be capitalized
 
 &gt; 1 | class test {
