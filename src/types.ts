@@ -18,106 +18,8 @@ export type Plugin = {
 export type Directive = (parser: Parser, ...args: any[]) => Parser;
 
 export type Tweaker = (
-  options: ParseOptions
+  options: Options
 ) => (match: Match | null) => Match | null;
-
-// Related to parsing processing
-
-export type ParseOptions<Context = any> = {
-  input: string;
-  from: number;
-  complete: boolean;
-  skipper: Parser<any, Context>;
-  skip: boolean;
-  ignoreCase: boolean;
-  tracer: Tracer<Context>;
-  trace: boolean;
-  logger: Logger;
-  log: boolean;
-  context: Context;
-  visit: Visitor | Visitor[];
-  cut: boolean;
-  captures: Record<string, any>;
-  _ffIndex: number;
-  _ffType: FailureType | null;
-  _ffSemantic: string | null;
-  _ffExpectations: Expectation[];
-  _ffExpect(from: number, expected: Expectation): void;
-  _ffFail(from: number, message: string): void;
-  _ffCommit(): void;
-};
-
-export type Match = {
-  from: number;
-  to: number;
-  children: any[];
-};
-
-export type SemanticAction<Value = any> = (
-  captures: Record<string, any>
-) => Value;
-
-export type Node = {
-  $label: string;
-  $from: Location;
-  $to: Location;
-  [field: string]: any;
-};
-
-export type Visitor<Value = any> = Record<string, (node: Node) => Value>;
-
-export type Hooks = {
-  $from(): Location;
-  $to(): Location;
-  $children(): any[];
-  $value(): any;
-  $raw(): string;
-  $options(): ParseOptions;
-  $context(): any;
-  $warn(message: string): void;
-  $fail(message: string): void;
-  $expected(expected: (string | RegExp | Expectation)[]): void;
-  $commit(): void;
-  $emit(children: any[]): void;
-  $node(label: string, fields: Record<string, any>): Node;
-  $visit(node: Node, visitor?: Visitor, context?: any): any;
-  $parent(): Node | null;
-};
-
-// Related to tracing
-
-export type Tracer<Context = any> = (event: TraceEvent<Context>) => void;
-
-export type TraceEvent<Context = any> =
-  | EnterEvent<Context>
-  | MatchEvent<Context>
-  | FailEvent<Context>;
-
-export type EnterEvent<Context = any> = TraceCommon<Context> & {
-  type: TraceEventType.Enter;
-};
-
-export type MatchEvent<Context = any> = TraceCommon<Context> & {
-  type: TraceEventType.Match;
-  to: Location;
-  children: any[];
-};
-
-export type FailEvent<Context = any> = TraceCommon<Context> & {
-  type: TraceEventType.Fail;
-};
-
-export enum TraceEventType {
-  Enter = "ENTER",
-  Match = "MATCH",
-  Fail = "FAIL"
-}
-
-export type TraceCommon<Context = any> = {
-  rule: string;
-  from: Location;
-  options: ParseOptions<Context>;
-};
 
 // Related to logging
 
@@ -196,26 +98,104 @@ export enum ExpectationType {
   Custom = "CUSTOM"
 }
 
-// Related to parsing results
+// Related to parsing processing
 
-export type ParseResult<Value = any, Context = any> =
-  | SuccessParseResult<Value, Context>
-  | FailParseResult<Context>;
+export type Options<Context = any> = {
+  input: string;
+  from: number;
+  complete: boolean;
+  skipper: Parser<any, Context>;
+  skip: boolean;
+  ignoreCase: boolean;
+  tracer: Tracer<Context>;
+  trace: boolean;
+  logger: Logger;
+  log: boolean;
+  context: Context;
+  visit: Visitor | Visitor[];
+  cut: boolean;
+  captures: Record<string, any>;
+  _ffIndex: number;
+  _ffType: FailureType | null;
+  _ffSemantic: string | null;
+  _ffExpectations: Expectation[];
+  _ffExpect(from: number, expected: Expectation): void;
+  _ffFail(from: number, message: string): void;
+  _ffCommit(): void;
+};
 
-export type SuccessParseResult<Value = any, Context = any> = Range & {
+export type Result<Value = any, Context = any> =
+  | SuccessResult<Value, Context>
+  | FailResult<Context>;
+
+export type SuccessResult<Value = any, Context = any> = Range & {
   success: true;
   value: Value;
   children: any[];
   raw: string;
   complete: boolean;
-  options: ParseOptions<Context>;
+  options: Options<Context>;
   logger: Logger;
 };
 
-export type FailParseResult<Context = any> = {
+export type FailResult<Context = any> = {
   success: false;
-  options: ParseOptions<Context>;
+  options: Options<Context>;
   logger: Logger;
+};
+
+export type Match = {
+  from: number;
+  to: number;
+  children: any[];
+};
+
+export type SemanticAction<Value = any> = (
+  captures: Record<string, any>
+) => Value;
+
+export type Node = {
+  $label: string;
+  $from: Location;
+  $to: Location;
+  [field: string]: any;
+};
+
+export type Visitor<Value = any> = Record<string, (node: Node) => Value>;
+
+// Related to tracing
+
+export type Tracer<Context = any> = (event: TraceEvent<Context>) => void;
+
+export type TraceEvent<Context = any> =
+  | EnterEvent<Context>
+  | MatchEvent<Context>
+  | FailEvent<Context>;
+
+export type EnterEvent<Context = any> = TraceCommon<Context> & {
+  type: TraceEventType.Enter;
+};
+
+export type MatchEvent<Context = any> = TraceCommon<Context> & {
+  type: TraceEventType.Match;
+  to: Location;
+  children: any[];
+};
+
+export type FailEvent<Context = any> = TraceCommon<Context> & {
+  type: TraceEventType.Fail;
+};
+
+export enum TraceEventType {
+  Enter = "ENTER",
+  Match = "MATCH",
+  Fail = "FAIL"
+}
+
+export type TraceCommon<Context = any> = {
+  rule: string;
+  from: Location;
+  options: Options<Context>;
 };
 
 // Shared
@@ -230,6 +210,24 @@ export type Location = {
   index: number;
   line: number;
   column: number;
+};
+
+export type Hooks = {
+  $from(): Location;
+  $to(): Location;
+  $children(): any[];
+  $value(): any;
+  $raw(): string;
+  $options(): Options;
+  $context(): any;
+  $warn(message: string): void;
+  $fail(message: string): void;
+  $expected(expected: (string | RegExp | Expectation)[]): void;
+  $commit(): void;
+  $emit(children: any[]): void;
+  $node(label: string, fields: Record<string, any>): Node;
+  $visit(node: Node, visitor?: Visitor, context?: any): any;
+  $parent(): Node | null;
 };
 
 // Other

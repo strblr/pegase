@@ -2,7 +2,7 @@ import {
   $from,
   $to,
   applyVisitor,
-  buildParseOptions,
+  buildOptions,
   castArray,
   castExpectation,
   ExpectationType,
@@ -11,9 +11,9 @@ import {
   inferValue,
   LiteralExpectation,
   Match,
-  ParseOptions,
-  ParseResult,
+  Options,
   RegexExpectation,
+  Result,
   SemanticAction,
   skip,
   TokenExpectation,
@@ -41,21 +41,21 @@ import {
  */
 
 export abstract class Parser<Value = any, Context = any> {
-  defaultOptions: Partial<ParseOptions<Context>> = {};
+  defaultOptions: Partial<Options<Context>> = {};
 
-  abstract exec(options: ParseOptions<Context>): Match | null;
+  abstract exec(options: Options<Context>): Match | null;
 
-  test(input: string, options?: Partial<ParseOptions<Context>>) {
+  test(input: string, options?: Partial<Options<Context>>) {
     return this.parse(input, options).success;
   }
 
-  value(input: string, options?: Partial<ParseOptions<Context>>) {
+  value(input: string, options?: Partial<Options<Context>>) {
     const result = this.parse(input, options);
     if (!result.success) throw new Error(result.logger.toString());
     return result.value;
   }
 
-  children(input: string, options?: Partial<ParseOptions<Context>>) {
+  children(input: string, options?: Partial<Options<Context>>) {
     const result = this.parse(input, options);
     if (!result.success) throw new Error(result.logger.toString());
     return result.children;
@@ -63,9 +63,9 @@ export abstract class Parser<Value = any, Context = any> {
 
   parse(
     input: string,
-    options?: Partial<ParseOptions<Context>>
-  ): ParseResult<Value, Context> {
-    const opts = buildParseOptions(input, {
+    options?: Partial<Options<Context>>
+  ): Result<Value, Context> {
+    const opts = buildOptions(input, {
       ...this.defaultOptions,
       ...options
     });
@@ -79,7 +79,7 @@ export abstract class Parser<Value = any, Context = any> {
     }
     match.children = match.children.map(child =>
       castArray(opts.visit).reduce(
-        (value, visitor) => applyVisitor(value, visitor, opts),
+        (value, visitor) => applyVisitor(value, null, visitor, opts),
         child
       )
     );
@@ -111,7 +111,7 @@ export class LiteralParser extends Parser {
     this.expected = { type: ExpectationType.Literal, literal };
   }
 
-  exec(options: ParseOptions): Match | null {
+  exec(options: Options): Match | null {
     const from = skip(options);
     if (from === null) return null;
     const to = from + this.literal.length;
@@ -141,7 +141,7 @@ export class RegexParser extends Parser {
     this.expected = { type: ExpectationType.RegExp, regex };
   }
 
-  exec(options: ParseOptions): Match | null {
+  exec(options: Options): Match | null {
     const from = skip(options);
     if (from === null) return null;
     const regex = this[options.ignoreCase ? "uncased" : "cased"];
@@ -159,7 +159,7 @@ export class RegexParser extends Parser {
 // CutParser
 
 export class CutParser extends Parser {
-  exec(options: ParseOptions): Match | null {
+  exec(options: Options): Match | null {
     options.cut = true;
     return {
       from: options.from,
@@ -179,7 +179,7 @@ export class AlternativeParser extends Parser {
     this.parsers = parsers;
   }
 
-  exec(options: ParseOptions) {
+  exec(options: Options) {
     const { cut } = options;
     options.cut = false;
     let match: Match | null;
@@ -200,7 +200,7 @@ export class SequenceParser extends Parser {
     this.parsers = parsers;
   }
 
-  exec(options: ParseOptions): Match | null {
+  exec(options: Options): Match | null {
     const { from } = options;
     const matches: Match[] = [];
     for (let i = 0; i !== this.parsers.length; ++i) {
@@ -236,7 +236,7 @@ export class RepetitionParser extends Parser {
     this.max = max;
   }
 
-  exec(options: ParseOptions): Match | null {
+  exec(options: Options): Match | null {
     const { from } = options;
     const matches: Match[] = [];
     let counter = 0;
@@ -278,7 +278,7 @@ export class TokenParser extends Parser {
       this.expected = { type: ExpectationType.Token, displayName };
   }
 
-  exec(options: ParseOptions) {
+  exec(options: Options) {
     const skipped = skip(options);
     if (skipped === null) return null;
     let match;
@@ -315,7 +315,7 @@ export class TweakParser extends Parser {
     this.tweaker = tweaker;
   }
 
-  exec(options: ParseOptions): Match | null {
+  exec(options: Options): Match | null {
     return this.tweaker(options)(this.parser!.exec(options));
   }
 }

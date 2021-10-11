@@ -12,7 +12,7 @@ import {
   LiteralParser,
   Logger,
   Node,
-  ParseOptions,
+  Options,
   Parser,
   Plugin,
   RegexParser,
@@ -53,10 +53,10 @@ export const $parent = hook("$parent");
 
 // buildOptions
 
-export function buildParseOptions<Context>(
+export function buildOptions<Context>(
   input: string,
-  partial: Partial<ParseOptions<Context>>
-): ParseOptions<Context> {
+  partial: Partial<Options<Context>>
+): Options<Context> {
   input = partial.input ?? input;
   return {
     input,
@@ -165,7 +165,7 @@ export function castExpectation(
 
 // skip
 
-export function skip(options: ParseOptions) {
+export function skip(options: Options) {
   if (!options.skip) return options.from;
   const { skip } = options;
   options.skip = false;
@@ -243,9 +243,9 @@ export function modulo(
 
 export function applyVisitor<Value, Context>(
   node: Node,
+  parent: Node | null = null,
   visitor: Visitor<Value>,
-  options: ParseOptions<Context>,
-  parent: Node | null = null
+  options: Options<Context>
 ) {
   let value,
     from = node.$from,
@@ -292,7 +292,7 @@ export function applyVisitor<Value, Context>(
     $visit(nextNode, nextVisitor = visitor, nextContext = options.context) {
       const { context } = options;
       options.context = nextContext;
-      const result = applyVisitor(nextNode, nextVisitor, options, node);
+      const result = applyVisitor(nextNode, node, nextVisitor, options);
       options.context = context;
       return result;
     },

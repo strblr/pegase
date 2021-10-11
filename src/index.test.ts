@@ -12,7 +12,7 @@ import peg, {
   createTag,
   LiteralParser,
   RegexParser,
-  SuccessParseResult,
+  SuccessResult,
   Visitor
 } from ".";
 import * as competitor from "./competitor.test";
@@ -386,7 +386,7 @@ test("Hooks should work correctly", () => {
     return $children()[0];
   }}`;
 
-  const r = b.parse("1") as SuccessParseResult;
+  const r = b.parse("1") as SuccessResult;
   expect(r.value).toBe("1");
   expect(r.logger.toString()).toBe(`(1:1) Warning: This is a warning
 
