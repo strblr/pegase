@@ -726,7 +726,7 @@
 </tr>
 <tr>
 <td><code>$expected</code></td>
-<td><code>(expected: string &vert; RegExp &vert; Expectation &vert; (...)[]) =&gt; void</code></td>
+<td><code>(expected: (string &vert; RegExp &vert; Expectation)[]) =&gt; void</code></td>
 <td>Semantic actions, visitors</td>
 <td>Emits an expectation failure at the current match's start location. In semantic actions, this failure is only a <em>candidate</em> and might be thrown out or merged according to the farthest failure heuristic (see <a href="/pegase/basic-concepts/Failures-and-warnings">Failures and warnings</a>).</td>
 </tr>
@@ -758,7 +758,7 @@
 <td><code>$parent</code></td>
 <td><code>() =&gt; Node | null</code></td>
 <td>Visitors</td>
-<td>Returns the current node's parent or <code>null</code> if the current node is the root node</td>
+<td>Returns the <code>Node</code> from which the current visit was called from, or <code>null</code> if the current node is root</td>
 </tr>
 </tbody>
 </table>
