@@ -16,7 +16,7 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
       <td><pre>.</pre></td>
       <td>Matches any character</td>
       <td><code>[]</code></td>
-      <td align="center" rowspan="14">0</td>
+      <td align="center" rowspan="15">0</td>
     </tr>
     <tr>
       <td><pre>$</pre></td>
@@ -37,6 +37,11 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
       <td><pre>(a)</pre></td>
       <td>Matches <code>a</code></td>
       <td>Forwarded from <code>a</code></td>
+    </tr>
+    <tr>
+      <td><pre>>id<</pre></td>
+      <td>Back reference. Matches the string literal captured as <code>id</code>.</td>
+      <td><code>[]</code></td>
     </tr>
     <tr>
       <td><pre>identifier</pre></td>
@@ -127,7 +132,7 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
     </tr>
     <tr>
       <td><pre>&lt;id&gt;a</pre></td>
-      <td>If <code>a</code> emits a single child (called <i>value of <code>a</code></i>), it's captured and assigned to the identifier <i>"id"</i>, which can then be used in semantic actions. Otherwise, <i>"id"</i> will be set to <code>undefined</code>.</td>
+      <td>If <code>a</code> emits a single child (called <i>value of <code>a</code></i>), it's captured and assigned to the identifier <i>"id"</i>, which can then be used in semantic actions and back references. Otherwise, <i>"id"</i> will be set to <code>undefined</code>.</td>
       <td>Forwarded from <code>a</code></td>
       <td align="center" rowspan="4">3</td>
     </tr>
@@ -200,3 +205,4 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
     </tr>
   </tbody>
 </table>
+

@@ -26,7 +26,8 @@ import {
   resolveRule,
   SequenceParser,
   spaceCase,
-  TokenParser
+  TokenParser,
+  TweakParser
 } from "."; // The parser creator factory
 
 // createTag
@@ -290,7 +291,22 @@ _.primaryParser.parser = new AlternativeParser([
     _.optionsParser,
     new LiteralParser(")")
   ]),
-
+  new ActionParser(
+    new SequenceParser([
+      new LiteralParser(">"),
+      new CutParser(),
+      _.identifier,
+      new LiteralParser("<")
+    ]),
+    () => {
+      const name = $children()[0];
+      const parser = new LiteralParser("");
+      return new TweakParser(parser, options => {
+        parser.reset(options.captures[name]);
+        return match => match;
+      });
+    }
+  ),
   new ActionParser(
     new SequenceParser([
       _.nonTerminal,
