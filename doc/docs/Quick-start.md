@@ -36,7 +36,7 @@ if (bitArray.test(" [ 0,1,    1 ,0 , 1 ]  "))
   console.log("It's a match!");
 ```
 
-As you might have spotted, whitespaces are handled automatically by default ([it can be changed](#handling-whitespaces)). The way this works is pretty simple: whitespace characters are parsed and discarded **before every terminal parser** (like `'['`, `1`, etc.). This process is called **skipping**. By default, every parser also adds an implicit "end of input" symbol (`$`) at the end of the peg expression, which is a terminal, thus the trailing space is skipped too and the whole string matches.
+As you might have spotted, whitespaces are handled automatically by default ([it can be changed](/pegase/basic-concepts/Handling-whitespaces)). The way this works is pretty simple: whitespace characters are parsed and discarded **before every terminal parser** (like `'['`, `1`, etc.). This process is called **skipping**. By default, every parser also adds an implicit "end of input" symbol (`$`) at the end of the peg expression, which is a terminal, thus the trailing space is skipped too and the whole string matches.
 
 Good, but so far, a `RegExp` could have done the job. Things get interesting when we add in **non-terminals**. A non-terminal is an identifier that refers to a more complex peg expression which will be invoked every time the identifier is used. You can think of non-terminals as *variables* whose value is a parser, initialized in what we call `rules`. This allows for recursive patterns. Let's say we want to match possibly infinitely-nested bit arrays:
 
