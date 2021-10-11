@@ -180,7 +180,7 @@ export function resolveRule(plugins: Plugin[], rule: string) {
   const plugin = plugins.find(
     plugin => plugin.resolve && has(plugin.resolve, rule)
   );
-  return plugin?.resolve?.[rule];
+  return plugin?.resolve![rule];
 }
 
 // resolveCast
@@ -188,11 +188,7 @@ export function resolveRule(plugins: Plugin[], rule: string) {
 export function resolveCast(plugins: Plugin[], value: any) {
   let parser: Parser | undefined;
   plugins.some(plugin => (parser = plugin.castParser?.(value)));
-  if (!parser)
-    $fail(
-      "Couldn't cast value to Parser, you can add support for it via peg.extend"
-    );
-  else return parser;
+  return parser;
 }
 
 // resolveDirective
@@ -201,11 +197,7 @@ export function resolveDirective(plugins: Plugin[], directive: string) {
   const plugin = plugins.find(
     plugin => plugin.directives && has(plugin.directives, directive)
   );
-  if (!plugin)
-    $fail(
-      `Couldn't resolve directive "${directive}", you can add support for it via peg.extend`
-    );
-  else return plugin.directives![directive];
+  return plugin?.directives![directive];
 }
 
 // pipeDirectives

@@ -115,10 +115,10 @@ _.grammarParser.parser = new ActionParser(
       () => {
         let [rule, directives, parser] = $children();
         if (rule.startsWith("$")) {
-          rule = rule.substring(1);
           const token = resolveDirective($context().plugins, "token");
-          if (!token) return;
-          directives = [...directives, [token, [spaceCase(rule)]]];
+          if (!token) return unresolvedDirectiveFail("token");
+          rule = rule.substring(1);
+          directives.push([token, [spaceCase(rule)]]);
         }
         return [rule, pipeDirectives(parser, directives)];
       }
@@ -350,31 +350,33 @@ _.directives.parser = new ActionParser(
   () => $children()
 );
 
-_.directive.parser = new AlternativeParser([
-  new ActionParser(
+_.directive.parser = new ActionParser(
+  new AlternativeParser([
+    new ActionParser(
+      new SequenceParser([
+        new LiteralParser("@"),
+        new CutParser(),
+        _.identifier,
+        _.directiveArguments
+      ]),
+      () => $children()
+    ),
+    new ActionParser(_.actionTagArgument, () => ["action", $children()]),
     new SequenceParser([
-      new LiteralParser("@"),
-      new CutParser(),
-      new ActionParser(_.identifier, () =>
-        resolveDirective($context().plugins, $children()[0])
-      ),
-      _.directiveArguments
-    ]),
-    () => $children()
-  ),
-  new ActionParser(_.actionTagArgument, () => [
-    resolveDirective($context().plugins, "action"),
-    $children()
+      new LiteralParser("=>"),
+      new ActionParser(_.value, () =>
+        typeof $children()[0] !== "string"
+          ? $fail("A node label can only be a string")
+          : ["node", $children()]
+      )
+    ])
   ]),
-  new SequenceParser([
-    new LiteralParser("=>"),
-    new ActionParser(_.value, () =>
-      typeof $children()[0] !== "string"
-        ? $fail("A node label can only be a string")
-        : [resolveDirective($context().plugins, "node"), $children()]
-    )
-  ])
-]);
+  () => {
+    const [name, args] = $children()[0];
+    const directive = resolveDirective($context().plugins, name);
+    return directive ? [directive, args] : unresolvedDirectiveFail(name);
+  }
+);
 
 _.directiveArguments.parser = new ActionParser(
   new RepetitionParser(
@@ -458,8 +460,13 @@ _.tagArgument.parser = new TokenParser(
 );
 
 _.castableTagArgument.parser = new TokenParser(
-  new ActionParser(_.tagArgument, () =>
-    resolveCast($context().plugins, $children()[0])
+  new ActionParser(
+    _.tagArgument,
+    () =>
+      resolveCast($context().plugins, $children()[0]) ??
+      $fail(
+        "Couldn't cast value to Parser, you can add support for it via peg.extend"
+      )
   ),
   "castable tag argument"
 );
@@ -472,6 +479,12 @@ _.actionTagArgument.parser = new TokenParser(
   }),
   "action tag argument"
 );
+
+function unresolvedDirectiveFail(directive: string) {
+  $fail(
+    `Couldn't resolve directive "${directive}", you can add support for it via peg.extend`
+  );
+}
 
 // peg
 
