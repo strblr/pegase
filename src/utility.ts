@@ -437,6 +437,7 @@ export const defaultPlugin: Plugin = {
     // Other
     action: (parser, action: SemanticAction) =>
       new ActionParser(parser, action),
+    fail: action((_, message) => $fail(message)),
     visit: action((_, visitor) => $visit($value(), visitor)),
     echo: action((_, message) => console.log(message)),
     node: action((captures, label, fields = () => ({})) =>
