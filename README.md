@@ -13,7 +13,7 @@
 - **_Inline_**, meaning grammars are directly expressed as [tagged template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates). No generation step, no CLI. Pegase works in symbiosis with JS.
 - **_Fast_**. Pegase is heavily optimized to be extremely fast while providing an extensive range of features.
 - **_Complete_**. Pegase has *everything* you will ever need: an elegant grammar syntax with a lot of flexibility, semantic actions, support for native regexps, error recovery, warnings, AST generation, AST visitors, cut operator, and a lot more.
-- **_Lightweight_**. Pegase is a _zero-dependency_ package, and weights less than 9kB gzipped.
+- **_Lightweight_**. Pegase is a _zero-dependency_ package, and weights less than 8kB gzipped.
 - **_Intuitive_**, in that it lets you express complex grammars and semantic processes in very simple ways. You will never feel lost.
 - **_Extensible_**: You can define your own `Parser` subclasses, add plugins, write custom directives, etc.
 
