@@ -701,6 +701,7 @@ primaryParser:
 | 'ε'
 | '^'
 | '(' ^ optionsParser ')'
+| '&gt;' ^ identifier '&lt;'
 | nonTerminal !(directives ':')
 | numberLiteral
 | stringLiteral
