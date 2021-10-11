@@ -206,7 +206,6 @@ export type Range = {
 };
 
 export type Location = {
-  input: string;
   index: number;
   line: number;
   column: number;

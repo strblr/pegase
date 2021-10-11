@@ -39,7 +39,6 @@ export class Logger {
       }
     }
     return {
-      input: this.input,
       index,
       line: line + 1,
       column: index - this.indexes[line] + 1
