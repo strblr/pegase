@@ -863,6 +863,15 @@ prefix.value(&quot;+ 12 + 42 3&quot;, { visit: [doubleVisitor, sumVisitor] }); /
     |        ^
 </code></pre>
 <p>The effect of some hooks differs when used in a semantic action vs. a visitor. In semantic actions, <code>$fail</code> and <code>$expected</code> don't commit failures, they emit failure <em>candidates</em> which are then merged or filtered out using the farthest failure heuristic (see <a href="#failures-and-warnings">Basic concepts &gt; Failures and warnings</a>). In visitors, these hooks commit failures directly. The heuristic wouldn't make much sense outside of a backtracking syntactic analysis. Please refer to <a href="#hooks">API &gt; Hooks</a> for an exhaustive doc of all hooks.</p>
+<p>If you need to separate the parsing and the visits (for example to pass different contexts to different visitors), you can make an explicit call to the <code>applyVisitor</code> utility function:</p>
+<pre><code class="language-ts">const result = prefix.parse(&quot;+ 12 + 42 3&quot;);
+if(result.success) {
+  result.options.context = newContext; // Changing context
+  const value = applyVisitor(result.value, sumVisitor, result.options); // Explicit visit
+  // ...
+}
+</code></pre>
+<p>See <a href="/pegase/api/Utility-functions/">API &gt; Utility functions</a>.</p>
                 
                   
                 
