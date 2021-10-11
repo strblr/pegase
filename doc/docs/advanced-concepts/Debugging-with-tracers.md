@@ -4,8 +4,8 @@ When writing complex grammars and not getting the expected behavior, it's not al
 
 Tracing is configured via two parse options:
 
-- `trace`, a boolean to activate or deactivate tracing. This option can be toggled only for specific sections of the grammar by using the `@trace` and `@notrace` standard directives. See [`defaultPlugin`](#defaultplugin).
-- `tracer`, a function that takes a trace event (*enter*, *match*, or *fail*) as a single argument. A trace event is a simple object with contextual information. Please refer to [TypeScript types](#typescript-types) to see the precise signature of these objects. If `tracer` is omitted, a default tracer will be provided that will pretty-print the trace events to `console.log` automatically.
+- `trace`, a boolean to activate or deactivate tracing. This option can be toggled only for specific sections of the grammar by using the `@trace` and `@notrace` standard directives. See [`defaultPlugin`](/pegase/api/defaultPlugin).
+- `tracer`, a function that takes a trace event (*enter*, *match*, or *fail*) as a single argument. A trace event is a simple object with contextual information. Please refer to [API > Types](/pegase/api/Types/) to see the precise signature of these objects. If `tracer` is omitted, a default tracer will be provided that will pretty-print the trace events to `console.log` automatically.
 
 Let's illustrate that:
 

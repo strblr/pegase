@@ -13,7 +13,7 @@ This is well explained in [this paper](http://scg.unibe.ch/archive/masters/Ruef1
 
 The general idea is that a failure emitted at input position *n* will generally be more relevant than a failure emitted at position *n - x*, where *x* is a positive integer, because *x* more characters have been successfully recognized by the parser at that point.
 
-Failures and warnings (called *log events*) are tracked at parse time. `warnings` and `failures` are then attached to the parse result as arrays, whether the match fails or succeeds (a successful match can produce failures, see [Advanced concepts > Error recovery](#error-recovery)).
+Failures and warnings (called *log events*) are tracked at parse time. `warnings` and `failures` are then attached to the parse result as arrays, whether the match fails or succeeds (a successful match can produce failures, see [Advanced concepts > Error recovery](/pegase/advanced-concepts/Error-recovery/)).
 
 **In Pegase, there are two types of failures**:
 
@@ -85,7 +85,7 @@ If there are *several* failures at the farthest position *n*, they are folded in
 - If they're only expectation failures, the expectations are *merged* as illustrated above.
 - If there is a semantic failure, it will override everything else. In case of multiple semantic failures at the same position, the last one will win.
 
-If you want to identify multiple input errors at once, you have to do *error recovery*. This is done using failure commits and synchronization expressions (`...a`). See [Advanced concepts > Error recovery](#error-recovery) for more info.
+If you want to identify multiple input errors at once, you have to do *error recovery*. This is done using failure commits and synchronization expressions (`...a`). See [Advanced concepts > Error recovery](/pegase/advanced-concepts/Error-recovery/) for more info.
 
 **Warnings can be emitted in semantic actions using the `$warn` hook**. They are collected in a side-effect manner and don't influence the parsing process:
 
@@ -117,5 +117,5 @@ const p = peg`
     |             ^
 ```
 
-- If you want to do more elaborated stuff than to simply pretty-print the logs, like processing them programmatically, you have direct access using the `warnings` and `failures` properties on the result object. These are just arrays of objects describing the log events. Please see [API > `Parser`](#parser) for more details.
-- Warnings and failures can also be emitted during AST visits. See [Advanced concepts > AST and visitors](#ast-and-visitors).
+- If you want to do more elaborated stuff than to simply pretty-print the logs, like processing them programmatically, you have direct access using the `warnings` and `failures` properties on the result object. These are just arrays of objects describing the log events. Please see [API > `Parser`](/pegase/api/Parser/) for more details.
+- Warnings and failures can also be emitted during AST visits. See [Advanced concepts > AST and visitors](/pegase/advanced-concepts/AST-and-visitors/).

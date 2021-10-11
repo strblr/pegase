@@ -1,4 +1,4 @@
-We've seen in section [Basic concepts > Building parsers](#building-parsers) that parsers are combined together to form more complex parsers. In this section, we'll go into more detail about how exactly this composition is done internally and how you could write your own `Parser` subclass with its own logic. Under the hood, the `Parser` class is derived into three categories of subclasses:
+We've seen in section [Basic concepts > Building parsers](/pegase/basic-concepts/Building-parsers/) that parsers are combined together to form more complex parsers. In this section, we'll go into more detail about how exactly this composition is done internally and how you could write your own `Parser` subclass with its own logic. Under the hood, the `Parser` class is derived into three categories of subclasses:
 
 - Leaf classes, which don't hold a reference to other parsers. There are three of them: `LiteralParser`, `RegexParser` and `CutParser`.
 - Composition classes like `SequenceParser`, `TokenParser`, `PredicateParser`, `ActionParser`, etc. which, on the contrary, reference one or more subparsers.
@@ -43,9 +43,9 @@ type Match = {
 }
 ```
 
-The state of the parsing process at the time of invocation is expressed by the `options` argument with info like the current position, the input string, the skipping state (on or off), the expected case sensitivity, etc. The exhaustive list is described in [API > TypeScript types](#typescript-types). For performance reasons, this object is never recreated and always directly mutated.
+The state of the parsing process at the time of invocation is expressed by the `options` argument with info like the current position, the input string, the skipping state (on or off), the expected case sensitivity, etc. The exhaustive list is described in [API > Types](/pegase/api/Types/). For performance reasons, this object is never recreated and always directly mutated.
 
-Log events (warning and failures) must be emitted as side-effects using the methods provided by `options`. Please refer to [API > `Parser`](#parser).
+Log events (warning and failures) must be emitted as side-effects using the methods provided by `options`. Please refer to [API > `Parser`](/pegase/api/Parser/).
 
 Great. Once you wrote a custom `Parser` subclass, there are basically three options for using it, depending on your needs:
 

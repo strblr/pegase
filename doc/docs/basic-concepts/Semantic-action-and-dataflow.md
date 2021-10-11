@@ -19,7 +19,7 @@ For example, in the `op` rule, `'+'` is a parser in and of itself who will succe
 
 **`children` can be collected and processed in parent parsers through composition**.
 
-Some composition patterns process `children` automatically. This is for example the case with the sequence expression `op expr expr`: The `children` of that sequence is the concatenation of the individual `children` of `op`, `expr` and `expr`. Please refer to the table in [Building parsers](#building-parsers), column *Children*, for more information. We can also customize that processing behavior with the help of semantic actions as we'll discuss in a second. For now, let's rewrite the grammar to make it emit the operators and the digits it matched:
+Some composition patterns process `children` automatically. This is for example the case with the sequence expression `op expr expr`: The `children` of that sequence is the concatenation of the individual `children` of `op`, `expr` and `expr`. Please refer to the table in [Building parsers](/pegase/basic-concepts/Building-parsers/), column *Children*, for more information. We can also customize that processing behavior with the help of semantic actions as we'll discuss in a second. For now, let's rewrite the grammar to make it emit the operators and the digits it matched:
 
 ```js
 const prefix = peg`
@@ -64,7 +64,7 @@ const prefix = peg`
 
 `$children` is a hook.
 
-**Hooks are global functions that provide contextual information and operations in semantic actions**, like reading `children`, emitting warnings or failures, getting the current position, etc. Please refer to the [Hooks](#hooks) section for a list of all available hooks.
+**Hooks are global functions that provide contextual information and operations in semantic actions**, like reading `children`, emitting warnings or failures, getting the current position, etc. Please refer to the [Hooks](/pegase/api/Hooks/) section for a list of all available hooks.
 
 Recursively, this process will transform the entire input from prefix to postfix:
 

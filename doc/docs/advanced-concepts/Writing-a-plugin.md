@@ -5,7 +5,7 @@ Pegase has a plugin system that allows you to extend the base functionalities. A
 3. `directives`: Custom directive definitions.
 4. `resolve`: A string to `Parser` map that will be used as a fallback resolver for undefined non-terminals in your peg expressions. Think of it as *global rules*.
 
-For the exact type signature of these properties, please refer to [API > TypeScript types](#typescript-types). Plugins then have to be added to the `peg` tag's `plugins` array. Order matters: in case of conflict (a conflicting `resolve` rule, `directive` definition or `castParser` behavior), the first will win. Let's add two directives `@min` and `@max`, that transform the `children` of the wrapped parser to only keep respectively the minimum and the maximum value and emit it as a single child:
+For the exact type signature of these properties, please refer to [API > Types](/pegase/api/Types/). Plugins then have to be added to the `peg` tag's `plugins` array. Order matters: in case of conflict (a conflicting `resolve` rule, `directive` definition or `castParser` behavior), the first will win. Let's add two directives `@min` and `@max`, that transform the `children` of the wrapped parser to only keep respectively the minimum and the maximum value and emit it as a single child:
 
 ```ts
 peg.plugins.push({

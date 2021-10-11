@@ -5,13 +5,13 @@ hide:
 
 Sometimes you may need to keep parsing even after encountering what would otherwise be a fatal input error. This is the case in various compilers to report as many errors and warnings as possible in a single pass. It's also common practice in most advanced code editors in order to provide correct syntax highlighting and autocompletion even when you're not done typing.
 
-The way Pegase works without error recovery is described in [Basic concepts > Failures and warnings](#failures-and-warnings): failures may be an instruction to backtrack or the sign of an actual input error. That's why emitted failures are not directly collected into an array, they are emitted as *candidates* and sorted out using the farthest failure heuristic. The general idea of error recovery is to *commit* the current farthest failure to the final failures array, and resume parsing after *skipping* the erroneous input section. Here is how it's done with Pegase:
+The way Pegase works without error recovery is described in [Basic concepts > Failures and warnings](/pegase/basic-concepts/Failures-and-warnings): failures may be an instruction to backtrack or the sign of an actual input error. That's why emitted failures are not directly collected into an array, they are emitted as *candidates* and sorted out using the farthest failure heuristic. The general idea of error recovery is to *commit* the current farthest failure to the final failures array, and resume parsing after *skipping* the erroneous input section. Here is how it's done with Pegase:
 
 - Identify the subsection of your peg expression that you wanna recover from.
 - Add an alternative to this subsection. In it:
 - Commit the current farthest failure by using the `$commit` hook or the `@commit` directive.
 - Identify an expression / terminal / set of terminals you're likely to find *after* the erroneous portion and *from where the parsing can resume from*. This is called a **synchronization expression**. In C-like languages, it could be the semi-colon `;` or a closing block bracket `}` for example.
-- Skip input character by character until that expression is found. This is called *synchronization* and can be achieved by using the `...` operator, called sync operator. The peg expression `...a` is in fact syntactic sugar for `(!a .)* a`. See [Basic concepts > Building parsers](#building-parsers).
+- Skip input character by character until that expression is found. This is called *synchronization* and can be achieved by using the `...` operator, called sync operator. The peg expression `...a` is in fact syntactic sugar for `(!a .)* a`. See [Basic concepts > Building parsers](/pegase/basic-concepts/Building-parsers/).
 
 Here is a grammar that parses an array of bits and tries to recover when a bit matching fails:
 

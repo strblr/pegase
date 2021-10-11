@@ -1,6 +1,6 @@
 **The `peg` tag accepts any valid Pegase expression and always returns a `Parser` instance.**
 
-Pegase parsers follow the *combinator* paradigm: simple parsers are combined to form more complex parsers. You can read more about it in the [API > `Parser`](#parser) section. In the following table are the different expressions you can use as building blocks (`a` and `b` representing any peg expression of higher precedence):
+Pegase parsers follow the *combinator* paradigm: simple parsers are combined to form more complex parsers. You can read more about it in the [API > `Parser`](/pegase/api/Parser/) section. In the following table are the different expressions you can use as building blocks (`a` and `b` representing any peg expression of higher precedence):
 
 <table>
   <thead>

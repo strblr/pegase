@@ -3,7 +3,7 @@ hide:
   - toc
 ---
 
-We saw in [Basic concepts > Semantic actions and dataflow](#semantic-actions-and-dataflow) that a parsing process can be represented as an invocation tree, called *concrete syntax tree*. This tree doesn't actually exist except temporarily in the JS call stack, thus semantic processes you want to fire at some "nodes" have to be executed at parse time. This is what semantic actions are for. You can do a lot with that, but it might not always be sufficient nor practical. For example, most real-life compilers do several traversals of the syntax tree, some dependent on the previous ones, with a clear separation of concerns. For the tree to be traversed multiple times, it has to be **generated** and **kept** in memory. You generally don't want to generate the whole concrete syntax tree which might have lots of parts only relevant to the syntax analysis but irrelevant in later stages. The actual tree you care about has custom nodes and is called *abstract syntax tree*.
+We saw in [Basic concepts > Semantic actions and dataflow](/pegase/basic-concepts/Semantic-action-and-dataflow/) that a parsing process can be represented as an invocation tree, called *concrete syntax tree*. This tree doesn't actually exist except temporarily in the JS call stack, thus semantic processes you want to fire at some "nodes" have to be executed at parse time. This is what semantic actions are for. You can do a lot with that, but it might not always be sufficient nor practical. For example, most real-life compilers do several traversals of the syntax tree, some dependent on the previous ones, with a clear separation of concerns. For the tree to be traversed multiple times, it has to be **generated** and **kept** in memory. You generally don't want to generate the whole concrete syntax tree which might have lots of parts only relevant to the syntax analysis but irrelevant in later stages. The actual tree you care about has custom nodes and is called *abstract syntax tree*.
 
 **Pegase provides a clean and elegant way to generate ASTs: the `$node` hook.**
 
@@ -28,7 +28,7 @@ The `$label` field and the custom fields simply correspond to `$node`'s argument
 
 **Nodes can then be emitted, propagated and captured during the parsing process just like any `children`.**
 
-The specifics of how this happens is totally up to you (see [Basic concepts > Semantic actions and dataflow](#semantic-actions-and-dataflow)). Here is an example of a grammar generating an AST for sums written in prefix notation:
+The specifics of how this happens is totally up to you (see [Basic concepts > Semantic actions and dataflow](/pegase/basic-concepts/Semantic-action-and-dataflow/)). Here is an example of a grammar generating an AST for sums written in prefix notation:
 
 ```ts
 const prefix = peg`
@@ -87,7 +87,7 @@ complex.value("13+6i"); // { $label: "COMPLEX", $match: (...), r: 13, i: 6 }
 complex.value("42");    // { $label: "COMPLEX", $match: (...), r: 42, i: 0 }
 ```
 
-Once an AST is generated, the next step is obviously to implement traversal procedures. The possibilities are nearly infinite: performing semantic checks (like type checks), fine-tuning a syntactic analysis, mutating the tree (like [Babel plugins](https://github.com/jamiebuilds/babel-handbook/blob/master/translations/en/plugin-handbook.md)), folding the tree to some output value, etc. To implement traversals of ASTs, Pegase ships with its own [visitor pattern](#https://en.wikipedia.org/wiki/Visitor_pattern#Use_case_example).
+Once an AST is generated, the next step is obviously to implement traversal procedures. The possibilities are nearly infinite: performing semantic checks (like type checks), fine-tuning a syntactic analysis, mutating the tree (like [Babel plugins](https://github.com/jamiebuilds/babel-handbook/blob/master/translations/en/plugin-handbook.md)), folding the tree to some output value, etc. To implement traversals of ASTs, Pegase ships with its own [visitor pattern](https://en.wikipedia.org/wiki/Visitor_pattern#Use_case_example).
 
 **A Pegase visitor is an object whose keys are node labels and whose values are callbacks taking a `Node` as single argument:**
 
@@ -190,7 +190,7 @@ const sumVisitor = {
     |        ^
 ```
 
-The effect of some hooks differs when used in a semantic action vs. a visitor. In semantic actions, `$fail` and `$expected` don't commit failures, they emit failure *candidates* which are then merged or filtered out using the farthest failure heuristic (see [Basic concepts > Failures and warnings](#failures-and-warnings)). In visitors, these hooks commit failures directly. The heuristic wouldn't make much sense outside of a backtracking syntactic analysis. Please refer to [API > Hooks](#hooks) for an exhaustive doc of all hooks.
+The effect of some hooks differs when used in a semantic action vs. a visitor. In semantic actions, `$fail` and `$expected` don't commit failures, they emit failure *candidates* which are then merged or filtered out using the farthest failure heuristic (see [Basic concepts > Failures and warnings](/pegase/basic-concepts/Failures-and-warnings)). In visitors, these hooks commit failures directly. The heuristic wouldn't make much sense outside of a backtracking syntactic analysis. Please refer to [API > Hooks](/pegase/api/Hooks/) for an exhaustive doc of all hooks.
 
 If you need to separate the parsing and the visits (for example to pass different contexts to different visitors), you can make an explicit call to the `applyVisitor` utility function:
 

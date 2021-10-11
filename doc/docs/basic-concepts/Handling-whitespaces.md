@@ -6,7 +6,7 @@ Terminal parsers include:
 
 - *Literal* parsers (like `"lit"`, `'lit'`, `42` or `ε`)
 - *Regexp* parsers (like `[a-z]`, `\w`, `.` or `${/my_js_regexp/}`)
-- *Token* parsers, including the end-of-input token `$` and every parser wrapped with the `@token` directive (we will go to that in the [next section](#tokens)).
+- *Token* parsers, including the end-of-input token `$` and every parser wrapped with the `@token` directive (we will go to that in the [next section](/pegase/basic-concepts/Tokens/)).
 
 This behavior can be changed. All `Parser`'s methods (`parse`, `test`, `value` and `children`) actually accept an optional second argument, an `options` object. These are the parse options, two of which are of interest with the matter at hand here:
 
