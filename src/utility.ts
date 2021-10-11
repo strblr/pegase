@@ -243,9 +243,9 @@ export function modulo(
 
 export function applyVisitor<Value, Context>(
   node: Node,
-  parent: Node | null = null,
   visitor: Visitor<Value>,
-  options: Options<Context>
+  options: Options<Context>,
+  parent: Node | null = null
 ) {
   let value,
     from = node.$from,
@@ -292,7 +292,7 @@ export function applyVisitor<Value, Context>(
     $visit(nextNode, nextVisitor = visitor, nextContext = options.context) {
       const { context } = options;
       options.context = nextContext;
-      const result = applyVisitor(nextNode, node, nextVisitor, options);
+      const result = applyVisitor(nextNode, nextVisitor, options, node);
       options.context = context;
       return result;
     },

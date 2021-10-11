@@ -79,7 +79,7 @@ export abstract class Parser<Value = any, Context = any> {
     }
     match.children = match.children.map(child =>
       castArray(opts.visit).reduce(
-        (value, visitor) => applyVisitor(value, null, visitor, opts),
+        (value, visitor) => applyVisitor(value, visitor, opts),
         child
       )
     );

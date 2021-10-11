@@ -191,3 +191,17 @@ const sumVisitor = {
 ```
 
 The effect of some hooks differs when used in a semantic action vs. a visitor. In semantic actions, `$fail` and `$expected` don't commit failures, they emit failure *candidates* which are then merged or filtered out using the farthest failure heuristic (see [Basic concepts > Failures and warnings](#failures-and-warnings)). In visitors, these hooks commit failures directly. The heuristic wouldn't make much sense outside of a backtracking syntactic analysis. Please refer to [API > Hooks](#hooks) for an exhaustive doc of all hooks.
+
+If you need to separate the parsing and the visits (for example to pass different contexts to different visitors), you can make an explicit call to the `applyVisitor` utility function:
+
+```ts
+const result = prefix.parse("+ 12 + 42 3");
+if(result.success) {
+  result.options.context = newContext; // Changing context
+  const value = applyVisitor(result.value, sumVisitor, result.options); // Explicit visit
+  // ...
+}
+```
+
+See [API > Utility functions](/pegase/api/Utility-functions/).
+
