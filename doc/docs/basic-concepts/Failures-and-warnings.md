@@ -53,7 +53,7 @@ const g = peg`'a' ('b' | . ${() => {
 
 - **Semantic failures**
 
-These are emitted by calling the `$fail` hook from a semantic action. They're useful when dealing with errors that can *not* be expressed as missing terminals, like undeclared identifiers, type errors, `break` statements outside of loops, etc. Such errors will also override any failure emitted from *inside* the peg expression the action is wrapped around.
+These are emitted by calling the `$fail` hook from a semantic action. They're useful when dealing with errors that can *not* be expressed as missing terminals, like undeclared identifiers, type errors, `break` statements outside of loops, etc. Such errors will also override any failure emitted from *inside* the peg expression the action is wrapped around. They don't terminate the parser directly either and can thus act as backtracking instructions.
 
 ```js
 const g = peg`[a-z]+ ${() => {
@@ -83,7 +83,7 @@ const context = new Map([["foo", 42], ["bar", 18]]);
 If there are *several* failures at the farthest position *n*, they are folded into one with the following logic:
 
 - If they're only expectation failures, the expectations are *merged* as illustrated above.
-- If there is a semantic failure, it will override everything else. In case of multiple semantic failures at the same position, the last one will win.
+- If there is a semantic failure, it will override all other failures. In case of multiple semantic failures at the same position, the last one will win.
 
 If you want to identify multiple input errors at once, you have to do *error recovery*. This is done using failure commits and synchronization expressions (`...a`). See [Advanced concepts > Error recovery](/pegase/advanced-concepts/Error-recovery/) for more info.
 
@@ -99,7 +99,7 @@ const p = peg`
     }})
     '{' '}'
     
-  $identifier @raw: [a-zA-Z]+
+  $identifier: [a-zA-Z]+
 `;
 ```
 
