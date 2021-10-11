@@ -726,7 +726,7 @@
                 
                   <h1>AST and visitors</h1>
                 
-                <p>We saw in <a href="#semantic-actions-and-dataflow">Basic concepts &gt; Semantic actions and dataflow</a> that a parsing process can be represented as an invocation tree, called <em>concrete syntax tree</em>. This tree doesn't actually exist except temporarily in the JS call stack, thus semantic processes you want to fire at some "nodes" have to be executed at parse time. This is what semantic actions are for. You can do a lot with that, but it might not always be sufficient nor practical. For example, most real-life compilers do several traversals of the syntax tree, some dependent on the previous ones, with a clear separation of concerns. For the tree to be traversed multiple times, it has to be <strong>generated</strong> and <strong>kept</strong> in memory. You generally don't want to generate the whole concrete syntax tree which might have lots of parts only relevant to the syntax analysis but irrelevant in later stages. The actual tree you care about has custom nodes and is called <em>abstract syntax tree</em>.</p>
+                <p>We saw in <a href="/pegase/basic-concepts/Semantic-action-and-dataflow/">Basic concepts &gt; Semantic actions and dataflow</a> that a parsing process can be represented as an invocation tree, called <em>concrete syntax tree</em>. This tree doesn't actually exist except temporarily in the JS call stack, thus semantic processes you want to fire at some "nodes" have to be executed at parse time. This is what semantic actions are for. You can do a lot with that, but it might not always be sufficient nor practical. For example, most real-life compilers do several traversals of the syntax tree, some dependent on the previous ones, with a clear separation of concerns. For the tree to be traversed multiple times, it has to be <strong>generated</strong> and <strong>kept</strong> in memory. You generally don't want to generate the whole concrete syntax tree which might have lots of parts only relevant to the syntax analysis but irrelevant in later stages. The actual tree you care about has custom nodes and is called <em>abstract syntax tree</em>.</p>
 <p><strong>Pegase provides a clean and elegant way to generate ASTs: the <code>$node</code> hook.</strong></p>
 <p>This hook can be called from semantic actions and has the following signature:</p>
 <pre><code class="language-ts">(label: string, fields: Record&lt;string, any&gt;) =&gt; Node
@@ -741,7 +741,7 @@
 </code></pre>
 <p>The <code>$label</code> field and the custom fields simply correspond to <code>$node</code>'s arguments. The <code>$from</code> and <code>$to</code> keys are <em>automatically</em> set and indicate the boundaries of the match that produced the node.</p>
 <p><strong>Nodes can then be emitted, propagated and captured during the parsing process just like any <code>children</code>.</strong></p>
-<p>The specifics of how this happens is totally up to you (see <a href="#semantic-actions-and-dataflow">Basic concepts &gt; Semantic actions and dataflow</a>). Here is an example of a grammar generating an AST for sums written in prefix notation:</p>
+<p>The specifics of how this happens is totally up to you (see <a href="/pegase/basic-concepts/Semantic-action-and-dataflow/">Basic concepts &gt; Semantic actions and dataflow</a>). Here is an example of a grammar generating an AST for sums written in prefix notation:</p>
 <pre><code class="language-ts">const prefix = peg`
   expr:
   | &lt;&gt;integer ${({ integer }) =&gt; $node(&quot;INT&quot;, { integer })}
@@ -785,7 +785,7 @@ const ast = prefix.value(&quot;+ 12 + 42 3&quot;);
 complex.value(&quot;13+6i&quot;); // { $label: &quot;COMPLEX&quot;, $match: (...), r: 13, i: 6 }
 complex.value(&quot;42&quot;);    // { $label: &quot;COMPLEX&quot;, $match: (...), r: 42, i: 0 }
 </code></pre>
-<p>Once an AST is generated, the next step is obviously to implement traversal procedures. The possibilities are nearly infinite: performing semantic checks (like type checks), fine-tuning a syntactic analysis, mutating the tree (like <a href="https://github.com/jamiebuilds/babel-handbook/blob/master/translations/en/plugin-handbook.md">Babel plugins</a>), folding the tree to some output value, etc. To implement traversals of ASTs, Pegase ships with its own <a href="#https://en.wikipedia.org/wiki/Visitor_pattern#Use_case_example">visitor pattern</a>.</p>
+<p>Once an AST is generated, the next step is obviously to implement traversal procedures. The possibilities are nearly infinite: performing semantic checks (like type checks), fine-tuning a syntactic analysis, mutating the tree (like <a href="https://github.com/jamiebuilds/babel-handbook/blob/master/translations/en/plugin-handbook.md">Babel plugins</a>), folding the tree to some output value, etc. To implement traversals of ASTs, Pegase ships with its own <a href="https://en.wikipedia.org/wiki/Visitor_pattern#Use_case_example">visitor pattern</a>.</p>
 <p><strong>A Pegase visitor is an object whose keys are node labels and whose values are callbacks taking a <code>Node</code> as single argument:</strong></p>
 <pre><code class="language-ts">type Visitor = {
   [label: string]: (node: Node) =&gt; any
@@ -862,7 +862,7 @@ prefix.value(&quot;+ 12 + 42 3&quot;, { visit: [doubleVisitor, sumVisitor] }); /
 &gt; 1 | + 12 + 42 3
     |        ^
 </code></pre>
-<p>The effect of some hooks differs when used in a semantic action vs. a visitor. In semantic actions, <code>$fail</code> and <code>$expected</code> don't commit failures, they emit failure <em>candidates</em> which are then merged or filtered out using the farthest failure heuristic (see <a href="#failures-and-warnings">Basic concepts &gt; Failures and warnings</a>). In visitors, these hooks commit failures directly. The heuristic wouldn't make much sense outside of a backtracking syntactic analysis. Please refer to <a href="#hooks">API &gt; Hooks</a> for an exhaustive doc of all hooks.</p>
+<p>The effect of some hooks differs when used in a semantic action vs. a visitor. In semantic actions, <code>$fail</code> and <code>$expected</code> don't commit failures, they emit failure <em>candidates</em> which are then merged or filtered out using the farthest failure heuristic (see <a href="/pegase/basic-concepts/Failures-and-warnings">Basic concepts &gt; Failures and warnings</a>). In visitors, these hooks commit failures directly. The heuristic wouldn't make much sense outside of a backtracking syntactic analysis. Please refer to <a href="/pegase/api/Hooks/">API &gt; Hooks</a> for an exhaustive doc of all hooks.</p>
 <p>If you need to separate the parsing and the visits (for example to pass different contexts to different visitors), you can make an explicit call to the <code>applyVisitor</code> utility function:</p>
 <pre><code class="language-ts">const result = prefix.parse(&quot;+ 12 + 42 3&quot;);
 if(result.success) {

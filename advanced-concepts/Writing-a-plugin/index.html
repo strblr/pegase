@@ -666,7 +666,7 @@
 <li><code>directives</code>: Custom directive definitions.</li>
 <li><code>resolve</code>: A string to <code>Parser</code> map that will be used as a fallback resolver for undefined non-terminals in your peg expressions. Think of it as <em>global rules</em>.</li>
 </ol>
-<p>For the exact type signature of these properties, please refer to <a href="#typescript-types">API &gt; TypeScript types</a>. Plugins then have to be added to the <code>peg</code> tag's <code>plugins</code> array. Order matters: in case of conflict (a conflicting <code>resolve</code> rule, <code>directive</code> definition or <code>castParser</code> behavior), the first will win. Let's add two directives <code>@min</code> and <code>@max</code>, that transform the <code>children</code> of the wrapped parser to only keep respectively the minimum and the maximum value and emit it as a single child:</p>
+<p>For the exact type signature of these properties, please refer to <a href="/pegase/api/Types/">API &gt; Types</a>. Plugins then have to be added to the <code>peg</code> tag's <code>plugins</code> array. Order matters: in case of conflict (a conflicting <code>resolve</code> rule, <code>directive</code> definition or <code>castParser</code> behavior), the first will win. Let's add two directives <code>@min</code> and <code>@max</code>, that transform the <code>children</code> of the wrapped parser to only keep respectively the minimum and the maximum value and emit it as a single child:</p>
 <pre><code class="language-ts">peg.plugins.push({
   name: &quot;my-plugin&quot;,
   directives: {

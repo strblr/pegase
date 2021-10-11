@@ -787,7 +787,7 @@
 <p>This is well explained in <a href="http://scg.unibe.ch/archive/masters/Ruef16a.pdf">this paper</a> for those who want to dive deeper into the subject matter. Other parsing algorithms like <code>LL</code> or <code>LALR</code> don't suffer from this problem but are also more difficult to implement and more restrictive in the type of parsing expressions they allow. Fortunately for us, there exists a way out of this. As we've just established, the main problem is to be able to "rank" failures and "guess" which ones are more relevant. By the very design of PEGs, this can never be an exact science and one has to use an approximative method, called <strong>heuristic</strong>, to produce good enough results.</p>
 <p><strong>Pegase implements the <em>farthest failure heuristic</em>, which considers the farthest failure(s) in terms of input position to be the most relevant.</strong></p>
 <p>The general idea is that a failure emitted at input position <em>n</em> will generally be more relevant than a failure emitted at position <em>n - x</em>, where <em>x</em> is a positive integer, because <em>x</em> more characters have been successfully recognized by the parser at that point.</p>
-<p>Failures and warnings (called <em>log events</em>) are tracked at parse time. <code>warnings</code> and <code>failures</code> are then attached to the parse result as arrays, whether the match fails or succeeds (a successful match can produce failures, see <a href="#error-recovery">Advanced concepts &gt; Error recovery</a>).</p>
+<p>Failures and warnings (called <em>log events</em>) are tracked at parse time. <code>warnings</code> and <code>failures</code> are then attached to the parse result as arrays, whether the match fails or succeeds (a successful match can produce failures, see <a href="/pegase/advanced-concepts/Error-recovery/">Advanced concepts &gt; Error recovery</a>).</p>
 <p><strong>In Pegase, there are two types of failures</strong>:</p>
 <ul>
 <li><strong>Expectation failures</strong></li>
@@ -838,7 +838,7 @@ const context = new Map([[&quot;foo&quot;, 42], [&quot;bar&quot;, 18]]);
 <li>If they're only expectation failures, the expectations are <em>merged</em> as illustrated above.</li>
 <li>If there is a semantic failure, it will override everything else. In case of multiple semantic failures at the same position, the last one will win.</li>
 </ul>
-<p>If you want to identify multiple input errors at once, you have to do <em>error recovery</em>. This is done using failure commits and synchronization expressions (<code>...a</code>). See <a href="#error-recovery">Advanced concepts &gt; Error recovery</a> for more info.</p>
+<p>If you want to identify multiple input errors at once, you have to do <em>error recovery</em>. This is done using failure commits and synchronization expressions (<code>...a</code>). See <a href="/pegase/advanced-concepts/Error-recovery/">Advanced concepts &gt; Error recovery</a> for more info.</p>
 <p><strong>Warnings can be emitted in semantic actions using the <code>$warn</code> hook</strong>. They are collected in a side-effect manner and don't influence the parsing process:</p>
 <pre><code class="language-js">const p = peg`
   declaration:
@@ -864,8 +864,8 @@ const context = new Map([[&quot;foo&quot;, 42], [&quot;bar&quot;, 18]]);
     |             ^
 </code></pre>
 <ul>
-<li>If you want to do more elaborated stuff than to simply pretty-print the logs, like processing them programmatically, you have direct access using the <code>warnings</code> and <code>failures</code> properties on the result object. These are just arrays of objects describing the log events. Please see <a href="#parser">API &gt; <code>Parser</code></a> for more details.</li>
-<li>Warnings and failures can also be emitted during AST visits. See <a href="#ast-and-visitors">Advanced concepts &gt; AST and visitors</a>.</li>
+<li>If you want to do more elaborated stuff than to simply pretty-print the logs, like processing them programmatically, you have direct access using the <code>warnings</code> and <code>failures</code> properties on the result object. These are just arrays of objects describing the log events. Please see <a href="/pegase/api/Parser/">API &gt; <code>Parser</code></a> for more details.</li>
+<li>Warnings and failures can also be emitted during AST visits. See <a href="/pegase/advanced-concepts/AST-and-visitors/">Advanced concepts &gt; AST and visitors</a>.</li>
 </ul>
                 
                   

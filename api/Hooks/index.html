@@ -722,19 +722,19 @@
 <td><code>$fail</code></td>
 <td><code>(message: string) =&gt; void</code></td>
 <td>Semantic actions, visitors</td>
-<td>Emits a semantic failure at the current match's start location. In semantic actions, this failure is only a <em>candidate</em> (see <a href="#failures-and-warnings">Failures and warnings</a>).</td>
+<td>Emits a semantic failure at the current match's start location. In semantic actions, this failure is only a <em>candidate</em> (see <a href="/pegase/basic-concepts/Failures-and-warnings">Failures and warnings</a>).</td>
 </tr>
 <tr>
 <td><code>$expected</code></td>
 <td><code>(expected: string &vert; RegExp &vert; Expectation &vert; (...)[]) =&gt; void</code></td>
 <td>Semantic actions, visitors</td>
-<td>Emits an expectation failure at the current match's start location. In semantic actions, this failure is only a <em>candidate</em> and might be thrown out or merged according to the farthest failure heuristic (see <a href="#failures-and-warnings">Failures and warnings</a>).</td>
+<td>Emits an expectation failure at the current match's start location. In semantic actions, this failure is only a <em>candidate</em> and might be thrown out or merged according to the farthest failure heuristic (see <a href="/pegase/basic-concepts/Failures-and-warnings">Failures and warnings</a>).</td>
 </tr>
 <tr>
 <td><code>$commit</code></td>
 <td><code>() =&gt; void</code></td>
 <td>Semantic actions</td>
-<td>Flushes the current farthest failure to the final failure output (see <a href="#error-recovery">Error recovery</a>)</td>
+<td>Flushes the current farthest failure to the final failure output (see <a href="/pegase/advanced-concepts/Error-recovery/">Error recovery</a>)</td>
 </tr>
 <tr>
 <td><code>$emit</code></td>

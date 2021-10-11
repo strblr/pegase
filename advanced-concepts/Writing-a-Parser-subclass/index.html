@@ -659,7 +659,7 @@
                 
                   <h1>Writing a Parser subclass</h1>
                 
-                <p>We've seen in section <a href="#building-parsers">Basic concepts &gt; Building parsers</a> that parsers are combined together to form more complex parsers. In this section, we'll go into more detail about how exactly this composition is done internally and how you could write your own <code>Parser</code> subclass with its own logic. Under the hood, the <code>Parser</code> class is derived into three categories of subclasses:</p>
+                <p>We've seen in section <a href="/pegase/basic-concepts/Building-parsers/">Basic concepts &gt; Building parsers</a> that parsers are combined together to form more complex parsers. In this section, we'll go into more detail about how exactly this composition is done internally and how you could write your own <code>Parser</code> subclass with its own logic. Under the hood, the <code>Parser</code> class is derived into three categories of subclasses:</p>
 <ul>
 <li>Leaf classes, which don't hold a reference to other parsers. There are three of them: <code>LiteralParser</code>, <code>RegexParser</code> and <code>CutParser</code>.</li>
 <li>Composition classes like <code>SequenceParser</code>, <code>TokenParser</code>, <code>PredicateParser</code>, <code>ActionParser</code>, etc. which, on the contrary, reference one or more subparsers.</li>
@@ -691,8 +691,8 @@
   children: any[];
 }
 </code></pre>
-<p>The state of the parsing process at the time of invocation is expressed by the <code>options</code> argument with info like the current position, the input string, the skipping state (on or off), the expected case sensitivity, etc. The exhaustive list is described in <a href="#typescript-types">API &gt; TypeScript types</a>. For performance reasons, this object is never recreated and always directly mutated.</p>
-<p>Log events (warning and failures) must be emitted as side-effects using the methods provided by <code>options</code>. Please refer to <a href="#parser">API &gt; <code>Parser</code></a>.</p>
+<p>The state of the parsing process at the time of invocation is expressed by the <code>options</code> argument with info like the current position, the input string, the skipping state (on or off), the expected case sensitivity, etc. The exhaustive list is described in <a href="/pegase/api/Types/">API &gt; Types</a>. For performance reasons, this object is never recreated and always directly mutated.</p>
+<p>Log events (warning and failures) must be emitted as side-effects using the methods provided by <code>options</code>. Please refer to <a href="/pegase/api/Parser/">API &gt; <code>Parser</code></a>.</p>
 <p>Great. Once you wrote a custom <code>Parser</code> subclass, there are basically three options for using it, depending on your needs:</p>
 <ul>
 <li>You can create an <strong>explicit instance</strong> and inject it into a peg expression as a tag argument:</li>

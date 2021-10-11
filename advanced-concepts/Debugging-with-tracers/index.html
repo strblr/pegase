@@ -663,8 +663,8 @@
 <p><strong>A tracer is a function that will be called when entering a non-terminal, successfully matching a non-terminal, or failing to match it.</strong></p>
 <p>Tracing is configured via two parse options:</p>
 <ul>
-<li><code>trace</code>, a boolean to activate or deactivate tracing. This option can be toggled only for specific sections of the grammar by using the <code>@trace</code> and <code>@notrace</code> standard directives. See <a href="#defaultplugin"><code>defaultPlugin</code></a>.</li>
-<li><code>tracer</code>, a function that takes a trace event (<em>enter</em>, <em>match</em>, or <em>fail</em>) as a single argument. A trace event is a simple object with contextual information. Please refer to <a href="#typescript-types">TypeScript types</a> to see the precise signature of these objects. If <code>tracer</code> is omitted, a default tracer will be provided that will pretty-print the trace events to <code>console.log</code> automatically.</li>
+<li><code>trace</code>, a boolean to activate or deactivate tracing. This option can be toggled only for specific sections of the grammar by using the <code>@trace</code> and <code>@notrace</code> standard directives. See <a href="/pegase/api/defaultPlugin"><code>defaultPlugin</code></a>.</li>
+<li><code>tracer</code>, a function that takes a trace event (<em>enter</em>, <em>match</em>, or <em>fail</em>) as a single argument. A trace event is a simple object with contextual information. Please refer to <a href="/pegase/api/Types/">API &gt; Types</a> to see the precise signature of these objects. If <code>tracer</code> is omitted, a default tracer will be provided that will pretty-print the trace events to <code>console.log</code> automatically.</li>
 </ul>
 <p>Let's illustrate that:</p>
 <pre><code class="language-ts">const g = peg`

@@ -671,7 +671,7 @@
 <p><strong>Pegase implements a mechanism by which every individual parser can emit an array of values called <code>children</code></strong>.</p>
 <p>For example, in the <code>op</code> rule, <code>'+'</code> is a parser in and of itself who will succeed if a <em>plus</em> character can be read from the input. It's called a <em>literal</em> parser. You can make any literal parser emit the substring it matched as a single child by using double quotes instead of single quotes. More generally, you can make <strong>any</strong> parser emit the substring it matched as a single child by using the <code>@raw</code> directive. For example, <code>\d @raw</code> will emit the exact digit character it matched, i.e. the input <code>5</code> would produce <code>["5"]</code> as <code>children</code>.</p>
 <p><strong><code>children</code> can be collected and processed in parent parsers through composition</strong>.</p>
-<p>Some composition patterns process <code>children</code> automatically. This is for example the case with the sequence expression <code>op expr expr</code>: The <code>children</code> of that sequence is the concatenation of the individual <code>children</code> of <code>op</code>, <code>expr</code> and <code>expr</code>. Please refer to the table in <a href="#building-parsers">Building parsers</a>, column <em>Children</em>, for more information. We can also customize that processing behavior with the help of semantic actions as we'll discuss in a second. For now, let's rewrite the grammar to make it emit the operators and the digits it matched:</p>
+<p>Some composition patterns process <code>children</code> automatically. This is for example the case with the sequence expression <code>op expr expr</code>: The <code>children</code> of that sequence is the concatenation of the individual <code>children</code> of <code>op</code>, <code>expr</code> and <code>expr</code>. Please refer to the table in <a href="/pegase/basic-concepts/Building-parsers/">Building parsers</a>, column <em>Children</em>, for more information. We can also customize that processing behavior with the help of semantic actions as we'll discuss in a second. For now, let's rewrite the grammar to make it emit the operators and the digits it matched:</p>
 <pre><code class="language-js">const prefix = peg`
   expr: op expr expr | \d @raw
   op: &quot;+&quot; | &quot;-&quot; | &quot;*&quot; | &quot;/&quot;
@@ -700,7 +700,7 @@ const prefix = peg`
 `;
 </code></pre>
 <p><code>$children</code> is a hook.</p>
-<p><strong>Hooks are global functions that provide contextual information and operations in semantic actions</strong>, like reading <code>children</code>, emitting warnings or failures, getting the current position, etc. Please refer to the <a href="#hooks">Hooks</a> section for a list of all available hooks.</p>
+<p><strong>Hooks are global functions that provide contextual information and operations in semantic actions</strong>, like reading <code>children</code>, emitting warnings or failures, getting the current position, etc. Please refer to the <a href="/pegase/api/Hooks/">Hooks</a> section for a list of all available hooks.</p>
 <p>Recursively, this process will transform the entire input from prefix to postfix:</p>
 <p><img alt="Parse tree" src="/pegase/assets/images/dataflow-3.png" /></p>
 <p>Let's test this:</p>

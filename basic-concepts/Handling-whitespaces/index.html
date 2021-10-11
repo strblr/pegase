@@ -665,7 +665,7 @@
 <ul>
 <li><em>Literal</em> parsers (like <code>"lit"</code>, <code>'lit'</code>, <code>42</code> or <code>ε</code>)</li>
 <li><em>Regexp</em> parsers (like <code>[a-z]</code>, <code>\w</code>, <code>.</code> or <code>${/my_js_regexp/}</code>)</li>
-<li><em>Token</em> parsers, including the end-of-input token <code>$</code> and every parser wrapped with the <code>@token</code> directive (we will go to that in the <a href="#tokens">next section</a>).</li>
+<li><em>Token</em> parsers, including the end-of-input token <code>$</code> and every parser wrapped with the <code>@token</code> directive (we will go to that in the <a href="/pegase/basic-concepts/Tokens/">next section</a>).</li>
 </ul>
 <p>This behavior can be changed. All <code>Parser</code>'s methods (<code>parse</code>, <code>test</code>, <code>value</code> and <code>children</code>) actually accept an optional second argument, an <code>options</code> object. These are the parse options, two of which are of interest with the matter at hand here:</p>
 <ul>
