@@ -79,7 +79,7 @@ Don't worry if things aren't so clear yet. The rest of the documentation below i
 
 ### Try-it out
 
-You can try everything out while reading this website by accessing the JS console tab. The `peg` tag will be directly available in your namespace. All other named exports from `pegase` are available as properties of `_`. Have fun!
+You can try everything out while reading this website by accessing the JS console tab. The `peg` tag and hooks will be directly available in your namespace. All other named exports from `pegase` are available as properties of `_`. Have fun!
 
 ![Console demo](/pegase/assets/images/console-demo.png)
 
