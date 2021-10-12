@@ -73,7 +73,7 @@ export abstract class Parser<Value = any, Context = any> {
       ? new SequenceParser([this, endOfInput])
       : this;
     const match = parser.exec(opts);
-    if (!match) {
+    if (match === null) {
       opts._ffCommit();
       return { success: false, options: opts, logger: opts.logger };
     }
@@ -280,7 +280,7 @@ export class TokenParser extends Parser {
     super();
     this.parser = parser;
     this.displayName = displayName;
-    if (displayName)
+    if (displayName !== undefined)
       this.expected = { type: ExpectationType.Token, displayName };
   }
 
@@ -291,7 +291,7 @@ export class TokenParser extends Parser {
     const { from, skip: sskip } = options;
     options.from = skipped;
     options.skip = false;
-    if (!this.displayName) {
+    if (this.displayName === undefined) {
       match = this.parser.exec(options);
       options.from = from;
       options.skip = sskip;
@@ -485,7 +485,7 @@ export class ActionParser extends TweakParser {
         }
         hooks.pop();
         if (failed) return null;
-        if (emit) match.children = emit;
+        if (emit !== undefined) match.children = emit;
         else if (value !== undefined) match.children = [value];
         return match;
       };
