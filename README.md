@@ -184,6 +184,17 @@ const minutes = peg`
 `;
 ```
 
+Named capturing groups are converted to Pegase captures:
+
+```ts
+const date = /(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})/;
+const yearIs = peg`
+  ${date} ${({ year }) => "The year is " + year}
+`;
+
+yearIs.value("2021-08-19"); // "The year is 2021"
+```
+
 Read more in [Working with RegExp](https://ostrebler.github.io/pegase/advanced-concepts/Working-with-RegExp/).
 
 ### Painless AST and visitors
