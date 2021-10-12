@@ -77,8 +77,9 @@ export abstract class Parser<Value = any, Context = any> {
       opts._ffCommit();
       return { success: false, options: opts, logger: opts.logger };
     }
+    const visitors = castArray(opts.visit);
     match.children = match.children.map(child =>
-      castArray(opts.visit).reduce(
+      visitors.reduce(
         (value, visitor) => applyVisitor(value, visitor, opts),
         child
       )
