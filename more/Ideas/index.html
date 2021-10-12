@@ -665,6 +665,7 @@
 <li><strong>Cuts for repetitions</strong>. The idea would be to have a cut operator, similar to <code>^</code>, but to break repetitions (like <code>a+</code>, <code>a*</code>, etc.). A sort of <code>break</code> statement for peg expressions. Peg repetitions are greedy by nature, but this might not always be what you want.</li>
 <li><strong>Default values for captures</strong>. The syntax would be something like <code>&lt;id = 0&gt;a</code>, <code>&lt;id = ${expr}&gt;a</code> (where <code>expr</code> is a JS expression), etc. The default value would be captured as <code>id</code> if <code>a</code>'s value is <code>undefined</code>.</li>
 <li><a href="https://github.com/ostrebler/pegase/issues/9"><strong>Semantic predicates</strong></a>.</li>
+<li><strong>Nullary directives</strong>. Sometimes, directives don't really care about the parser they're wrapped around and just perform some side-effects. This is the case with <code>@commit</code>. Instead of having to write <code>('' @commit) ...sync</code>, it would be nice to have something like <code>@@commit ...sync</code> as syntactic sugar for the previous expression. Although it's already possible, this would allow for a nice syntax to emit custom values unrelated to any subparser: <code>"a" @@action(${() =&gt; "b"}) "c"</code> (would emit <code>["a", "b", "c"]</code> when <code>ac</code> is parsed).</li>
 </ul>
                 
               
