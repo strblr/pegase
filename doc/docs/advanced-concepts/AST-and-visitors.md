@@ -83,8 +83,8 @@ const complex = peg`
   $num @number: \d+
 `;
 
-complex.value("13+6i"); // { $label: "COMPLEX", $match: (...), r: 13, i: 6 }
-complex.value("42");    // { $label: "COMPLEX", $match: (...), r: 42, i: 0 }
+complex.value("13+6i"); // { $label: "COMPLEX", $from: (...), $to: (...), r: 13, i: 6 }
+complex.value("42");    // { $label: "COMPLEX", $from: (...), $to: (...), r: 42, i: 0 }
 ```
 
 Once an AST is generated, the next step is obviously to implement traversal procedures. The possibilities are nearly infinite: performing semantic checks (like type checks), fine-tuning a syntactic analysis, mutating the tree (like [Babel plugins](https://github.com/jamiebuilds/babel-handbook/blob/master/translations/en/plugin-handbook.md)), folding the tree to some output value, etc. To implement traversals of ASTs, Pegase ships with its own [visitor pattern](https://en.wikipedia.org/wiki/Visitor_pattern#Use_case_example).
