@@ -782,8 +782,8 @@ const ast = prefix.value(&quot;+ 12 + 42 3&quot;);
   $num @number: \d+
 `;
 
-complex.value(&quot;13+6i&quot;); // { $label: &quot;COMPLEX&quot;, $match: (...), r: 13, i: 6 }
-complex.value(&quot;42&quot;);    // { $label: &quot;COMPLEX&quot;, $match: (...), r: 42, i: 0 }
+complex.value(&quot;13+6i&quot;); // { $label: &quot;COMPLEX&quot;, $from: (...), $to: (...), r: 13, i: 6 }
+complex.value(&quot;42&quot;);    // { $label: &quot;COMPLEX&quot;, $from: (...), $to: (...), r: 42, i: 0 }
 </code></pre>
 <p>Once an AST is generated, the next step is obviously to implement traversal procedures. The possibilities are nearly infinite: performing semantic checks (like type checks), fine-tuning a syntactic analysis, mutating the tree (like <a href="https://github.com/jamiebuilds/babel-handbook/blob/master/translations/en/plugin-handbook.md">Babel plugins</a>), folding the tree to some output value, etc. To implement traversals of ASTs, Pegase ships with its own <a href="https://en.wikipedia.org/wiki/Visitor_pattern#Use_case_example">visitor pattern</a>.</p>
 <p><strong>A Pegase visitor is an object whose keys are node labels and whose values are callbacks taking a <code>Node</code> as single argument:</strong></p>
