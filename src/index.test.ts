@@ -202,6 +202,19 @@ test("The cut operator should work correctly", () => {
   expect(g3.test("ad")).toBe(true);
 });
 
+test("Back references should work correctly", () => {
+  const g = peg`<a>(\d @raw) >a<*`;
+  expect(g.test("5")).toBe(true);
+  expect(g.test("6 6")).toBe(true);
+  expect(g.test("7 7 6")).toBe(false);
+  expect(g.parse("7 7 6").logger.toString())
+    .toBe(`(1:5) Failure: Expected "7" or end of input
+
+> 1 | 7 7 6
+    |     ^
+`);
+});
+
 test("The plugin system should work", () => {
   const tag = createTag();
   tag.plugins.push({
