@@ -14,7 +14,7 @@ export class Logger {
   readonly input: string;
   readonly warnings: Warning[] = [];
   readonly failures: Failure[] = [];
-  private readonly indexes;
+  private readonly indexes: number[];
 
   constructor(input: string) {
     this.input = input;
