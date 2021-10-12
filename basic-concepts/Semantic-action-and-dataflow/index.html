@@ -713,10 +713,9 @@ prefix.value(&quot;+ 5 * 2 6&quot;);       // &quot;5 2 6 * +&quot;
 <p><code>value</code> is <code>undefined</code> if there is no child, or multiple children. You can quickly convince yourself that the <code>prefix</code> grammar can only ever return one child. Thus, except in case of a parse failure, there is always a <code>value</code> to be read from <code>prefix</code>. A well designed peg expression should always have easily predictable <code>children</code> for itself and all its nested parser parts. A quick glimpse at a grammar should always give you a good general picture of the dataflow. In most cases, a good design choice is to ensure that non-terminals always emit only up to one child but that's ultimately up to you.</p>
 <p>Great, but at the end of the day <code>children</code> are just unlabeled propagated values. Sometimes that's what you want (typically when you're parsing list-ish data: a list of phone numbers, a list of operators and operands, a list of arguments to a function, etc.), but very often in semantic actions, you want to be able to grab a specific parser's value by name. This is where <em>captures</em> will come in handy.</p>
 <p><strong>A capture expression <code>&lt;id&gt;a</code> binds the <em>value</em> (the single child) of parser <code>a</code> to the identifier <code>id</code>, which can be used in semantic actions.</strong></p>
-<p>Three things to keep in mind:</p>
+<p>Two things to keep in mind:</p>
 <ul>
 <li>If <code>a</code> is a non-terminal <code>id</code> and you want to bind its value to its own name, you can simply write <code>&lt;&gt;id</code> (equivalent to <code>&lt;id&gt;id</code>).</li>
-<li>Captures are propagated and accumulated upwards just like <code>children</code>, but are stopped at non-terminals. I.e. <code>'[' &lt;id&gt;rule ']'</code> will just capture <code>id</code>, but not forward the sub-captures done inside <code>rule</code>.</li>
 <li>Captures are passed as a semantic action's first and unique argument.</li>
 </ul>
 <p>Taking this into consideration, our prefix-to-postfix converter can be rewritten in a slightly nicer way:</p>
