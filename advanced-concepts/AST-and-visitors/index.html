@@ -739,7 +739,7 @@
   [field: string]: any;
 }
 </code></pre>
-<p>The <code>$label</code> field and the custom fields simply correspond to <code>$node</code>'s arguments. The <code>$from</code> and <code>$to</code> keys are <em>automatically</em> set and indicate the boundaries of the match that produced the node.</p>
+<p>The <code>$label</code> field and the custom fields simply correspond to <code>$node</code>'s arguments. The <code>$from</code> and <code>$to</code> keys are <em>automatically</em> set and indicate the boundaries of the match where the node was produced.</p>
 <p><strong>Nodes can then be emitted, propagated and captured during the parsing process just like any <code>children</code>.</strong></p>
 <p>The specifics of how this happens is totally up to you (see <a href="/pegase/basic-concepts/Semantic-action-and-dataflow/">Basic concepts &gt; Semantic actions and dataflow</a>). Here is an example of a grammar generating an AST for sums written in prefix notation:</p>
 <pre><code class="language-ts">const prefix = peg`
@@ -968,7 +968,7 @@ if(result.success) {
       
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/highlight.min.js"></script>
       
-        <script src="https://unpkg.com/pegase@0.4.4/umd/index.js"></script>
+        <script src="https://unpkg.com/pegase@0.4.6/umd/index.js"></script>
       
         <script src="../../javascript/config.js"></script>
       
