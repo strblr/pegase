@@ -699,11 +699,19 @@ p.value(&quot;15&quot;);   // &quot;f&quot;
 p.value(&quot;3153&quot;); // &quot;c51&quot;
 </code></pre>
 <p>Directives are used for a wide range of purposes, from wrapping parsers in tokens, making some semantic behavior quickly reusable, toggling whitespace skipping, etc. There are a bunch of standard directives defined by default, like <code>@omit</code>, <code>@raw</code>, <code>@number</code>, <code>@token</code>, <code>@reverse</code>, etc. See <a href="/pegase/api/defaultPlugin">API &gt; <code>defaultPlugin</code></a> for more info.</p>
-<p>In specific cases, you might not care about the wrapped parser. This is for example the case for the <code>@commit</code> directive whose sole role is to commit the current farthest failure (see <a href="/pegase/advanced-concepts/Error-recovery/">Advanced concepts &gt; Error recovery</a>). In such cases, the idea is to wrap the directive around an empty literal (always succeeds):</p>
+<p>In fact, the syntax of semantic actions <code>a ${func}</code> is syntactic sugar for <code>a @action(${func})</code>. The standard <code>@action</code> directive takes in a <code>Parser</code> and a function and returns an instance of <code>ActionParser</code>.</p>
+<p>In specific cases, you might not care about the wrapped parser. This is for example the case for the <code>@commit</code> directive whose sole role is to commit the current farthest failure (see <a href="/pegase/advanced-concepts/Error-recovery/">Advanced concepts &gt; Error recovery</a>). In such pure side-effect situations, the idea is to wrap the directive around an empty literal (always succeeds):</p>
 <pre><code class="language-ts">a ('' @commit) b
 </code></pre>
-<p>Instead of writing it explicitly, there is syntactic sugar: adding another <code>@</code> in front of the directive. The following expression is thus equivalent to the previous one:</p>
+<p>But instead of writing it explicitly, there is syntactic sugar: adding another <code>@</code> in front of the directive. The following expression is thus equivalent to the previous one:</p>
 <pre><code>a @@commit b
+</code></pre>
+<p>Please note that this also works for implicit directives like semantic actions:</p>
+<pre><code class="language-ts">const p = peg`
+  &quot;a&quot; @${() =&gt; &quot;b&quot;} &quot;c&quot;
+`;
+
+p.children(&quot;ac&quot;); // [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;]
 </code></pre>
                 
               
