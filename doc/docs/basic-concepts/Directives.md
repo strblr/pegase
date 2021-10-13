@@ -1,7 +1,7 @@
 Directives are functions defined in plugins with the following signature:
 
 ```ts
-(parser: Parser, ...args: any[]) => Parser
+type Directive = (parser: Parser, ...args: any[]) => Parser
 ```
 
 **They transform a `Parser` into a new `Parser`.**
