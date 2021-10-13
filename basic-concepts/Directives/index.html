@@ -660,7 +660,7 @@
                   <h1>Directives</h1>
                 
                 <p>Directives are functions defined in plugins with the following signature:</p>
-<pre><code class="language-ts">(parser: Parser, ...args: any[]) =&gt; Parser
+<pre><code class="language-ts">type Directive = (parser: Parser, ...args: any[]) =&gt; Parser
 </code></pre>
 <p><strong>They transform a <code>Parser</code> into a new <code>Parser</code>.</strong></p>
 <p>In peg expressions, they are applied to sub-expressions, either explicitly via the <code>@</code> notation or implicitly with syntactic sugar. Such application triggers the <code>peg</code> tag to call the function while generating the resulting <code>Parser</code>. The first <code>parser</code> argument is the parser the directive is wrapped around. The <code>args</code> rest arguments are the additional arguments passed to the directive with the optional bracketed argument syntax (these arguments can include tag arguments). The resulting <code>Parser</code> is the return value of the function.</p>
