@@ -664,7 +664,7 @@
 </code></pre>
 <p><strong>They transform a <code>Parser</code> into a new <code>Parser</code>.</strong></p>
 <p>In peg expressions, they are applied to sub-expressions, either explicitly via the <code>@</code> notation or implicitly with syntactic sugar. Such application triggers the <code>peg</code> tag to call the function while generating the resulting <code>Parser</code>. The first <code>parser</code> argument is the parser the directive is wrapped around. The <code>args</code> rest arguments are the additional arguments passed to the directive with the optional bracketed argument syntax (these arguments can include tag arguments). The resulting <code>Parser</code> is the return value of the function.</p>
-<p>To demonstrate that, we're going to add a <code>@toNumber</code> directive to the plugin chain. This directive should apply a semantic action to the wrapped parser which will cast the parsed substring into a number and emit that number as a single child:</p>
+<p>To demonstrate that, we're going to add a <code>@toNumber</code> directive to the plugin chain. This directive should apply a semantic action to the wrapped parser to cast the parsed substring into a number and emit that number as a single child:</p>
 <pre><code class="language-ts">peg.plugins.push({
   directives: {
     toNumber: parser =&gt; peg`${parser} ${() =&gt; Number($raw())}`
