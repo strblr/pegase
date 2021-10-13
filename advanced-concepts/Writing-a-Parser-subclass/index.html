@@ -659,11 +659,10 @@
                 
                   <h1>Writing a Parser subclass</h1>
                 
-                <p>We've seen in section <a href="/pegase/basic-concepts/Building-parsers/">Basic concepts &gt; Building parsers</a> that parsers are combined together to form more complex parsers. In this section, we'll go into more detail about how exactly this composition is done internally and how you could write your own <code>Parser</code> subclass with its own logic. Under the hood, the <code>Parser</code> class is derived into three categories of subclasses:</p>
+                <p>We've seen in section <a href="/pegase/basic-concepts/Building-parsers/">Basic concepts &gt; Building parsers</a> that parsers are combined together to form more complex parsers. In this section, we'll go into more detail about how exactly this composition is done internally and how you could write your own <code>Parser</code> subclass with its own logic. Under the hood, the <code>Parser</code> class is derived into two categories of subclasses:</p>
 <ul>
 <li>Leaf classes, which don't hold a reference to other parsers. There are three of them: <code>LiteralParser</code>, <code>RegexParser</code> and <code>CutParser</code>.</li>
-<li>Composition classes like <code>SequenceParser</code>, <code>TokenParser</code>, <code>PredicateParser</code>, <code>ActionParser</code>, etc. which, on the contrary, reference one or more subparsers.</li>
-<li><code>NonTerminalParser</code> is a special case, because it holds a reference to another parser, but as a string (a rule name) that will be resolved dynamically at parse time.</li>
+<li>Composition classes like <code>SequenceParser</code>, <code>TokenParser</code>, <code>PredicateParser</code>, <code>ActionParser</code>, <code>NonTerminalParser</code> etc. which, on the contrary, reference one or more subparsers.</li>
 </ul>
 <p>The <code>peg</code> tag's role is to parse a peg expression and to generate the corresponding <code>Parser</code> instances. The expression <code>'a' | 'b'</code> is converted by the <code>peg</code> tag into:</p>
 <pre><code class="language-ts">new AlternativeParser([
@@ -691,9 +690,9 @@
   children: any[];
 }
 </code></pre>
-<p>The state of the parsing process at the time of invocation is expressed by the <code>options</code> argument with info like the current position, the input string, the skipping state (on or off), the expected case sensitivity, etc. The exhaustive list is described in <a href="/pegase/api/Types/">API &gt; Types</a>. For performance reasons, this object is never recreated and always directly mutated.</p>
-<p>Log events (warning and failures) must be emitted as side-effects using the methods provided by <code>options</code>. Please refer to <a href="/pegase/api/Parser/">API &gt; <code>Parser</code></a>.</p>
-<p>Great. Once you wrote a custom <code>Parser</code> subclass, there are basically three options for using it, depending on your needs:</p>
+<p>The state of the parsing process at the time of invocation is expressed by the <code>options</code> argument with info like the current position, the input string, the skipping state (on or off), the expected case sensitivity, etc. The exhaustive list is described in <a href="/pegase/api/Types/">API &gt; Types</a>. <strong>Important</strong>: For performance reasons, this object is never recreated and always directly mutated.</p>
+<p>Log events (warning and failures) must be emitted as side-effects using the methods provided by <code>options</code> and <code>options.logger</code>. Please refer to <a href="/pegase/api/Parser/">API &gt; <code>Parser</code></a>.</p>
+<p>Great. Once you wrote a custom <code>Parser</code> subclass, there are basically four options for using it, depending on your needs:</p>
 <ul>
 <li>You can create an <strong>explicit instance</strong> and inject it into a peg expression as a tag argument:</li>
 </ul>
@@ -705,7 +704,7 @@ const g = peg`0 | 1 | ${p}`;
 const g = peg`0 | 1 | ${_(&quot;foo&quot;)} | ${_(&quot;bar&quot;)}`;
 </code></pre>
 <ul>
-<li>If the class relies on some specific attribute (not a number, a string, a function, a <code>RegExp</code> or a <code>Parser</code>, these have already special meaning), you can make Pegase generate instances automatically by injecting that attribute directly into the peg expression and <strong>casting</strong> it into a <code>Parser</code> using a plugin:</li>
+<li>If the class relies on one specific attribute that's not a number, a string, a function, a <code>RegExp</code> or a <code>Parser</code>, you can make Pegase generate instances automatically by injecting that attribute directly into the peg expression and <strong>casting</strong> it into a <code>Parser</code> using a plugin:</li>
 </ul>
 <pre><code class="language-js">peg.plugins.push({
   castParser(set) {
@@ -717,20 +716,26 @@ const g = peg`0 | 1 | ${_(&quot;foo&quot;)} | ${_(&quot;bar&quot;)}`;
 const g = peg`42 | ${new Set([&quot;a&quot;, &quot;b&quot;])}`;
 </code></pre>
 <ul>
-<li>If your class is a composition class, you can define custom directives that generate instances of it:</li>
+<li>You can define custom directives that generate instances of it:</li>
 </ul>
 <pre><code class="language-js">peg.plugins.push({
   directives: {
-    custom(parser) {
-      return new MyParser(parser);
+    myLeafParser(_, x, y) {
+      return new MyLeafParser(x, y);
+    },
+    myCompParser(parser) {
+      return new MyCompParser(parser);
     }
   }
 });
 
-const p = peg`\d+ @custom`; // p is a MyParser instance
+const p = peg`
+  a: b @myCompParser
+  b: '(' @@myLeafParser(4, 5) ')'
+`;
 </code></pre>
 <ul>
-<li>If you class is a singleton-type class that doesn't rely on any attribute, you can bind its instance to an external non-terminal:</li>
+<li>If your class is a singleton, you can bind its instance to an external non-terminal:</li>
 </ul>
 <pre><code class="language-ts">peg.plugins.push({
   resolve: {
