@@ -702,6 +702,7 @@ primaryParser:
 | '^'
 | '(' ^ optionsParser ')'
 | '&gt;' ^ identifier '&lt;'
+| '@' ^ directive
 | nonTerminal !(directives ':')
 | numberLiteral
 | stringLiteral

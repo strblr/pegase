@@ -739,7 +739,7 @@
 <pre><code class="language-ts">const g = peg`
   bitArray: '[' (bit | sync) % ',' ']'
   bit: 0 | 1
-  sync: (^ @commit) ...&amp;(',' | ']')
+  sync: @@commit ...&amp;(',' | ']')
 `;
 </code></pre>
 <h4 id="gparse1-0-1-3-0-1-2-1loggertostring">&gt; <code>g.parse("[1, 0, 1, 3, 0, 1, 2, 1]").logger.toString()</code></h4>
