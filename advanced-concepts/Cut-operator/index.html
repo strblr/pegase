@@ -668,7 +668,7 @@
   | 'do' instr 'while' '(' expr ')'
 `;
 </code></pre>
-<p>Since <code>^</code> is implemented as a no-op <code>Parser</code> (always succeeds, nothing is consumed nor emitted), it can <strong>also</strong> be used to implement default cases in alternative expressions, with the same effect but faster than the empty string:</p>
+<p>Since <code>^</code> is implemented as a no-op <code>Parser</code> (always succeeds, nothing is consumed nor emitted), it can <strong>also</strong> be used to implement default cases in alternative expressions. It differs from the empty literal parser in that the latter might skip whitespaces.</p>
 <pre><code class="language-js">peg`
   size:
   | 'small' ${() =&gt; new SmallSize()}

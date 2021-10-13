@@ -703,7 +703,7 @@ p.value(&quot;3153&quot;); // &quot;c51&quot;
 <p>In specific cases, you might not care about the wrapped parser. This is for example the case for the <code>@commit</code> directive whose sole role is to commit the current farthest failure (see <a href="/pegase/advanced-concepts/Error-recovery/">Advanced concepts &gt; Error recovery</a>). In such pure side-effect situations, the idea is to wrap the directive around an empty literal (always succeeds):</p>
 <pre><code class="language-ts">a ('' @commit) b
 </code></pre>
-<p>But instead of writing it explicitly, there is syntactic sugar: adding another <code>@</code> in front of the directive. The following expression is thus equivalent to the previous one:</p>
+<p>But instead of writing it explicitly, there is syntactic sugar too: adding another <code>@</code> in front of the directive. The following expression is thus equivalent to the previous one:</p>
 <pre><code>a @@commit b
 </code></pre>
 <p>Please note that this also works for implicit directives like semantic actions:</p>
