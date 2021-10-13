@@ -24,7 +24,7 @@ type Node = {
 }
 ```
 
-The `$label` field and the custom fields simply correspond to `$node`'s arguments. The `$from` and `$to` keys are *automatically* set and indicate the boundaries of the match that produced the node.
+The `$label` field and the custom fields simply correspond to `$node`'s arguments. The `$from` and `$to` keys are *automatically* set and indicate the boundaries of the match where the node was produced.
 
 **Nodes can then be emitted, propagated and captured during the parsing process just like any `children`.**
 
