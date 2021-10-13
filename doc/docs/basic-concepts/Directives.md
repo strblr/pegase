@@ -8,7 +8,7 @@ Directives are functions defined in plugins with the following signature:
 
 In peg expressions, they are applied to sub-expressions, either explicitly via the `@` notation or implicitly with syntactic sugar. Such application triggers the `peg` tag to call the function while generating the resulting `Parser`. The first `parser` argument is the parser the directive is wrapped around. The `args` rest arguments are the additional arguments passed to the directive with the optional bracketed argument syntax (these arguments can include tag arguments). The resulting `Parser` is the return value of the function.
 
-To demonstrate that, we're going to add a `@toNumber` directive to the plugin chain. This directive should apply a semantic action to the wrapped parser which will cast the parsed substring into a number and emit that number as a single child:
+To demonstrate that, we're going to add a `@toNumber` directive to the plugin chain. This directive should apply a semantic action to the wrapped parser to cast the parsed substring into a number and emit that number as a single child:
 
 ```ts
 peg.plugins.push({
@@ -57,15 +57,27 @@ p.value("3153"); // "c51"
 
 Directives are used for a wide range of purposes, from wrapping parsers in tokens, making some semantic behavior quickly reusable, toggling whitespace skipping, etc. There are a bunch of standard directives defined by default, like `@omit`, `@raw`, `@number`, `@token`, `@reverse`, etc. See [API > `defaultPlugin`](/pegase/api/defaultPlugin) for more info.
 
-In specific cases, you might not care about the wrapped parser. This is for example the case for the `@commit` directive whose sole role is to commit the current farthest failure (see [Advanced concepts > Error recovery](/pegase/advanced-concepts/Error-recovery/)). In such cases, the idea is to wrap the directive around an empty literal (always succeeds):
+In fact, the syntax of semantic actions `a ${func}` is syntactic sugar for `a @action(${func})`. The standard `@action` directive takes in a `Parser` and a function and returns an instance of `ActionParser`.
+
+In specific cases, you might not care about the wrapped parser. This is for example the case for the `@commit` directive whose sole role is to commit the current farthest failure (see [Advanced concepts > Error recovery](/pegase/advanced-concepts/Error-recovery/)). In such pure side-effect situations, the idea is to wrap the directive around an empty literal (always succeeds):
 
 ```ts
 a ('' @commit) b
 ```
 
-Instead of writing it explicitly, there is syntactic sugar: adding another `@` in front of the directive. The following expression is thus equivalent to the previous one:
+But instead of writing it explicitly, there is syntactic sugar: adding another `@` in front of the directive. The following expression is thus equivalent to the previous one:
 
 ```
 a @@commit b
+```
+
+Please note that this also works for implicit directives like semantic actions:
+
+```ts
+const p = peg`
+  "a" @${() => "b"} "c"
+`;
+
+p.children("ac"); // ["a", "b", "c"]
 ```
 
