@@ -462,8 +462,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gparse1-0-1-3-0-1-2-1loggertostring" class="md-nav__link">
-    &gt; g.parse("[1, 0, 1, 3, 0, 1, 2, 1]").logger.toString()
+  <a href="#gparse0-4-1-2-0-1loggertostring_1" class="md-nav__link">
+    &gt; g.parse("[0, 4, 1, 2, 0, 1]").logger.toString()
   </a>
   
 </li>
@@ -719,8 +719,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gparse1-0-1-3-0-1-2-1loggertostring" class="md-nav__link">
-    &gt; g.parse("[1, 0, 1, 3, 0, 1, 2, 1]").logger.toString()
+  <a href="#gparse0-4-1-2-0-1loggertostring_1" class="md-nav__link">
+    &gt; g.parse("[0, 4, 1, 2, 0, 1]").logger.toString()
   </a>
   
 </li>
@@ -769,16 +769,16 @@
   sync: @@commit ...&amp;(',' | ']')
 `;
 </code></pre>
-<h4 id="gparse1-0-1-3-0-1-2-1loggertostring">&gt; <code>g.parse("[1, 0, 1, 3, 0, 1, 2, 1]").logger.toString()</code></h4>
-<pre><code>(1:11) Failure: Expected &quot;0&quot; or &quot;1&quot;
+<h4 id="gparse0-4-1-2-0-1loggertostring_1">&gt; <code>g.parse("[0, 4, 1, 2, 0, 1]").logger.toString()</code></h4>
+<pre><code>(1:5) Failure: Expected &quot;0&quot; or &quot;1&quot;
 
-&gt; 1 | [1, 0, 1, 3, 0, 1, 2, 1]
+&gt; 1 | [0, 4, 1, 2, 0, 1]
+    |     ^
+
+(1:11) Failure: Expected &quot;0&quot; or &quot;1&quot;
+
+&gt; 1 | [0, 4, 1, 2, 0, 1]
     |           ^
-
-(1:20) Failure: Expected &quot;0&quot; or &quot;1&quot;
-
-&gt; 1 | [1, 0, 1, 3, 0, 1, 2, 1]
-    |                    ^
 </code></pre>
 <p><strong>Be aware</strong>: the <code>success</code> status of the parsing will be <code>true</code>. With error recovery, a successful parsing doesn't necessarily imply "no failure", it just tells you that the parsing was able to finish successfully. This is indeed what <em>recovery</em> means. To check if there are any failures, check the size of the <code>failures</code> array:</p>
 <pre><code class="language-ts">g.parse(&quot;[1, 0, 1, 3, 0, 1, 2, 1]&quot;).logger.failures.length !== 0 // true
