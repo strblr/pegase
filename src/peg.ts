@@ -308,6 +308,10 @@ _.primaryParser.parser = new AlternativeParser([
     }
   ),
   new ActionParser(
+    new SequenceParser([new LiteralParser("@"), new CutParser(), _.directive]),
+    () => pipeDirectives(new LiteralParser(""), $children())
+  ),
+  new ActionParser(
     new SequenceParser([
       _.nonTerminal,
       new PredicateParser(
@@ -397,7 +401,7 @@ _.directive.parser = new ActionParser(
 _.directiveArguments.parser = new ActionParser(
   new RepetitionParser(
     new SequenceParser([
-      new LiteralParser("("),
+      defaultPlugin.directives!.noskip(new LiteralParser("(")),
       modulo(_.value, new LiteralParser(",")),
       new LiteralParser(")")
     ]),

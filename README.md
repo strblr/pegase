@@ -138,7 +138,7 @@ Read more in [Failures and warnings](https://ostrebler.github.io/pegase/basic-co
 const g = peg`
   bitArray: '[' (bit | sync) % ',' ']'
   bit: 0 | 1
-  sync: (^ @commit) ...&(',' | ']')
+  sync: @@commit ...&(',' | ']')
 `;
 ```
 

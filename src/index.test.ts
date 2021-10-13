@@ -352,7 +352,7 @@ test("Failure recovery should work", () => {
   const g = peg`
     bitArray: '[' (bit | sync) % ',' ']'
     bit: 0 | 1
-    sync: (^ @commit) ...&(',' | ']')
+    sync: @@commit ...&(',' | ']')
   `;
 
   const result = g.parse("[1, 0, 1, 3, 0, 1, 2, 1]");

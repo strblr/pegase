@@ -19,7 +19,7 @@ Here is a grammar that parses an array of bits and tries to recover when a bit m
 const g = peg`
   bitArray: '[' (bit | sync) % ',' ']'
   bit: 0 | 1
-  sync: (^ @commit) ...&(',' | ']')
+  sync: @@commit ...&(',' | ']')
 `;
 ```
 

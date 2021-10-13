@@ -4,5 +4,3 @@ Here are some features that I strongly consider adding in future releases of Peg
 - **Cuts for repetitions**. The idea would be to have a cut operator, similar to `^`, but to break repetitions (like `a+`, `a*`, etc.). A sort of `break` statement for peg expressions. Peg repetitions are greedy by nature, but this might not always be what you want.
 - **Default values for captures**. The syntax would be something like `<id = 0>a`, `<id = ${expr}>a` (where `expr` is a JS expression), etc. The default value would be captured as `id` if `a`'s value is `undefined`.
 - [**Semantic predicates**](https://github.com/ostrebler/pegase/issues/9).
-- **Nullary directives**. Sometimes, directives don't really care about the parser they're wrapped around and just perform some side-effects. This is the case with `@commit`. Instead of having to write `('' @commit) ...sync`, it would be nice to have something like `@@commit ...sync` as syntactic sugar for the previous expression. Although it's already possible, this would allow for a nice syntax to emit custom values unrelated to any subparser: `"a" @@action(${() => "b"}) "c"` (would emit `["a", "b", "c"]` when `ac` is parsed).
-

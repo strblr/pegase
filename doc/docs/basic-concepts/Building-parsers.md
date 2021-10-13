@@ -16,7 +16,7 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
       <td><pre>.</pre></td>
       <td>Matches any character</td>
       <td><code>[]</code></td>
-      <td align="center" rowspan="15">0</td>
+      <td align="center" rowspan="16">0</td>
     </tr>
     <tr>
       <td><pre>$</pre></td>
@@ -42,6 +42,11 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
       <td><pre>>id<</pre></td>
       <td>Back reference. Matches the string literal captured as <code>id</code>.</td>
       <td><code>[]</code></td>
+    </tr>
+    <tr>
+      <td><pre>@@dir<br/>@${func}<br/>@ => 'label'</pre>etc.</td>
+      <td>Syntactic sugar for directives applied to the empty literal parser: <code>'' @dir</code>, <code>'' ${func}</code>, etc. Handy if you don't care about a directive's wrapped parser.</td>
+      <td>Directives generate new parsers. So <code>children</code> depends on whatever parser is generated.</td>
     </tr>
     <tr>
       <td><pre>identifier</pre></td>
