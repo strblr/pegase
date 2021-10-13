@@ -1,14 +1,4 @@
-import {
-  Expectation,
-  ExpectationType,
-  Failure,
-  FailureType,
-  Location,
-  LogOptions,
-  unique,
-  Warning,
-  WarningType
-} from ".";
+import { entryToString, Failure, Location, LogOptions, Warning } from ".";
 
 export class Logger {
   readonly input: string;
@@ -61,43 +51,11 @@ export class Logger {
       .sort((a, b) => a.from.index - b.from.index)
       .map(
         entry =>
-          `(${entry.from.line}:${entry.from.column}) ${Logger.entryToString(
-            entry
-          )}${opts.codeFrames ? `\n\n${this.codeFrame(opts, entry.from)}` : ""}`
+          `(${entry.from.line}:${entry.from.column}) ${entryToString(entry)}${
+            opts.codeFrames ? `\n\n${this.codeFrame(opts, entry.from)}` : ""
+          }`
       )
       .join("\n");
-  }
-
-  private static entryToString(entry: Warning | Failure) {
-    switch (entry.type) {
-      case WarningType.Message:
-        return `Warning: ${entry.message}`;
-      case FailureType.Semantic:
-        return `Failure: ${entry.message}`;
-      case FailureType.Expectation:
-        const expectations = unique(
-          entry.expected.map(Logger.expectationToString)
-        ).reduce(
-          (acc, expected, index, { length }) =>
-            `${acc}${index === length - 1 ? " or " : ", "}${expected}`
-        );
-        return `Failure: Expected ${expectations}`;
-    }
-  }
-
-  private static expectationToString(expectation: Expectation) {
-    switch (expectation.type) {
-      case ExpectationType.Literal:
-        return `"${expectation.literal}"`;
-      case ExpectationType.RegExp:
-        return String(expectation.regex);
-      case ExpectationType.Token:
-        return expectation.displayName;
-      case ExpectationType.Mismatch:
-        return `mismatch of "${expectation.match}"`;
-      case ExpectationType.Custom:
-        return expectation.display;
-    }
   }
 
   private codeFrame(options: LogOptions, location: Location) {

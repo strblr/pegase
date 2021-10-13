@@ -7,6 +7,7 @@ import {
   Directive,
   Expectation,
   ExpectationType,
+  Failure,
   FailureType,
   Hooks,
   LiteralParser,
@@ -23,6 +24,7 @@ import {
   Tracer,
   TweakParser,
   Visitor,
+  Warning,
   WarningType
 } from ".";
 
@@ -229,6 +231,42 @@ export function modulo(
     item,
     new RepetitionParser(new SequenceParser([separator, item]), repetitionRange)
   ]);
+}
+
+// entryToString
+
+export function entryToString(entry: Warning | Failure) {
+  switch (entry.type) {
+    case WarningType.Message:
+      return `Warning: ${entry.message}`;
+    case FailureType.Semantic:
+      return `Failure: ${entry.message}`;
+    case FailureType.Expectation:
+      const expectations = unique(
+        entry.expected.map(expectationToString)
+      ).reduce(
+        (acc, expected, index, { length }) =>
+          `${acc}${index === length - 1 ? " or " : ", "}${expected}`
+      );
+      return `Failure: Expected ${expectations}`;
+  }
+}
+
+// expectationToString
+
+export function expectationToString(expectation: Expectation) {
+  switch (expectation.type) {
+    case ExpectationType.Literal:
+      return `"${expectation.literal}"`;
+    case ExpectationType.RegExp:
+      return String(expectation.regex);
+    case ExpectationType.Token:
+      return expectation.displayName;
+    case ExpectationType.Mismatch:
+      return `mismatch of "${expectation.match}"`;
+    case ExpectationType.Custom:
+      return expectation.display;
+  }
 }
 
 // applyVisitor
