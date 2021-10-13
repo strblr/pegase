@@ -142,18 +142,18 @@ const g = peg`
 `;
 ```
 
-#### > `g.parse("[1, 0, 1, 3, 0, 1, 2, 1]").logger.toString()`
+#### > `g.parse("[0, 4, 1, 2, 0, 1]").logger.toString()`
 
 ```
+(1:5) Failure: Expected "0" or "1"
+
+> 1 | [0, 4, 1, 2, 0, 1]
+    |     ^
+
 (1:11) Failure: Expected "0" or "1"
 
-> 1 | [1, 0, 1, 3, 0, 1, 2, 1]
+> 1 | [0, 4, 1, 2, 0, 1]
     |           ^
-
-(1:20) Failure: Expected "0" or "1"
-
-> 1 | [1, 0, 1, 3, 0, 1, 2, 1]
-    |                    ^
 ```
 
 Read more in [Error recovery](https://ostrebler.github.io/pegase/advanced-concepts/Error-recovery/).
