@@ -6,6 +6,7 @@ import {
   defaultTracer,
   Directive,
   Expectation,
+  ExpectationInput,
   ExpectationType,
   Failure,
   FailureType,
@@ -155,9 +156,7 @@ export function castArray<T>(value: T | T[]) {
 
 // castExpectation
 
-export function castExpectation(
-  expected: string | RegExp | Expectation
-): Expectation {
+export function castExpectation(expected: ExpectationInput): Expectation {
   return typeof expected === "string"
     ? { type: ExpectationType.Literal, literal: expected }
     : expected instanceof RegExp

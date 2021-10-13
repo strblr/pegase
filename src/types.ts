@@ -211,6 +211,8 @@ export type Location = {
   column: number;
 };
 
+export type ExpectationInput = string | RegExp | Expectation;
+
 export type Hooks = {
   $from(): Location;
   $to(): Location;
@@ -221,7 +223,7 @@ export type Hooks = {
   $context(): any;
   $warn(message: string): void;
   $fail(message: string): void;
-  $expected(expected: (string | RegExp | Expectation)[]): void;
+  $expected(expected: ExpectationInput[]): void;
   $commit(): void;
   $emit(children: any[]): void;
   $node(label: string, fields: Record<string, any>): Node;
