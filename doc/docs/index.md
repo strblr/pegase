@@ -4,6 +4,8 @@ hide:
   - toc
 ---
 
+![NPM](https://img.shields.io/npm/l/pegase) ![npm](https://img.shields.io/npm/v/pegase) ![npm bundle size](https://img.shields.io/bundlephobia/minzip/pegase?label=gzip)
+
 <p align="center">  
   <img alt="pegase" src="/pegase/assets/images/pegase.png">  
 </p>

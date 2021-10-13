@@ -1,8 +1,7 @@
-We've seen in section [Basic concepts > Building parsers](/pegase/basic-concepts/Building-parsers/) that parsers are combined together to form more complex parsers. In this section, we'll go into more detail about how exactly this composition is done internally and how you could write your own `Parser` subclass with its own logic. Under the hood, the `Parser` class is derived into three categories of subclasses:
+We've seen in section [Basic concepts > Building parsers](/pegase/basic-concepts/Building-parsers/) that parsers are combined together to form more complex parsers. In this section, we'll go into more detail about how exactly this composition is done internally and how you could write your own `Parser` subclass with its own logic. Under the hood, the `Parser` class is derived into two categories of subclasses:
 
 - Leaf classes, which don't hold a reference to other parsers. There are three of them: `LiteralParser`, `RegexParser` and `CutParser`.
-- Composition classes like `SequenceParser`, `TokenParser`, `PredicateParser`, `ActionParser`, etc. which, on the contrary, reference one or more subparsers.
-- `NonTerminalParser` is a special case, because it holds a reference to another parser, but as a string (a rule name) that will be resolved dynamically at parse time.
+- Composition classes like `SequenceParser`, `TokenParser`, `PredicateParser`, `ActionParser`, `NonTerminalParser` etc. which, on the contrary, reference one or more subparsers.
 
 The `peg` tag's role is to parse a peg expression and to generate the corresponding `Parser` instances. The expression `'a' | 'b'` is converted by the `peg` tag into:
 
@@ -43,11 +42,11 @@ type Match = {
 }
 ```
 
-The state of the parsing process at the time of invocation is expressed by the `options` argument with info like the current position, the input string, the skipping state (on or off), the expected case sensitivity, etc. The exhaustive list is described in [API > Types](/pegase/api/Types/). For performance reasons, this object is never recreated and always directly mutated.
+The state of the parsing process at the time of invocation is expressed by the `options` argument with info like the current position, the input string, the skipping state (on or off), the expected case sensitivity, etc. The exhaustive list is described in [API > Types](/pegase/api/Types/). **Important**: For performance reasons, this object is never recreated and always directly mutated.
 
-Log events (warning and failures) must be emitted as side-effects using the methods provided by `options`. Please refer to [API > `Parser`](/pegase/api/Parser/).
+Log events (warning and failures) must be emitted as side-effects using the methods provided by `options` and `options.logger`. Please refer to [API > `Parser`](/pegase/api/Parser/).
 
-Great. Once you wrote a custom `Parser` subclass, there are basically three options for using it, depending on your needs:
+Great. Once you wrote a custom `Parser` subclass, there are basically four options for using it, depending on your needs:
 
 - You can create an **explicit instance** and inject it into a peg expression as a tag argument:
 
@@ -63,7 +62,7 @@ const _ = data => new MyParser(data);
 const g = peg`0 | 1 | ${_("foo")} | ${_("bar")}`;
 ```
 
-- If the class relies on some specific attribute (not a number, a string, a function, a `RegExp` or a `Parser`, these have already special meaning), you can make Pegase generate instances automatically by injecting that attribute directly into the peg expression and **casting** it into a `Parser` using a plugin:
+- If the class relies on one specific attribute that's not a number, a string, a function, a `RegExp` or a `Parser`, you can make Pegase generate instances automatically by injecting that attribute directly into the peg expression and **casting** it into a `Parser` using a plugin:
 
 ```js
 peg.plugins.push({
@@ -76,21 +75,27 @@ peg.plugins.push({
 const g = peg`42 | ${new Set(["a", "b"])}`;
 ```
 
-- If your class is a composition class, you can define custom directives that generate instances of it:
+- You can define custom directives that generate instances of it:
 
 ```js
 peg.plugins.push({
   directives: {
-    custom(parser) {
-      return new MyParser(parser);
+    myLeafParser(_, x, y) {
+      return new MyLeafParser(x, y);
+    },
+    myCompParser(parser) {
+      return new MyCompParser(parser);
     }
   }
 });
   
-const p = peg`\d+ @custom`; // p is a MyParser instance
+const p = peg`
+  a: b @myCompParser
+  b: '(' @@myLeafParser(4, 5) ')'
+`;
 ```
 
-- If you class is a singleton-type class that doesn't rely on any attribute, you can bind its instance to an external non-terminal:
+- If your class is a singleton, you can bind its instance to an external non-terminal:
 
 ```ts
 peg.plugins.push({
