@@ -11,7 +11,7 @@ peg`
 `;
 ```
 
-Since `^` is implemented as a no-op `Parser` (always succeeds, nothing is consumed nor emitted), it can **also** be used to implement default cases in alternative expressions, with the same effect but faster than the empty string:
+Since `^` is implemented as a no-op `Parser` (always succeeds, nothing is consumed nor emitted), it can **also** be used to implement default cases in alternative expressions. It differs from the empty literal parser in that the latter might skip whitespaces.
 
 ```js
 peg`

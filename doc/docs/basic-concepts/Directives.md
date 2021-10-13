@@ -65,7 +65,7 @@ In specific cases, you might not care about the wrapped parser. This is for exam
 a ('' @commit) b
 ```
 
-But instead of writing it explicitly, there is syntactic sugar: adding another `@` in front of the directive. The following expression is thus equivalent to the previous one:
+But instead of writing it explicitly, there is syntactic sugar too: adding another `@` in front of the directive. The following expression is thus equivalent to the previous one:
 
 ```
 a @@commit b
