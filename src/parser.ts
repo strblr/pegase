@@ -103,7 +103,7 @@ export abstract class Parser<Value = any, Context = any> {
 export class LiteralParser extends Parser {
   literal: string;
   readonly emit: boolean;
-  private readonly expected: LiteralExpectation;
+  private expected: LiteralExpectation;
 
   constructor(literal: string, emit: boolean = false) {
     super();
@@ -114,7 +114,7 @@ export class LiteralParser extends Parser {
 
   reset(literal: string) {
     this.literal = literal;
-    this.expected.literal = literal;
+    this.expected = { type: ExpectationType.Literal, literal };
   }
 
   exec(options: Options): Match | null {
