@@ -69,10 +69,10 @@ export abstract class Parser<Value = any, Context = any> {
       ...this.defaultOptions,
       ...options
     });
-    const parser = opts.complete
+    /*const parser = opts.complete
       ? new SequenceParser([this, endOfInput])
-      : this;
-    const match = parser.exec(opts);
+      : this;*/
+    const match = this.exec(opts);
     if (match === null) {
       opts._ffCommit();
       return { success: false, options: opts, logger: opts.logger };

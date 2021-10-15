@@ -1,4 +1,4 @@
-import { Logger, NonTerminalParser, Parser } from ".";
+import { Logger, NonTerminalParser, Parser, Parser2 } from ".";
 
 // Related to parser generation
 
@@ -20,6 +20,10 @@ export type Directive = (parser: Parser, ...args: any[]) => Parser;
 export type Tweaker = (
   options: Options
 ) => (match: Match | null) => Match | null;
+
+export type Tweaker2 = (
+  options: Options2
+) => (children: any[] | null) => any[] | null;
 
 // Related to logging
 
@@ -103,8 +107,34 @@ export enum ExpectationType {
 export type Options<Context = any> = {
   input: string;
   from: number;
+  to: number;
   complete: boolean;
   skipper: Parser<any, Context>;
+  skip: boolean;
+  ignoreCase: boolean;
+  tracer: Tracer<Context>;
+  trace: boolean;
+  logger: Logger;
+  log: boolean;
+  context: Context;
+  visit: Visitor | Visitor[];
+  cut: boolean;
+  captures: Record<string, any>;
+  _ffIndex: number;
+  _ffType: FailureType | null;
+  _ffSemantic: string | null;
+  _ffExpectations: Expectation[];
+  _ffExpect(from: number, expected: Expectation): void;
+  _ffFail(from: number, message: string): void;
+  _ffCommit(): void;
+};
+
+export type Options2<Context = any> = {
+  input: string;
+  from: number;
+  to: number;
+  complete: boolean;
+  skipper: Parser2<any, Context>;
   skip: boolean;
   ignoreCase: boolean;
   tracer: Tracer<Context>;
@@ -141,6 +171,26 @@ export type SuccessResult<Value = any, Context = any> = Range & {
 export type FailResult<Context = any> = {
   success: false;
   options: Options<Context>;
+  logger: Logger;
+};
+
+export type Result2<Value = any, Context = any> =
+  | SuccessResult2<Value, Context>
+  | FailResult2<Context>;
+
+export type SuccessResult2<Value = any, Context = any> = Range & {
+  success: true;
+  value: Value;
+  children: any[];
+  raw: string;
+  complete: boolean;
+  options: Options2<Context>;
+  logger: Logger;
+};
+
+export type FailResult2<Context = any> = {
+  success: false;
+  options: Options2<Context>;
   logger: Logger;
 };
 

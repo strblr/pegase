@@ -3,6 +3,7 @@ import {
   AlternativeParser,
   CutParser,
   defaultSkipper,
+  defaultSkipper2,
   defaultTracer,
   Directive,
   Expectation,
@@ -15,6 +16,7 @@ import {
   Logger,
   Node,
   Options,
+  Options2,
   Parser,
   Plugin,
   RegexParser,
@@ -64,8 +66,77 @@ export function buildOptions<Context>(
   return {
     input,
     from: 0,
+    to: 0,
     complete: true,
     skipper: defaultSkipper,
+    skip: true,
+    ignoreCase: false,
+    tracer: defaultTracer,
+    trace: false,
+    logger: new Logger(input),
+    log: true,
+    context: undefined as any,
+    visit: [],
+    cut: false,
+    captures: {},
+    _ffIndex: 0,
+    _ffType: null,
+    _ffSemantic: null,
+    _ffExpectations: [],
+    _ffExpect(from, expected) {
+      if (this._ffIndex === from && this._ffType !== FailureType.Semantic) {
+        this._ffType = FailureType.Expectation;
+        this._ffExpectations.push(expected);
+      } else if (this._ffIndex < from) {
+        this._ffIndex = from;
+        this._ffType = FailureType.Expectation;
+        this._ffExpectations = [expected];
+      }
+    },
+    _ffFail(from: number, message: string) {
+      if (this._ffIndex <= from) {
+        this._ffIndex = from;
+        this._ffType = FailureType.Semantic;
+        this._ffSemantic = message;
+      }
+    },
+    _ffCommit() {
+      if (this._ffType !== null) {
+        const pos = this.logger.at(this._ffIndex);
+        if (this._ffType === FailureType.Expectation)
+          this.logger.failures.push({
+            from: pos,
+            to: pos,
+            type: FailureType.Expectation,
+            expected: this._ffExpectations
+          });
+        else
+          this.logger.failures.push({
+            from: pos,
+            to: pos,
+            type: FailureType.Semantic,
+            message: this._ffSemantic!
+          });
+        this._ffType = null;
+      }
+    },
+    ...partial
+  };
+}
+
+// buildOptions2
+
+export function buildOptions2<Context>(
+  input: string,
+  partial: Partial<Options2<Context>>
+): Options2<Context> {
+  input = partial.input ?? input;
+  return {
+    input,
+    from: 0,
+    to: 0,
+    complete: true,
+    skipper: defaultSkipper2,
     skip: true,
     ignoreCase: false,
     tracer: defaultTracer,

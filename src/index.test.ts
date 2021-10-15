@@ -10,9 +10,14 @@ import peg, {
   $warn,
   ActionParser,
   createTag,
+  GrammarParser2,
   LiteralParser,
+  LiteralParser2,
+  NonTerminalParser2,
   RegexParser,
+  SequenceParser2,
   SuccessResult,
+  TweakParser2,
   Visitor
 } from ".";
 import * as competitor from "./competitor.test";
@@ -34,6 +39,65 @@ function echo(entity: any) {
     )
   );
 }
+
+test("Messing around with new API", () => {
+  const p = new GrammarParser2(
+    new Map([
+      [
+        "expr",
+        [
+          [["a", new LiteralParser2("A")]],
+          new SequenceParser2([
+            new NonTerminalParser2("a"),
+            new LiteralParser2("b"),
+            new NonTerminalParser2("term")
+          ])
+        ]
+      ],
+      [
+        "term",
+        [
+          [],
+          new TweakParser2(new LiteralParser2("c"), options => {
+            const { skip } = options;
+            options.skip = false;
+            return children => {
+              options.skip = skip;
+              return children;
+            };
+          })
+        ]
+      ]
+    ])
+  );
+  p.compile();
+
+  const r = peg`
+    a: 'A' | bc
+    bc: "b" "c"
+  `;
+
+  const test = true;
+  if (test) {
+    console.log(p.parse("  b   c"));
+    console.log((p as any).links);
+    console.log((p as any).exec.toString());
+  } else {
+    console.log({ p, r });
+
+    const x = new Date();
+    for (let i = 0; i !== 500000; ++i) r.parse("  b   c");
+    const y = new Date();
+    for (let i = 0; i !== 500000; ++i) p.parse("  b   c");
+    const z = new Date();
+    console.log(
+      y.getTime() - x.getTime(),
+      "ms vs.",
+      z.getTime() - y.getTime(),
+      "ms"
+    );
+  }
+});
 
 test("The peg tag should work with raw strings", () => {
   const g1 = peg` "My name is \"pegase\"." `;
