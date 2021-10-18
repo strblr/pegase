@@ -676,7 +676,7 @@ export class ActionParser extends TweakParser {
           $children: () => children,
           $value: () => (children.length === 1 ? children[0] : undefined),
           $raw: () => options.input.substring(options.from, options.to),
-          $options: () => options as any, // TODO remove that "any"
+          $options: () => options,
           $context: () => options.context,
           $warn(message) {
             options.log &&
