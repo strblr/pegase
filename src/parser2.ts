@@ -1,17 +1,24 @@
 import {
+  $from,
+  $to,
   applyVisitor,
   buildOptions2,
   castArray,
+  castExpectation,
   ExpectationType,
   extendFlags,
+  hooks,
   inferValue,
   LiteralExpectation,
   Options2,
   RegexExpectation,
   Result2,
+  SemanticAction,
+  TokenExpectation,
   TraceEventType,
   Tracer2,
-  Tweaker2
+  Tweaker2,
+  WarningType
 } from ".";
 import prettier from "prettier";
 
@@ -62,10 +69,10 @@ export abstract class Parser2<Value = any, Context = any> {
   }
 
   compile() {
-    const createId = createIdGenerator();
-    const children = createId();
-    this.links = as<CommonLinks>({ nochild: [], skip, trace });
-    const code = this.generate({ createId, children, links: this.links });
+    const id = idGenerator();
+    const children = id();
+    this.links = as<CommonLinks>({ nochild: [], hooks, skip, trace });
+    const code = this.generate({ id, children, links: this.links });
     this.exec = new Function(
       "options",
       "links",
@@ -96,12 +103,12 @@ export class LiteralParser2 extends Parser2 {
   }
 
   generate(options: CompileOptions): string {
-    const literal = options.createId();
+    const literal = options.id();
     const literalNocase =
-      this.literal !== this.literal.toLowerCase() && options.createId();
-    const children = this.emit && options.createId();
-    const expectation = options.createId();
-    const raw = options.createId();
+      this.literal !== this.literal.toLowerCase() && options.id();
+    const children = this.emit && options.id();
+    const expectation = options.id();
+    const raw = options.id();
     options.links[literal] = this.literal;
     literalNocase &&
       (options.links[literalNocase] = this.literal.toLowerCase());
@@ -140,11 +147,11 @@ export class RegexParser2 extends Parser2 {
   }
 
   generate(options: CompileOptions): string {
-    const regex = options.createId();
-    const regexNocase = options.createId();
-    const expectation = options.createId();
-    const usedRegex = options.createId();
-    const result = options.createId();
+    const regex = options.id();
+    const regexNocase = options.id();
+    const usedRegex = options.id();
+    const expectation = options.id();
+    const result = options.id();
     options.links[regex] = extendFlags(this.regex, "y");
     options.links[regexNocase] = extendFlags(this.regex, "iy");
     options.links[expectation] = as<RegexExpectation>({
@@ -171,6 +178,52 @@ export class RegexParser2 extends Parser2 {
   }
 }
 
+// TokenParser2
+
+export class TokenParser2 extends Parser2 {
+  readonly parser: Parser2;
+  readonly displayName?: string;
+
+  constructor(parser: Parser2, displayName?: string) {
+    super();
+    this.parser = parser;
+    this.displayName = displayName;
+  }
+
+  generate(options: CompileOptions): string {
+    const skip = options.id();
+    const log = options.id();
+    const expectation = this.displayName && options.id();
+    expectation &&
+      (options.links[expectation] = as<TokenExpectation>({
+        type: ExpectationType.Token,
+        displayName: this.displayName!
+      }));
+    const code = this.parser.generate(options);
+    return js`
+      if(!skip(options))
+        ${options.children} = null;
+      else {
+        var ${skip} = options.skip;
+        options.skip = false;
+        ${
+          !this.displayName
+            ? code
+            : js`
+              var ${log} = options.log;
+              options.log = false;
+              ${code}
+              options.log = ${log};
+              if(${options.children} === null && ${log})
+                options._ffExpect(options.from, ${expectation});
+            `
+        }
+        options.skip = ${skip};
+      }
+    `;
+  }
+}
+
 // CutParser2
 
 export class CutParser2 extends Parser2 {
@@ -192,8 +245,8 @@ export class AlternativeParser2 extends Parser2 {
   }
 
   generate(options: CompileOptions): string {
-    const from = options.createId();
-    const cut = options.createId();
+    const from = options.id();
+    const cut = options.id();
     return js`
       var ${from} = options.from;
       var ${cut} = options.cut;
@@ -225,8 +278,8 @@ export class SequenceParser2 extends Parser2 {
 
   generate(options: CompileOptions): string {
     const [first, ...rest] = this.parsers;
-    const acc = options.createId();
-    const from = options.createId();
+    const acc = options.id();
+    const from = options.id();
     return js`
       ${first.generate(options)}
       if(${options.children} !== null) {
@@ -266,9 +319,9 @@ export class RepetitionParser2 extends Parser2 {
   }
 
   generate(options: CompileOptions): string {
-    const from = options.createId();
-    const to = options.createId();
-    const acc = options.createId();
+    const from = options.id();
+    const to = options.id();
+    const acc = options.id();
     const code = this.parser.generate(options);
     if (this.max === 1) {
       if (this.min === 1) return code;
@@ -281,7 +334,7 @@ export class RepetitionParser2 extends Parser2 {
         }
       `;
     }
-    const temp = options.createId();
+    const temp = options.id();
     const iterate = (times: number, finish: string = "") =>
       Array.from(Array(times)).reduceRight(
         code => js`
@@ -352,7 +405,7 @@ export class GrammarParser2 extends Parser2 {
   }
 
   generate(options: CompileOptions): string {
-    const children = options.createId();
+    const children = options.id();
     return js`
       ${Array.from(this.rules)
         .map(
@@ -396,7 +449,7 @@ export class NonTerminalParser2 extends Parser2 {
   }
 
   generate(options: CompileOptions): string {
-    const children = options.createId();
+    const children = options.id();
     const call = js`
       r_${this.rule}(${this.parameters
       .map(parameter =>
@@ -424,26 +477,48 @@ export class NonTerminalParser2 extends Parser2 {
   }
 }
 
-// TweakParser2
+// PredicateParser2
 
-export class TweakParser2 extends Parser2 {
+export class PredicateParser2 extends Parser2 {
   readonly parser: Parser2;
-  readonly tweaker: Tweaker2;
+  readonly polarity: boolean;
 
-  constructor(parser: Parser2, tweaker: Tweaker2) {
+  constructor(parser: Parser2, polarity: boolean) {
     super();
     this.parser = parser;
-    this.tweaker = tweaker;
+    this.polarity = polarity;
   }
 
   generate(options: CompileOptions): string {
-    const tweaker = options.createId();
-    const cleanUp = options.createId();
-    options.links[tweaker] = this.tweaker;
+    const from = options.id();
+    const log = options.id();
+    const code = this.parser.generate(options);
+    if (this.polarity)
+      return js`
+        var ${from} = options.from;
+        ${code}
+        if(${options.children} !== null) {
+          options.from = options.to = ${from};
+          ${options.children} = nochild;
+        }
+      `;
     return js`
-      var ${cleanUp} = ${tweaker}(options);
-      ${this.parser.generate(options)}
-      ${options.children} = ${cleanUp}(${options.children})
+      var ${from} = options.from;
+      var ${log} = options.log;
+      options.log = false;
+      ${code}
+      options.log = ${log};
+      if(${options.children} === null) {
+        options.from = options.to = ${from};
+        ${options.children} = nochild;
+      } else {
+        ${options.children} = null;
+        options.log &&
+          options._ffExpect(options.from, {
+            type: "${ExpectationType.Mismatch}",
+            match: options.input.substring(options.from, options.to)
+          });
+      }
     `;
   }
 }
@@ -477,6 +552,108 @@ export class CaptureParser2 extends Parser2 {
   }
 }
 
+// TweakParser2
+
+export class TweakParser2 extends Parser2 {
+  readonly parser: Parser2;
+  readonly tweaker: Tweaker2;
+
+  constructor(parser: Parser2, tweaker: Tweaker2) {
+    super();
+    this.parser = parser;
+    this.tweaker = tweaker;
+  }
+
+  generate(options: CompileOptions): string {
+    const tweaker = options.id();
+    const cleanUp = options.id();
+    options.links[tweaker] = this.tweaker;
+    return js`
+      var ${cleanUp} = ${tweaker}(options);
+      ${this.parser.generate(options)}
+      ${options.children} = ${cleanUp}(${options.children})
+    `;
+  }
+}
+
+// ActionParser2
+
+export class ActionParser2 extends TweakParser2 {
+  readonly action: SemanticAction;
+
+  constructor(parser: Parser2, action: SemanticAction) {
+    super(parser, options => {
+      const ffIndex = options._ffIndex,
+        ffType = options._ffType,
+        ffSemantic = options._ffSemantic,
+        ffExpectations = options._ffExpectations.concat();
+      return children => {
+        if (children === null) return null;
+        let value, emit, failed;
+        hooks.push({
+          $from: () => options.logger.at(options.from),
+          $to: () => options.logger.at(options.to),
+          $children: () => children,
+          $value: () => (children.length === 1 ? children[0] : undefined),
+          $raw: () => options.input.substring(options.from, options.to),
+          $options: () => options as any, // TODO remove that "any"
+          $context: () => options.context,
+          $warn(message) {
+            options.log &&
+              options.logger.warnings.push({
+                from: $from(),
+                to: $to(),
+                type: WarningType.Message,
+                message
+              });
+          },
+          $fail(message) {
+            failed = true;
+            options._ffIndex = ffIndex;
+            options._ffType = ffType;
+            options._ffSemantic = ffSemantic;
+            options._ffExpectations = ffExpectations;
+            options.log && options._ffFail(options.from, message);
+          },
+          $expected(expected) {
+            failed = true;
+            options._ffIndex = ffIndex;
+            options._ffType = ffType;
+            options._ffSemantic = ffSemantic;
+            options._ffExpectations = ffExpectations;
+            options.log &&
+              castArray(expected)
+                .map(castExpectation)
+                .forEach(expected => options._ffExpect(options.from, expected));
+          },
+          $commit: () => options._ffCommit(),
+          $emit(children) {
+            emit = children;
+          },
+          $node: (label, fields) => ({
+            $label: label,
+            $from: $from(),
+            $to: $to(),
+            ...fields
+          })
+        });
+        try {
+          value = action(options.captures);
+        } catch (e) {
+          hooks.pop();
+          throw e;
+        }
+        hooks.pop();
+        if (failed) return null;
+        if (emit !== undefined) return emit;
+        else if (value !== undefined) return [value];
+        return children;
+      };
+    });
+    this.action = action;
+  }
+}
+
 // Helpers
 
 const js = String.raw;
@@ -492,7 +669,7 @@ function strIf(test: boolean, code: string) {
 export const defaultSkipper2 = new RegexParser2(/\s*/);
 defaultSkipper2.compile();
 
-function createIdGenerator() {
+function idGenerator() {
   let i = 0;
   return function () {
     return `_${(i++).toString(36)}`;
@@ -540,13 +717,14 @@ function trace(rule: string, options: Options2, exec: () => any[] | null) {
 }
 
 type CompileOptions = {
-  createId: ReturnType<typeof createIdGenerator>;
+  id: ReturnType<typeof idGenerator>;
   children: string;
   links: Record<string, any>;
 };
 
 type CommonLinks = {
   nochild: [];
+  hooks: typeof hooks;
   skip: typeof skip;
   trace: typeof trace;
 };

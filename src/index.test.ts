@@ -9,13 +9,18 @@ import peg, {
   $visit,
   $warn,
   ActionParser,
+  AlternativeParser2,
   createTag,
-  CutParser2,
+  GrammarParser2,
   LiteralParser,
   LiteralParser2,
+  NonTerminalParser2,
   RegexParser,
+  RegexParser2,
+  RepetitionParser2,
   SequenceParser2,
   SuccessResult,
+  TokenParser2,
   Visitor
 } from ".";
 import * as competitor from "./competitor.test";
@@ -39,7 +44,7 @@ function echo(entity: any) {
 }
 
 test("Messing around with new API", () => {
-  /*const p = new GrammarParser2(
+  const p = new GrammarParser2(
     new Map([
       [
         "expr",
@@ -81,22 +86,25 @@ test("Messing around with new API", () => {
           ])
         ]
       ],
-      ["fact", [[], new RegexParser2(/\d/)]]
+      [
+        "fact",
+        [
+          [],
+          new TokenParser2(
+            new RepetitionParser2(new RegexParser2(/\d/), 1, Infinity),
+            "int"
+          )
+        ]
+      ]
     ])
-  );*/
-
-  const p = new SequenceParser2([
-    new LiteralParser2("a"),
-    new CutParser2(),
-    new LiteralParser2("b")
-  ]);
+  );
 
   p.compile();
 
   const r = peg`
     expr: term (('+' | '-') term)*
     term: fact (('*' | '/') fact)*
-    fact: \d
+    fact: \d+ @token("int")
   `;
 
   const test = true;
@@ -108,9 +116,9 @@ test("Messing around with new API", () => {
     console.log({ p, r });
 
     const x = new Date();
-    for (let i = 0; i !== 500000; ++i) r.parse(" 4+ 2* 1- 4 /3");
+    for (let i = 0; i !== 500000; ++i) p.parse(" 42+ 214* 1- 46 /354");
     const y = new Date();
-    for (let i = 0; i !== 500000; ++i) p.parse(" 4+ 2* 1- 4 /3");
+    for (let i = 0; i !== 500000; ++i) r.parse(" 42+ 214* 1- 46 /354");
     const z = new Date();
     console.log(
       y.getTime() - x.getTime(),
