@@ -8,11 +8,12 @@ import {
   ActionParser,
   AlternativeParser,
   Any,
+  BackReferenceParser,
   CaptureParser,
   CutParser,
   defaultPlugin,
+  GrammarParser,
   LiteralParser,
-  MetaContext,
   modulo,
   NonTerminalParser,
   Parser,
@@ -23,12 +24,10 @@ import {
   RepetitionParser,
   resolveCast,
   resolveDirective,
-  resolveRule,
   SequenceParser,
   spaceCase,
-  TokenParser,
-  TweakParser
-} from "."; // The parser creator factory
+  TokenParser
+} from ".";
 
 // createTag
 
@@ -37,7 +36,7 @@ export function createTag() {
     chunks: TemplateStringsArray | string,
     ...args: Any[]
   ): Parser<Value, Context> {
-    return _.parser.value(
+    const parser: Parser<Value, Context> = metaparser.value(
       typeof chunks === "string"
         ? chunks
         : chunks.raw.reduce(
@@ -46,9 +45,11 @@ export function createTag() {
       {
         skipper: pegSkipper,
         trace: peg.trace,
-        context: { plugins: peg.plugins, args, refs: new Set() }
+        context: { plugins: peg.plugins, args }
       }
     );
+    parser.compile();
+    return parser;
   }
 
   peg.trace = false;
@@ -58,447 +59,682 @@ export function createTag() {
 
 // metagrammar
 
-const _ = {
-  parser: new NonTerminalParser("parser"),
-  grammarParser: new NonTerminalParser("grammarParser"),
-  optionsParser: new NonTerminalParser("optionsParser"),
-  directiveParser: new NonTerminalParser("directiveParser"),
-  sequenceParser: new NonTerminalParser("sequenceParser"),
-  minusParser: new NonTerminalParser("minusParser"),
-  moduloParser: new NonTerminalParser("moduloParser"),
-  forwardParser: new NonTerminalParser("forwardParser"),
-  captureParser: new NonTerminalParser("captureParser"),
-  predicateParser: new NonTerminalParser("predicateParser"),
-  repetitionParser: new NonTerminalParser("repetitionParser"),
-  primaryParser: new NonTerminalParser("primaryParser"),
-  repetitionRange: new NonTerminalParser("repetitionRange"),
-  directives: new NonTerminalParser("directives"),
-  directive: new NonTerminalParser("directive"),
-  directiveArguments: new NonTerminalParser("directiveArguments"),
-  value: new NonTerminalParser("value"),
-  identifier: new NonTerminalParser("identifier"),
-  nonTerminal: new NonTerminalParser("nonTerminal"),
-  numberLiteral: new NonTerminalParser("numberLiteral"),
-  stringLiteral: new NonTerminalParser("stringLiteral"),
-  regexLiteral: new NonTerminalParser("regexLiteral"),
-  characterClass: new NonTerminalParser("characterClass"),
-  escapedMeta: new NonTerminalParser("escapedMeta"),
-  tagArgument: new NonTerminalParser("tagArgument"),
-  castableTagArgument: new NonTerminalParser("castableTagArgument"),
-  actionTagArgument: new NonTerminalParser("actionTagArgument")
-};
+/*
+# Main rules:
 
-_.parser.parser = new ActionParser(
-  new AlternativeParser([_.grammarParser, _.optionsParser]),
-  () => {
-    const { plugins, refs } = $context() as MetaContext;
-    for (const ref of refs) {
-      const definition = resolveRule(plugins, ref.rule);
-      if (definition) ref.parser = definition;
-      else
-        return $fail(
-          `Couldn't resolve non-terminal "${ref.rule}", you can define it in a grammar or via peg.extend`
-        );
-    }
-  }
-);
+parser:
+  grammarParser | optionsParser
 
-_.grammarParser.parser = new ActionParser(
-  new RepetitionParser(
-    new ActionParser(
-      new SequenceParser([
-        _.identifier,
-        _.directives,
-        new LiteralParser(":"),
-        new CutParser(),
-        _.optionsParser
-      ]),
-      () => {
-        let [rule, directives, parser] = $children();
-        if (rule.startsWith("$")) {
-          const token = resolveDirective($context().plugins, "token");
-          if (!token) return unresolvedDirectiveFail("token");
-          rule = rule.substring(1);
-          directives.push([token, [spaceCase(rule)]]);
-        }
-        return [rule, pipeDirectives(parser, directives)];
-      }
-    ),
-    [1, Infinity]
-  ),
-  () => {
-    const { refs } = $context() as MetaContext;
-    const rules = $children();
-    const mapped = new Map<string, Parser>(rules);
-    for (const ref of refs) {
-      const definition = mapped.get(ref.rule);
-      if (definition) {
-        ref.parser = definition;
-        refs.delete(ref);
-      }
-    }
-    return new NonTerminalParser(rules[0][0], rules[0][1]);
-  }
-);
+grammarParser:
+  (identifier directives ':' ^ optionsParser)+
 
-_.optionsParser.parser = new ActionParser(
-  new SequenceParser([
-    new RepetitionParser(new LiteralParser("|"), [0, 1]),
-    modulo(_.directiveParser, new LiteralParser("|"))
-  ]),
-  () =>
-    $children().length === 1
-      ? $children()[0]
-      : new AlternativeParser($children())
-);
+optionsParser:
+  '|'? directiveParser % '|'
 
-_.directiveParser.parser = new ActionParser(
-  new SequenceParser([_.sequenceParser, _.directives]),
-  () => pipeDirectives($children()[0], $children()[1])
-);
+directiveParser:
+  sequenceParser directives
 
-_.sequenceParser.parser = new ActionParser(
-  new RepetitionParser(_.minusParser, [1, Infinity]),
-  () =>
-    $children().length === 1 ? $children()[0] : new SequenceParser($children())
-);
+sequenceParser:
+  minusParser+
 
-_.minusParser.parser = new ActionParser(
-  modulo(_.moduloParser, new LiteralParser("-")),
-  () =>
-    ($children() as Parser[]).reduce(
-      (acc, not) => new SequenceParser([new PredicateParser(not, false), acc])
-    )
-);
+minusParser:
+  moduloParser % '-'
 
-_.moduloParser.parser = new ActionParser(
-  modulo(
-    _.forwardParser,
-    new SequenceParser([
-      new LiteralParser("%"),
+moduloParser:
+  forwardParser % ('%' repetitionRange?)
+
+forwardParser:
+  '...'? captureParser
+
+captureParser:
+  ('<' '...'? identifier? '>')? predicateParser
+
+predicateParser:
+  ('&' | '!')? repetitionParser
+
+repetitionParser:
+  primaryParser repetitionRange?
+
+primaryParser:
+| '.'
+| '$' - identifier
+| 'ε'
+| '^'
+| '(' ^ optionsParser ')'
+| '>' ^ identifier '<'
+| '@' ^ directive
+| nonTerminal !(directives ':')
+| numberLiteral
+| stringLiteral
+| characterClass
+| escapedMeta
+| regexLiteral
+| castableTagArgument
+
+
+# Secondary rules:
+
+repetitionRange:
+| '?'
+| '+'
+| '*'
+| '{' value (',' value?)? '}'
+
+directives:
+  directive*
+
+directive:
+| '@' ^ identifier directiveArguments
+| actionTagArgument
+| '=>' value
+
+directiveArguments:
+  ('(' value % ',' ')')?
+
+value:
+| tagArgument
+| stringLiteral
+| numberLiteral
+| nonTerminal
+| characterClass
+| escapedMeta
+| regexLiteral
+
+
+# Tokens:
+
+identifier @token('identifier'):
+  /(\$?[_a-zA-Z][_a-zA-Z0-9]*)/
+
+nonTerminal @token('non-terminal'):
+  identifier
+
+numberLiteral @token('number literal'):
+  /[0-9]+\.?[0-9]* /
+
+stringLiteral @token('string literal'):
+| /'((?:[^\\']|\\.)*)'/
+| /"(?:[^\\"]|\\.)*"/
+
+regexLiteral @token('regex literal'):
+/\/((?:\[[^\]]*]|[^\\\/]|\\.)+)\//
+
+characterClass @token('character class'):
+/\[(?:[^\\\]]|\\.)*]/
+
+escapedMeta @token('escaped metacharacter'):
+/\\[a-zA-Z0-9]+/
+
+tagArgument @token('tag argument'):
+/~(\d+)/
+
+castableTagArgument @token('castable tag argument'):
+tagArgument
+
+actionTagArgument @token('action tag argument'):
+tagArgument
+ */
+
+const metaparser = new GrammarParser([
+  [
+    "parser",
+    [
+      [],
       new AlternativeParser([
-        _.repetitionRange,
-        new ActionParser(new LiteralParser(""), () => [0, Infinity])
+        new NonTerminalParser("grammarParser"),
+        new NonTerminalParser("optionsParser")
       ])
-    ])
-  ),
-  () =>
-    $children().reduce((acc, rep, index) =>
-      index % 2 ? modulo(acc, $children()[index + 1], rep) : acc
-    )
-);
-
-_.forwardParser.parser = new ActionParser(
-  new SequenceParser([
-    new RepetitionParser(new LiteralParser("...", true), [0, 1]),
-    _.captureParser
-  ]),
-  () => {
-    if ($children().length === 1) return $children()[0];
-    return new SequenceParser([
-      new RepetitionParser(
-        new SequenceParser([
-          new PredicateParser($children()[1], false),
-          new RegexParser(/./)
-        ]),
-        [0, Infinity]
-      ),
-      $children()[1]
-    ]);
-  }
-);
-
-_.captureParser.parser = new ActionParser(
-  new SequenceParser([
-    new RepetitionParser(
+    ]
+  ],
+  [
+    "grammarParser",
+    [
+      [],
+      new ActionParser(
+        new RepetitionParser(
+          new ActionParser(
+            new SequenceParser([
+              new NonTerminalParser("identifier"),
+              new NonTerminalParser("directives"),
+              new LiteralParser(":"),
+              new CutParser(),
+              new NonTerminalParser("optionsParser")
+            ]),
+            () => {
+              let [rule, directives, parser] = $children();
+              if (rule.startsWith("$")) {
+                const token = resolveDirective($context().plugins, "token");
+                if (!token) return unresolvedDirectiveFail("token");
+                rule = rule.substring(1);
+                directives.push([token, [spaceCase(rule)]]);
+              }
+              return [rule, [[], pipeDirectives(parser, directives)]];
+            }
+          ),
+          [1, Infinity]
+        ),
+        () => new GrammarParser($children())
+      )
+    ]
+  ],
+  [
+    "optionsParser",
+    [
+      [],
       new ActionParser(
         new SequenceParser([
-          new LiteralParser("<"),
-          new RepetitionParser(new LiteralParser("...", true), [0, 1]),
-          new AlternativeParser([
-            _.identifier,
-            new ActionParser(new CutParser(), () => null)
-          ]),
-          new LiteralParser(">")
+          new RepetitionParser(new LiteralParser("|"), [0, 1]),
+          modulo(
+            new NonTerminalParser("directiveParser"),
+            new LiteralParser("|")
+          )
         ]),
         () =>
           $children().length === 1
-            ? [false, $children()[0]]
-            : [true, $children()[1]]
-      ),
-      [0, 1]
-    ),
-    _.predicateParser
-  ]),
-  () => {
-    if ($children().length === 1) return $children()[0];
-    let [all, name] = $children()[0];
-    if (name === null) {
-      if (!($children()[1] instanceof NonTerminalParser))
-        return $fail("Auto-captures can only be applied to non-terminals");
-      name = $children()[1].rule;
-    }
-    return new CaptureParser($children()[1], name, all);
-  }
-);
-
-_.predicateParser.parser = new ActionParser(
-  new SequenceParser([
-    new RepetitionParser(
-      new AlternativeParser([
-        new LiteralParser("&", true),
-        new LiteralParser("!", true)
-      ]),
-      [0, 1]
-    ),
-    _.repetitionParser
-  ]),
-  () =>
-    $children().length === 1
-      ? $children()[0]
-      : new PredicateParser($children()[1], $children()[0] === "&")
-);
-
-_.repetitionParser.parser = new ActionParser(
-  new SequenceParser([
-    _.primaryParser,
-    new RepetitionParser(_.repetitionRange, [0, 1])
-  ]),
-  () =>
-    $children().length === 1
-      ? $children()[0]
-      : new RepetitionParser($children()[0], $children()[1])
-);
-
-_.primaryParser.parser = new AlternativeParser([
-  new ActionParser(new LiteralParser("."), () => new RegexParser(/./)),
-  new ActionParser(
-    new SequenceParser([
-      new PredicateParser(_.identifier, false),
-      new LiteralParser("$")
-    ]),
-    () =>
-      new TokenParser(
-        new PredicateParser(new RegexParser(/./), false),
-        "end of input"
+            ? $children()[0]
+            : new AlternativeParser($children())
       )
-  ),
-  new ActionParser(new LiteralParser("ε"), () => new LiteralParser("")),
-  new ActionParser(new LiteralParser("^"), () => new CutParser()),
-  new SequenceParser([
-    new LiteralParser("("),
-    new CutParser(),
-    _.optionsParser,
-    new LiteralParser(")")
-  ]),
-  new ActionParser(
-    new SequenceParser([
-      new LiteralParser(">"),
-      new CutParser(),
-      _.identifier,
-      new LiteralParser("<")
-    ]),
-    () => {
-      const name = $children()[0];
-      const parser = new LiteralParser("");
-      return new TweakParser(parser, options => {
-        parser.reset(options.captures[name]);
-        return match => match;
-      });
-    }
-  ),
-  new ActionParser(
-    new SequenceParser([new LiteralParser("@"), new CutParser(), _.directive]),
-    () => pipeDirectives(new LiteralParser(""), $children())
-  ),
-  new ActionParser(
-    new SequenceParser([
-      _.nonTerminal,
-      new PredicateParser(
-        new SequenceParser([_.directives, new LiteralParser(":")]),
-        false
-      )
-    ]),
-    () => {
-      $context().refs.add($children()[0]);
-    }
-  ),
-  new ActionParser(
-    _.numberLiteral,
-    () => new LiteralParser(String($children()[0]))
-  ),
-  new ActionParser(_.stringLiteral, () => {
-    const [value, emit] = $children()[0];
-    return new LiteralParser(value, emit);
-  }),
-  new ActionParser(_.characterClass, () => new RegexParser($children()[0])),
-  new ActionParser(_.escapedMeta, () => new RegexParser($children()[0])),
-  new ActionParser(_.regexLiteral, () => new RegexParser($children()[0])),
-  _.castableTagArgument
-]);
-
-_.repetitionRange.parser = new AlternativeParser([
-  new ActionParser(new LiteralParser("?"), () => [0, 1]),
-  new ActionParser(new LiteralParser("+"), () => [1, Infinity]),
-  new ActionParser(new LiteralParser("*"), () => [0, Infinity]),
-  new ActionParser(
-    new SequenceParser([
-      new LiteralParser("{"),
-      _.value,
-      new RepetitionParser(
+    ]
+  ],
+  [
+    "directiveParser",
+    [
+      [],
+      new ActionParser(
         new SequenceParser([
-          new LiteralParser(","),
-          new ActionParser(new RepetitionParser(_.value, [0, 1]), () =>
-            $children().length === 0 ? Infinity : undefined
+          new NonTerminalParser("sequenceParser"),
+          new NonTerminalParser("directives")
+        ]),
+        () => pipeDirectives($children()[0], $children()[1])
+      )
+    ]
+  ],
+  [
+    "sequenceParser",
+    [
+      [],
+      new ActionParser(
+        new RepetitionParser(new NonTerminalParser("minusParser"), [
+          1,
+          Infinity
+        ]),
+        () =>
+          $children().length === 1
+            ? $children()[0]
+            : new SequenceParser($children())
+      )
+    ]
+  ],
+  [
+    "minusParser",
+    [
+      [],
+      new ActionParser(
+        modulo(new NonTerminalParser("moduloParser"), new LiteralParser("-")),
+        () =>
+          ($children() as Parser[]).reduce(
+            (acc, not) =>
+              new SequenceParser([new PredicateParser(not, false), acc])
+          )
+      )
+    ]
+  ],
+  [
+    "moduloParser",
+    [
+      [],
+      new ActionParser(
+        modulo(
+          new NonTerminalParser("forwardParser"),
+          new SequenceParser([
+            new LiteralParser("%"),
+            new AlternativeParser([
+              new NonTerminalParser("repetitionRange"),
+              new ActionParser(new LiteralParser(""), () => [0, Infinity])
+            ])
+          ])
+        ),
+        () =>
+          $children().reduce((acc, rep, index) =>
+            index % 2 ? modulo(acc, $children()[index + 1], rep) : acc
+          )
+      )
+    ]
+  ],
+  [
+    "forwardParser",
+    [
+      [],
+      new ActionParser(
+        new SequenceParser([
+          new RepetitionParser(new LiteralParser("...", true), [0, 1]),
+          new NonTerminalParser("captureParser")
+        ]),
+        () => {
+          if ($children().length === 1) return $children()[0];
+          return new SequenceParser([
+            new RepetitionParser(
+              new SequenceParser([
+                new PredicateParser($children()[1], false),
+                new RegexParser(/./)
+              ]),
+              [0, Infinity]
+            ),
+            $children()[1]
+          ]);
+        }
+      )
+    ]
+  ],
+  [
+    "captureParser",
+    [
+      [],
+      new ActionParser(
+        new SequenceParser([
+          new RepetitionParser(
+            new ActionParser(
+              new SequenceParser([
+                new LiteralParser("<"),
+                new RepetitionParser(new LiteralParser("...", true), [0, 1]),
+                new AlternativeParser([
+                  new NonTerminalParser("identifier"),
+                  new ActionParser(new CutParser(), () => null)
+                ]),
+                new LiteralParser(">")
+              ]),
+              () =>
+                $children().length === 1
+                  ? [false, $children()[0]]
+                  : [true, $children()[1]]
+            ),
+            [0, 1]
+          ),
+          new NonTerminalParser("predicateParser")
+        ]),
+        () => {
+          if ($children().length === 1) return $children()[0];
+          let [all, name] = $children()[0];
+          if (name === null) {
+            if (!($children()[1] instanceof NonTerminalParser))
+              return $fail(
+                "Auto-captures can only be applied to non-terminals"
+              );
+            name = $children()[1].rule;
+          }
+          return new CaptureParser($children()[1], name, all);
+        }
+      )
+    ]
+  ],
+  [
+    "predicateParser",
+    [
+      [],
+      new ActionParser(
+        new SequenceParser([
+          new RepetitionParser(
+            new AlternativeParser([
+              new LiteralParser("&", true),
+              new LiteralParser("!", true)
+            ]),
+            [0, 1]
+          ),
+          new NonTerminalParser("repetitionParser")
+        ]),
+        () =>
+          $children().length === 1
+            ? $children()[0]
+            : new PredicateParser($children()[1], $children()[0] === "&")
+      )
+    ]
+  ],
+  [
+    "repetitionParser",
+    [
+      [],
+      new ActionParser(
+        new SequenceParser([
+          new NonTerminalParser("primaryParser"),
+          new RepetitionParser(new NonTerminalParser("repetitionRange"), [0, 1])
+        ]),
+        () =>
+          $children().length === 1
+            ? $children()[0]
+            : new RepetitionParser($children()[0], $children()[1])
+      )
+    ]
+  ],
+  [
+    "primaryParser",
+    [
+      [],
+      new AlternativeParser([
+        new ActionParser(new LiteralParser("."), () => new RegexParser(/./)),
+        new ActionParser(
+          new SequenceParser([
+            new PredicateParser(new NonTerminalParser("identifier"), false),
+            new LiteralParser("$")
+          ]),
+          () =>
+            new TokenParser(
+              new PredicateParser(new RegexParser(/./), false),
+              "end of input"
+            )
+        ),
+        new ActionParser(new LiteralParser("ε"), () => new LiteralParser("")),
+        new ActionParser(new LiteralParser("^"), () => new CutParser()),
+        new SequenceParser([
+          new LiteralParser("("),
+          new CutParser(),
+          new NonTerminalParser("optionsParser"),
+          new LiteralParser(")")
+        ]),
+        new ActionParser(
+          new SequenceParser([
+            new LiteralParser(">"),
+            new CutParser(),
+            new NonTerminalParser("identifier"),
+            new LiteralParser("<")
+          ]),
+          () => new BackReferenceParser($children()[0])
+        ),
+        new ActionParser(
+          new SequenceParser([
+            new LiteralParser("@"),
+            new CutParser(),
+            new NonTerminalParser("directive")
+          ]),
+          () => pipeDirectives(new LiteralParser(""), $children())
+        ),
+        new SequenceParser([
+          new NonTerminalParser("nonTerminal"),
+          new PredicateParser(
+            new SequenceParser([
+              new NonTerminalParser("directives"),
+              new LiteralParser(":")
+            ]),
+            false
           )
         ]),
-        [0, 1]
-      ),
-      new LiteralParser("}")
-    ]),
-    () => {
-      const [min, max = min] = $children();
-      if (typeof min !== "number" || typeof max !== "number")
-        return $fail("A repetition range can be defined by numbers only");
-      return [min, max];
-    }
-  )
+        new ActionParser(
+          new NonTerminalParser("numberLiteral"),
+          () => new LiteralParser(String($children()[0]))
+        ),
+        new ActionParser(new NonTerminalParser("stringLiteral"), () => {
+          const [value, emit] = $children()[0];
+          return new LiteralParser(value, emit);
+        }),
+        new ActionParser(
+          new NonTerminalParser("characterClass"),
+          () => new RegexParser($children()[0])
+        ),
+        new ActionParser(
+          new NonTerminalParser("escapedMeta"),
+          () => new RegexParser($children()[0])
+        ),
+        new ActionParser(
+          new NonTerminalParser("regexLiteral"),
+          () => new RegexParser($children()[0])
+        ),
+        new NonTerminalParser("castableTagArgument")
+      ])
+    ]
+  ],
+  [
+    "repetitionRange",
+    [
+      [],
+      new AlternativeParser([
+        new ActionParser(new LiteralParser("?"), () => [0, 1]),
+        new ActionParser(new LiteralParser("+"), () => [1, Infinity]),
+        new ActionParser(new LiteralParser("*"), () => [0, Infinity]),
+        new ActionParser(
+          new SequenceParser([
+            new LiteralParser("{"),
+            new NonTerminalParser("value"),
+            new RepetitionParser(
+              new SequenceParser([
+                new LiteralParser(","),
+                new ActionParser(
+                  new RepetitionParser(new NonTerminalParser("value"), [0, 1]),
+                  () => ($children().length === 0 ? Infinity : undefined)
+                )
+              ]),
+              [0, 1]
+            ),
+            new LiteralParser("}")
+          ]),
+          () => {
+            const [min, max = min] = $children();
+            if (typeof min !== "number" || typeof max !== "number")
+              return $fail("A repetition range can be defined by numbers only");
+            return [min, max];
+          }
+        )
+      ])
+    ]
+  ],
+  [
+    "directives",
+    [
+      [],
+      new ActionParser(
+        new RepetitionParser(new NonTerminalParser("directive"), [0, Infinity]),
+        () => $children()
+      )
+    ]
+  ],
+  [
+    "directive",
+    [
+      [],
+      new ActionParser(
+        new AlternativeParser([
+          new ActionParser(
+            new SequenceParser([
+              new LiteralParser("@"),
+              new CutParser(),
+              new NonTerminalParser("identifier"),
+              new NonTerminalParser("directiveArguments")
+            ]),
+            () => $children()
+          ),
+          new ActionParser(new NonTerminalParser("actionTagArgument"), () => [
+            "action",
+            $children()
+          ]),
+          new SequenceParser([
+            new LiteralParser("=>"),
+            new ActionParser(new NonTerminalParser("value"), () =>
+              typeof $children()[0] !== "string"
+                ? $fail("A node label can only be a string")
+                : ["node", $children()]
+            )
+          ])
+        ]),
+        () => {
+          const [name, args] = $children()[0];
+          const directive = resolveDirective($context().plugins, name);
+          return directive ? [directive, args] : unresolvedDirectiveFail(name);
+        }
+      )
+    ]
+  ],
+  [
+    "directiveArguments",
+    [
+      [],
+      new ActionParser(
+        new RepetitionParser(
+          new SequenceParser([
+            defaultPlugin.directives!.noskip(new LiteralParser("(")),
+            modulo(new NonTerminalParser("value"), new LiteralParser(",")),
+            new LiteralParser(")")
+          ]),
+          [0, 1]
+        ),
+        () => $children()
+      )
+    ]
+  ],
+  [
+    "value",
+    [
+      [],
+      new AlternativeParser([
+        new NonTerminalParser("tagArgument"),
+        new ActionParser(
+          new NonTerminalParser("stringLiteral"),
+          () => $children()[0][0]
+        ),
+        new NonTerminalParser("numberLiteral"),
+        new NonTerminalParser("nonTerminal"),
+        new NonTerminalParser("characterClass"),
+        new NonTerminalParser("escapedMeta"),
+        new NonTerminalParser("regexLiteral")
+      ])
+    ]
+  ],
+  [
+    "identifier",
+    [
+      [],
+      new TokenParser(
+        new RegexParser(/(\$?[_a-zA-Z][_a-zA-Z0-9]*)/),
+        "identifier"
+      )
+    ]
+  ],
+  [
+    "nonTerminal",
+    [
+      [],
+      new TokenParser(
+        new ActionParser(
+          new NonTerminalParser("identifier"),
+          () => new NonTerminalParser($children()[0])
+        ),
+        "non-terminal"
+      )
+    ]
+  ],
+  [
+    "numberLiteral",
+    [
+      [],
+      new TokenParser(
+        new ActionParser(new RegexParser(/[0-9]+\.?[0-9]*/), () =>
+          Number($raw())
+        ),
+        "number literal"
+      )
+    ]
+  ],
+  [
+    "stringLiteral",
+    [
+      [],
+      new TokenParser(
+        new AlternativeParser([
+          new ActionParser(new RegexParser(/'((?:[^\\']|\\.)*)'/), () => [
+            JSON.parse(`"${$value()}"`),
+            false
+          ]),
+          new ActionParser(new RegexParser(/"(?:[^\\"]|\\.)*"/), () => [
+            JSON.parse($raw()),
+            true
+          ])
+        ]),
+        "string literal"
+      )
+    ]
+  ],
+  [
+    "regexLiteral",
+    [
+      [],
+      new TokenParser(
+        new ActionParser(
+          new RegexParser(/\/((?:\[[^\]]*]|[^\\\/]|\\.)+)\//),
+          () => new RegExp($children()[0])
+        ),
+        "regex literal"
+      )
+    ]
+  ],
+  [
+    "characterClass",
+    [
+      [],
+      new TokenParser(
+        new ActionParser(
+          new RegexParser(/\[(?:[^\\\]]|\\.)*]/),
+          () => new RegExp($raw())
+        ),
+        "character class"
+      )
+    ]
+  ],
+  [
+    "escapedMeta",
+    [
+      [],
+      new TokenParser(
+        new ActionParser(
+          new RegexParser(/\\[a-zA-Z0-9]+/),
+          () => new RegExp($raw())
+        ),
+        "escaped metacharacter"
+      )
+    ]
+  ],
+  [
+    "tagArgument",
+    [
+      [],
+      new TokenParser(
+        new ActionParser(new RegexParser(/~(\d+)/), () =>
+          $emit([$context().args[$children()[0]]])
+        ),
+        "tag argument"
+      )
+    ]
+  ],
+  [
+    "castableTagArgument",
+    [
+      [],
+      new TokenParser(
+        new ActionParser(
+          new NonTerminalParser("tagArgument"),
+          () =>
+            resolveCast($context().plugins, $children()[0]) ??
+            $fail(
+              "Couldn't cast value to Parser, you can add support for it via peg.extend"
+            )
+        ),
+        "castable tag argument"
+      )
+    ]
+  ],
+  [
+    "actionTagArgument",
+    [
+      [],
+      new TokenParser(
+        new ActionParser(new NonTerminalParser("tagArgument"), () => {
+          if (typeof $children()[0] !== "function")
+            return $fail("The tag argument is not a function");
+          return $children()[0];
+        }),
+        "action tag argument"
+      )
+    ]
+  ]
 ]);
 
-_.directives.parser = new ActionParser(
-  new RepetitionParser(_.directive, [0, Infinity]),
-  () => $children()
-);
-
-_.directive.parser = new ActionParser(
-  new AlternativeParser([
-    new ActionParser(
-      new SequenceParser([
-        new LiteralParser("@"),
-        new CutParser(),
-        _.identifier,
-        _.directiveArguments
-      ]),
-      () => $children()
-    ),
-    new ActionParser(_.actionTagArgument, () => ["action", $children()]),
-    new SequenceParser([
-      new LiteralParser("=>"),
-      new ActionParser(_.value, () =>
-        typeof $children()[0] !== "string"
-          ? $fail("A node label can only be a string")
-          : ["node", $children()]
-      )
-    ])
-  ]),
-  () => {
-    const [name, args] = $children()[0];
-    const directive = resolveDirective($context().plugins, name);
-    return directive ? [directive, args] : unresolvedDirectiveFail(name);
-  }
-);
-
-_.directiveArguments.parser = new ActionParser(
-  new RepetitionParser(
-    new SequenceParser([
-      defaultPlugin.directives!.noskip(new LiteralParser("(")),
-      modulo(_.value, new LiteralParser(",")),
-      new LiteralParser(")")
-    ]),
-    [0, 1]
-  ),
-  () => $children()
-);
-
-_.value.parser = new AlternativeParser([
-  _.tagArgument,
-  new ActionParser(_.stringLiteral, () => $children()[0][0]),
-  _.numberLiteral,
-  new ActionParser(_.nonTerminal, () => {
-    $context().refs.add($children()[0]);
-  }),
-  _.characterClass,
-  _.escapedMeta,
-  _.regexLiteral
-]);
-
-_.identifier.parser = new TokenParser(
-  new RegexParser(/(\$?[_a-zA-Z][_a-zA-Z0-9]*)/),
-  "identifier"
-);
-
-_.nonTerminal.parser = new TokenParser(
-  new ActionParser(_.identifier, () => new NonTerminalParser($children()[0])),
-  "non-terminal"
-);
-
-_.numberLiteral.parser = new TokenParser(
-  new ActionParser(new RegexParser(/[0-9]+\.?[0-9]*/), () => Number($raw())),
-  "number literal"
-);
-
-_.stringLiteral.parser = new TokenParser(
-  new AlternativeParser([
-    new ActionParser(new RegexParser(/'((?:[^\\']|\\.)*)'/), () => [
-      JSON.parse(`"${$value()}"`),
-      false
-    ]),
-    new ActionParser(new RegexParser(/"(?:[^\\"]|\\.)*"/), () => [
-      JSON.parse($raw()),
-      true
-    ])
-  ]),
-  "string literal"
-);
-
-_.regexLiteral.parser = new TokenParser(
-  new ActionParser(
-    new RegexParser(/\/((?:\[[^\]]*]|[^\\\/]|\\.)+)\//),
-    () => new RegExp($children()[0])
-  ),
-  "regex literal"
-);
-
-_.characterClass.parser = new TokenParser(
-  new ActionParser(
-    new RegexParser(/\[(?:[^\\\]]|\\.)*]/),
-    () => new RegExp($raw())
-  ),
-  "character class"
-);
-
-_.escapedMeta.parser = new TokenParser(
-  new ActionParser(new RegexParser(/\\[a-zA-Z0-9]+/), () => new RegExp($raw())),
-  "escaped metacharacter"
-);
-
-_.tagArgument.parser = new TokenParser(
-  new ActionParser(new RegexParser(/~(\d+)/), () =>
-    $emit([$context().args[$children()[0]]])
-  ),
-  "tag argument"
-);
-
-_.castableTagArgument.parser = new TokenParser(
-  new ActionParser(
-    _.tagArgument,
-    () =>
-      resolveCast($context().plugins, $children()[0]) ??
-      $fail(
-        "Couldn't cast value to Parser, you can add support for it via peg.extend"
-      )
-  ),
-  "castable tag argument"
-);
-
-_.actionTagArgument.parser = new TokenParser(
-  new ActionParser(_.tagArgument, () => {
-    if (typeof $children()[0] !== "function")
-      return $fail("The tag argument is not a function");
-    return $children()[0];
-  }),
-  "action tag argument"
-);
+metaparser.compile();
 
 function unresolvedDirectiveFail(directive: string) {
   $fail(

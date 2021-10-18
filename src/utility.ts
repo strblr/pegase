@@ -3,9 +3,7 @@ import {
   AlternativeParser,
   CutParser,
   defaultSkipper,
-  defaultSkipper2,
   defaultTracer,
-  defaultTracer2,
   Directive,
   Expectation,
   ExpectationInput,
@@ -17,7 +15,6 @@ import {
   Logger,
   Node,
   Options,
-  Options2,
   Parser,
   Plugin,
   RegexParser,
@@ -25,12 +22,210 @@ import {
   SemanticAction,
   SequenceParser,
   TokenParser,
+  TraceEventType,
   Tracer,
   TweakParser,
   Visitor,
   Warning,
   WarningType
 } from ".";
+
+// js
+
+export const js = String.raw;
+
+// as
+
+export function as<T>(value: T) {
+  return value;
+}
+
+// has
+
+export function has(object: object, key: string) {
+  return Object.prototype.hasOwnProperty.call(object, key);
+}
+
+// unique
+
+export function unique<T>(items: Iterable<T>) {
+  return [...new Set(items)];
+}
+
+// extendFlags
+
+export function extendFlags(regex: RegExp, flags: string) {
+  return new RegExp(regex, unique([...regex.flags, ...flags]).join(""));
+}
+
+// spaceCase
+
+export function spaceCase(input: string) {
+  return input
+    .replace("_", " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .toLowerCase();
+}
+
+// castArray
+
+export function castArray<T>(value: T | T[]) {
+  return Array.isArray(value) ? value : [value];
+}
+
+// castExpectation
+
+export function castExpectation(expected: ExpectationInput): Expectation {
+  return typeof expected === "string"
+    ? { type: ExpectationType.Literal, literal: expected }
+    : expected instanceof RegExp
+    ? { type: ExpectationType.RegExp, regex: expected }
+    : expected;
+}
+
+// idGenerator
+
+export function idGenerator() {
+  let i = 0;
+  return function () {
+    return `_${(i++).toString(36)}`;
+  };
+}
+
+// skip
+
+export function skip(options: Options) {
+  if (!options.skip) return true;
+  const { skip } = options;
+  options.skip = false;
+  const children = options.skipper.exec!(options, options.skipper.links!);
+  options.skip = skip;
+  if (children === null) return false;
+  options.from = options.to;
+  return true;
+}
+
+// trace
+
+export function trace(
+  rule: string,
+  options: Options,
+  exec: () => any[] | null
+) {
+  const at = options.logger.at(options.from);
+  options.tracer({
+    type: TraceEventType.Enter,
+    rule,
+    at,
+    options
+  });
+  const children = exec();
+  if (children === null)
+    options.tracer({
+      type: TraceEventType.Fail,
+      rule,
+      at,
+      options
+    });
+  else
+    options.tracer({
+      type: TraceEventType.Match,
+      rule,
+      at,
+      options,
+      from: options.logger.at(options.from),
+      to: options.logger.at(options.to),
+      children
+    });
+  return children;
+}
+
+// resolveRule
+
+export function resolveRule(plugins: Plugin[], rule: string) {
+  const plugin = plugins.find(
+    plugin => plugin.resolve && has(plugin.resolve, rule)
+  );
+  return plugin?.resolve![rule];
+}
+
+// resolveCast
+
+export function resolveCast(plugins: Plugin[], value: any) {
+  let parser: Parser | undefined;
+  plugins.some(plugin => (parser = plugin.castParser?.(value)));
+  return parser;
+}
+
+// resolveDirective
+
+export function resolveDirective(plugins: Plugin[], directive: string) {
+  const plugin = plugins.find(
+    plugin => plugin.directives && has(plugin.directives, directive)
+  );
+  return plugin?.directives![directive];
+}
+
+// pipeDirectives
+
+export function pipeDirectives(
+  parser: Parser,
+  directives: [Directive, any[]][]
+) {
+  return directives.reduce(
+    (parser, [directive, args]) => directive(parser, ...args),
+    parser
+  );
+}
+
+// modulo
+
+export function modulo(
+  item: Parser,
+  separator: Parser,
+  repetitionRange: [number, number] = [0, Infinity]
+) {
+  return new SequenceParser([
+    item,
+    new RepetitionParser(new SequenceParser([separator, item]), repetitionRange)
+  ]);
+}
+
+// entryToString
+
+export function entryToString(entry: Warning | Failure) {
+  switch (entry.type) {
+    case WarningType.Message:
+      return `Warning: ${entry.message}`;
+    case FailureType.Semantic:
+      return `Failure: ${entry.message}`;
+    case FailureType.Expectation:
+      const expectations = unique(
+        entry.expected.map(expectationToString)
+      ).reduce(
+        (acc, expected, index, { length }) =>
+          `${acc}${index === length - 1 ? " or " : ", "}${expected}`
+      );
+      return `Failure: Expected ${expectations}`;
+  }
+}
+
+// expectationToString
+
+export function expectationToString(expectation: Expectation) {
+  switch (expectation.type) {
+    case ExpectationType.Literal:
+      return `"${expectation.literal}"`;
+    case ExpectationType.RegExp:
+      return String(expectation.regex);
+    case ExpectationType.Token:
+      return expectation.displayName;
+    case ExpectationType.Mismatch:
+      return `mismatch of "${expectation.match}"`;
+    case ExpectationType.Custom:
+      return expectation.display;
+  }
+}
 
 // Hooks
 
@@ -125,221 +320,6 @@ export function buildOptions<Context>(
   };
 }
 
-// buildOptions2
-
-export function buildOptions2<Context>(
-  input: string,
-  partial: Partial<Options2<Context>>
-): Options2<Context> {
-  input = partial.input ?? input;
-  return {
-    input,
-    from: 0,
-    to: 0,
-    complete: true,
-    skipper: defaultSkipper2,
-    skip: true,
-    ignoreCase: false,
-    tracer: defaultTracer2,
-    trace: false,
-    logger: new Logger(input),
-    log: true,
-    context: undefined as any,
-    visit: [],
-    cut: false,
-    captures: {},
-    _ffIndex: 0,
-    _ffType: null,
-    _ffSemantic: null,
-    _ffExpectations: [],
-    _ffExpect(from, expected) {
-      if (this._ffIndex === from && this._ffType !== FailureType.Semantic) {
-        this._ffType = FailureType.Expectation;
-        this._ffExpectations.push(expected);
-      } else if (this._ffIndex < from) {
-        this._ffIndex = from;
-        this._ffType = FailureType.Expectation;
-        this._ffExpectations = [expected];
-      }
-    },
-    _ffFail(from: number, message: string) {
-      if (this._ffIndex <= from) {
-        this._ffIndex = from;
-        this._ffType = FailureType.Semantic;
-        this._ffSemantic = message;
-      }
-    },
-    _ffCommit() {
-      if (this._ffType !== null) {
-        const pos = this.logger.at(this._ffIndex);
-        if (this._ffType === FailureType.Expectation)
-          this.logger.failures.push({
-            from: pos,
-            to: pos,
-            type: FailureType.Expectation,
-            expected: this._ffExpectations
-          });
-        else
-          this.logger.failures.push({
-            from: pos,
-            to: pos,
-            type: FailureType.Semantic,
-            message: this._ffSemantic!
-          });
-        this._ffType = null;
-      }
-    },
-    ...partial
-  };
-}
-
-// has
-
-export function has(object: object, key: string) {
-  return Object.prototype.hasOwnProperty.call(object, key);
-}
-
-// unique
-
-export function unique<T>(items: Iterable<T>) {
-  return [...new Set(items)];
-}
-
-// extendFlags
-
-export function extendFlags(regex: RegExp, flags: string) {
-  return new RegExp(regex, unique([...regex.flags, ...flags]).join(""));
-}
-
-// spaceCase
-
-export function spaceCase(input: string) {
-  return input
-    .replace("_", " ")
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .toLowerCase();
-}
-
-// castArray
-
-export function castArray<T>(value: T | T[]) {
-  return Array.isArray(value) ? value : [value];
-}
-
-// castExpectation
-
-export function castExpectation(expected: ExpectationInput): Expectation {
-  return typeof expected === "string"
-    ? { type: ExpectationType.Literal, literal: expected }
-    : expected instanceof RegExp
-    ? { type: ExpectationType.RegExp, regex: expected }
-    : expected;
-}
-
-// skip
-
-export function skip(options: Options) {
-  if (!options.skip) return options.from;
-  const { skip } = options;
-  options.skip = false;
-  const match = options.skipper.exec(options);
-  options.skip = skip;
-  return match && match.to;
-}
-
-// resolveRule
-
-export function resolveRule(plugins: Plugin[], rule: string) {
-  const plugin = plugins.find(
-    plugin => plugin.resolve && has(plugin.resolve, rule)
-  );
-  return plugin?.resolve![rule];
-}
-
-// resolveCast
-
-export function resolveCast(plugins: Plugin[], value: any) {
-  let parser: Parser | undefined;
-  plugins.some(plugin => (parser = plugin.castParser?.(value)));
-  return parser;
-}
-
-// resolveDirective
-
-export function resolveDirective(plugins: Plugin[], directive: string) {
-  const plugin = plugins.find(
-    plugin => plugin.directives && has(plugin.directives, directive)
-  );
-  return plugin?.directives![directive];
-}
-
-// pipeDirectives
-
-export function pipeDirectives(
-  parser: Parser,
-  directives: [Directive, any[]][]
-) {
-  return directives.reduce(
-    (parser, [directive, args]) => directive(parser, ...args),
-    parser
-  );
-}
-
-// inferValue
-
-export function inferValue(children: any[]) {
-  return children.length === 1 ? children[0] : undefined;
-}
-
-// modulo
-
-export function modulo(
-  item: Parser,
-  separator: Parser,
-  repetitionRange: [number, number] = [0, Infinity]
-) {
-  return new SequenceParser([
-    item,
-    new RepetitionParser(new SequenceParser([separator, item]), repetitionRange)
-  ]);
-}
-
-// entryToString
-
-export function entryToString(entry: Warning | Failure) {
-  switch (entry.type) {
-    case WarningType.Message:
-      return `Warning: ${entry.message}`;
-    case FailureType.Semantic:
-      return `Failure: ${entry.message}`;
-    case FailureType.Expectation:
-      const expectations = unique(
-        entry.expected.map(expectationToString)
-      ).reduce(
-        (acc, expected, index, { length }) =>
-          `${acc}${index === length - 1 ? " or " : ", "}${expected}`
-      );
-      return `Failure: Expected ${expectations}`;
-  }
-}
-
-// expectationToString
-
-export function expectationToString(expectation: Expectation) {
-  switch (expectation.type) {
-    case ExpectationType.Literal:
-      return `"${expectation.literal}"`;
-    case ExpectationType.RegExp:
-      return String(expectation.regex);
-    case ExpectationType.Token:
-      return expectation.displayName;
-    case ExpectationType.Mismatch:
-      return `mismatch of "${expectation.match}"`;
-    case ExpectationType.Custom:
-      return expectation.display;
-  }
-}
-
 // applyVisitor
 
 export function applyVisitor<Value, Context>(
@@ -414,16 +394,14 @@ export function applyVisitor<Value, Context>(
   return value;
 }
 
-// action
+// defaultPlugin
 
-export function action(
+function action(
   callback: (captures: Record<string, any>, ...args: any[]) => any
 ): Directive {
   return (parser, ...args) =>
     new ActionParser(parser, captures => callback(captures, ...args));
 }
-
-// defaultPlugin
 
 export const defaultPlugin: Plugin = {
   name: "default",

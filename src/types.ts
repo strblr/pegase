@@ -1,11 +1,10 @@
-import { Logger, NonTerminalParser, Parser, Parser2 } from ".";
+import { idGenerator, Logger, Parser, skip, trace } from ".";
 
 // Related to parser generation
 
 export type MetaContext = {
   plugins: Plugin[];
   args: any[];
-  refs: Set<NonTerminalParser>;
 };
 
 export type Plugin = {
@@ -19,11 +18,24 @@ export type Directive = (parser: Parser, ...args: any[]) => Parser;
 
 export type Tweaker = (
   options: Options
-) => (match: Match | null) => Match | null;
-
-export type Tweaker2 = (
-  options: Options2
 ) => (children: any[] | null) => any[] | null;
+
+export type SemanticAction<Value = any> = (
+  captures: Record<string, any>
+) => Value;
+
+export type CompileOptions = {
+  id: ReturnType<typeof idGenerator>;
+  children: string;
+  links: Links;
+};
+
+export type Links = {
+  nochild: [];
+  skip: typeof skip;
+  trace: typeof trace;
+  [link: string]: any;
+};
 
 // Related to logging
 
@@ -129,31 +141,6 @@ export type Options<Context = any> = {
   _ffCommit(): void;
 };
 
-export type Options2<Context = any> = {
-  input: string;
-  from: number;
-  to: number;
-  complete: boolean;
-  skipper: Parser2<any, Context>;
-  skip: boolean;
-  ignoreCase: boolean;
-  tracer: Tracer2<Context>;
-  trace: boolean;
-  logger: Logger;
-  log: boolean;
-  context: Context;
-  visit: Visitor | Visitor[];
-  cut: boolean;
-  captures: Record<string, any>;
-  _ffIndex: number;
-  _ffType: FailureType | null;
-  _ffSemantic: string | null;
-  _ffExpectations: Expectation[];
-  _ffExpect(from: number, expected: Expectation): void;
-  _ffFail(from: number, message: string): void;
-  _ffCommit(): void;
-};
-
 export type Result<Value = any, Context = any> =
   | SuccessResult<Value, Context>
   | FailResult<Context>;
@@ -174,36 +161,6 @@ export type FailResult<Context = any> = {
   logger: Logger;
 };
 
-export type Result2<Value = any, Context = any> =
-  | SuccessResult2<Value, Context>
-  | FailResult2<Context>;
-
-export type SuccessResult2<Value = any, Context = any> = Range & {
-  success: true;
-  value: Value;
-  children: any[];
-  raw: string;
-  complete: boolean;
-  options: Options2<Context>;
-  logger: Logger;
-};
-
-export type FailResult2<Context = any> = {
-  success: false;
-  options: Options2<Context>;
-  logger: Logger;
-};
-
-export type Match = {
-  from: number;
-  to: number;
-  children: any[];
-};
-
-export type SemanticAction<Value = any> = (
-  captures: Record<string, any>
-) => Value;
-
 export type Node = {
   $label: string;
   $from: Location;
@@ -222,6 +179,12 @@ export type TraceEvent<Context = any> =
   | MatchEvent<Context>
   | FailEvent<Context>;
 
+export enum TraceEventType {
+  Enter = "ENTER",
+  Match = "MATCH",
+  Fail = "FAIL"
+}
+
 export type EnterEvent<Context = any> = TraceCommon<Context> & {
   type: TraceEventType.Enter;
 };
@@ -237,46 +200,10 @@ export type FailEvent<Context = any> = TraceCommon<Context> & {
   type: TraceEventType.Fail;
 };
 
-export enum TraceEventType {
-  Enter = "ENTER",
-  Match = "MATCH",
-  Fail = "FAIL"
-}
-
 export type TraceCommon<Context = any> = {
   rule: string;
   at: Location;
   options: Options<Context>;
-};
-
-// Related to tracing
-
-export type Tracer2<Context = any> = (event: TraceEvent2<Context>) => void;
-
-export type TraceEvent2<Context = any> =
-  | EnterEvent2<Context>
-  | MatchEvent2<Context>
-  | FailEvent2<Context>;
-
-export type EnterEvent2<Context = any> = TraceCommon2<Context> & {
-  type: TraceEventType.Enter;
-};
-
-export type MatchEvent2<Context = any> = TraceCommon2<Context> & {
-  type: TraceEventType.Match;
-  from: Location;
-  to: Location;
-  children: any[];
-};
-
-export type FailEvent2<Context = any> = TraceCommon2<Context> & {
-  type: TraceEventType.Fail;
-};
-
-export type TraceCommon2<Context = any> = {
-  rule: string;
-  at: Location;
-  options: Options2<Context>;
 };
 
 // Shared

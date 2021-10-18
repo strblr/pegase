@@ -9,18 +9,10 @@ import peg, {
   $visit,
   $warn,
   ActionParser,
-  AlternativeParser2,
   createTag,
-  GrammarParser2,
   LiteralParser,
-  LiteralParser2,
-  NonTerminalParser2,
   RegexParser,
-  RegexParser2,
-  RepetitionParser2,
-  SequenceParser2,
   SuccessResult,
-  TokenParser2,
   Visitor
 } from ".";
 import * as competitor from "./competitor.test";
@@ -42,92 +34,6 @@ function echo(entity: any) {
     )
   );
 }
-
-test("Messing around with new API", () => {
-  const p = new GrammarParser2(
-    new Map([
-      [
-        "expr",
-        [
-          [],
-          new SequenceParser2([
-            new NonTerminalParser2("term"),
-            new RepetitionParser2(
-              new SequenceParser2([
-                new AlternativeParser2([
-                  new LiteralParser2("+"),
-                  new LiteralParser2("-")
-                ]),
-                new NonTerminalParser2("term")
-              ]),
-              0,
-              Infinity
-            )
-          ])
-        ]
-      ],
-      [
-        "term",
-        [
-          [],
-          new SequenceParser2([
-            new NonTerminalParser2("fact"),
-            new RepetitionParser2(
-              new SequenceParser2([
-                new AlternativeParser2([
-                  new LiteralParser2("*"),
-                  new LiteralParser2("/")
-                ]),
-                new NonTerminalParser2("fact")
-              ]),
-              0,
-              Infinity
-            )
-          ])
-        ]
-      ],
-      [
-        "fact",
-        [
-          [],
-          new TokenParser2(
-            new RepetitionParser2(new RegexParser2(/\d/), 1, Infinity),
-            "int"
-          )
-        ]
-      ]
-    ])
-  );
-
-  p.compile();
-
-  const r = peg`
-    expr: term (('+' | '-') term)*
-    term: fact (('*' | '/') fact)*
-    fact: \d+ @token("int")
-  `;
-
-  const test = true;
-  if (test) {
-    console.log(p.parse("   aa a a a"));
-    console.log((p as any).links);
-    console.log((p as any).exec.toString());
-  } else {
-    console.log({ p, r });
-
-    const x = new Date();
-    for (let i = 0; i !== 500000; ++i) p.parse(" 42+ 214* 1- 46 /354");
-    const y = new Date();
-    for (let i = 0; i !== 500000; ++i) r.parse(" 42+ 214* 1- 46 /354");
-    const z = new Date();
-    console.log(
-      y.getTime() - x.getTime(),
-      "ms vs.",
-      z.getTime() - y.getTime(),
-      "ms"
-    );
-  }
-});
 
 test("The peg tag should work with raw strings", () => {
   const g1 = peg` "My name is \"pegase\"." `;
