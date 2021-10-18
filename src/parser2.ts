@@ -171,6 +171,48 @@ export class RegexParser2 extends Parser2 {
   }
 }
 
+// CutParser2
+
+export class CutParser2 extends Parser2 {
+  generate(options: CompileOptions): string {
+    return js`
+      options.cut = true;
+    `;
+  }
+}
+
+// AlternativeParser2
+
+export class AlternativeParser2 extends Parser2 {
+  readonly parsers: Parser2[];
+
+  constructor(parsers: Parser2[]) {
+    super();
+    this.parsers = parsers;
+  }
+
+  generate(options: CompileOptions): string {
+    const from = options.createId();
+    const cut = options.createId();
+    return js`
+      var ${from} = options.from;
+      var ${cut} = options.cut;
+      options.cut = false;
+      ${this.parsers.reduceRight(
+        (code, parser) => js`
+          ${parser.generate(options)}
+          if(${options.children} === null && !options.cut) {
+            options.from = ${from};
+            ${code}
+          }
+        `,
+        ""
+      )}
+      options.cut = ${cut};
+    `;
+  }
+}
+
 // SequenceParser2
 
 export class SequenceParser2 extends Parser2 {
@@ -297,34 +339,6 @@ export class RepetitionParser2 extends Parser2 {
   }
 }
 
-// AlternativeParser2
-
-export class AlternativeParser2 extends Parser2 {
-  readonly parsers: Parser2[];
-
-  constructor(parsers: Parser2[]) {
-    super();
-    this.parsers = parsers;
-  }
-
-  generate(options: CompileOptions): string {
-    const from = options.createId();
-    return js`
-      var ${from} = options.from;
-      ${this.parsers.reduceRight(
-        (code, parser) => js`
-          ${parser.generate(options)}
-          if(${options.children} === null) {
-            options.from = ${from};
-            ${code}
-          }
-        `,
-        ""
-      )}
-    `;
-  }
-}
-
 // GrammarParser2
 
 export class GrammarParser2 extends Parser2 {
@@ -430,6 +444,35 @@ export class TweakParser2 extends Parser2 {
       var ${cleanUp} = ${tweaker}(options);
       ${this.parser.generate(options)}
       ${options.children} = ${cleanUp}(${options.children})
+    `;
+  }
+}
+
+// CaptureParser2
+
+export class CaptureParser2 extends Parser2 {
+  readonly parser: Parser2;
+  readonly name: string;
+  readonly all: boolean;
+
+  constructor(parser: Parser2, name: string, all = false) {
+    super();
+    this.parser = parser;
+    this.name = name;
+    this.all = all;
+  }
+
+  generate(options: CompileOptions): string {
+    return js`
+      ${this.parser.generate(options)}
+      if(${options.children} !== null)
+        options.captures["${this.name}"] = ${
+      this.all
+        ? options.children
+        : js`
+            ${options.children}.length === 1 ? ${options.children}[0] : undefined;
+          `
+    };
     `;
   }
 }

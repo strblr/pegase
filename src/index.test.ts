@@ -9,15 +9,11 @@ import peg, {
   $visit,
   $warn,
   ActionParser,
-  AlternativeParser2,
   createTag,
-  GrammarParser2,
+  CutParser2,
   LiteralParser,
   LiteralParser2,
-  NonTerminalParser2,
   RegexParser,
-  RegexParser2,
-  RepetitionParser2,
   SequenceParser2,
   SuccessResult,
   Visitor
@@ -43,7 +39,7 @@ function echo(entity: any) {
 }
 
 test("Messing around with new API", () => {
-  const p = new GrammarParser2(
+  /*const p = new GrammarParser2(
     new Map([
       [
         "expr",
@@ -87,7 +83,14 @@ test("Messing around with new API", () => {
       ],
       ["fact", [[], new RegexParser2(/\d/)]]
     ])
-  );
+  );*/
+
+  const p = new SequenceParser2([
+    new LiteralParser2("a"),
+    new CutParser2(),
+    new LiteralParser2("b")
+  ]);
+
   p.compile();
 
   const r = peg`
@@ -96,7 +99,7 @@ test("Messing around with new API", () => {
     fact: \d
   `;
 
-  const test = false;
+  const test = true;
   if (test) {
     console.log(p.parse("   aa a a a"));
     console.log((p as any).links);
