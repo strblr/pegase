@@ -9,15 +9,17 @@ import peg, {
   $visit,
   $warn,
   ActionParser,
+  AlternativeParser2,
   createTag,
   GrammarParser2,
   LiteralParser,
   LiteralParser2,
   NonTerminalParser2,
   RegexParser,
+  RegexParser2,
+  RepetitionParser2,
   SequenceParser2,
   SuccessResult,
-  TweakParser2,
   Visitor
 } from ".";
 import * as competitor from "./competitor.test";
@@ -46,11 +48,20 @@ test("Messing around with new API", () => {
       [
         "expr",
         [
-          [["a", new LiteralParser2("A")]],
+          [],
           new SequenceParser2([
-            new NonTerminalParser2("a"),
-            new LiteralParser2("b"),
-            new NonTerminalParser2("term")
+            new NonTerminalParser2("term"),
+            new RepetitionParser2(
+              new SequenceParser2([
+                new AlternativeParser2([
+                  new LiteralParser2("+"),
+                  new LiteralParser2("-")
+                ]),
+                new NonTerminalParser2("term")
+              ]),
+              0,
+              Infinity
+            )
           ])
         ]
       ],
@@ -58,37 +69,45 @@ test("Messing around with new API", () => {
         "term",
         [
           [],
-          new TweakParser2(new LiteralParser2("c"), options => {
-            const { skip } = options;
-            options.skip = false;
-            return children => {
-              options.skip = skip;
-              return children;
-            };
-          })
+          new SequenceParser2([
+            new NonTerminalParser2("fact"),
+            new RepetitionParser2(
+              new SequenceParser2([
+                new AlternativeParser2([
+                  new LiteralParser2("*"),
+                  new LiteralParser2("/")
+                ]),
+                new NonTerminalParser2("fact")
+              ]),
+              0,
+              Infinity
+            )
+          ])
         ]
-      ]
+      ],
+      ["fact", [[], new RegexParser2(/\d/)]]
     ])
   );
   p.compile();
 
   const r = peg`
-    a: 'A' | bc
-    bc: "b" "c"
+    expr: term (('+' | '-') term)*
+    term: fact (('*' | '/') fact)*
+    fact: \d
   `;
 
-  const test = true;
+  const test = false;
   if (test) {
-    console.log(p.parse("  b   c"));
+    console.log(p.parse("   aa a a a"));
     console.log((p as any).links);
     console.log((p as any).exec.toString());
   } else {
     console.log({ p, r });
 
     const x = new Date();
-    for (let i = 0; i !== 500000; ++i) r.parse("  b   c");
+    for (let i = 0; i !== 500000; ++i) r.parse(" 4+ 2* 1- 4 /3");
     const y = new Date();
-    for (let i = 0; i !== 500000; ++i) p.parse("  b   c");
+    for (let i = 0; i !== 500000; ++i) p.parse(" 4+ 2* 1- 4 /3");
     const z = new Date();
     console.log(
       y.getTime() - x.getTime(),

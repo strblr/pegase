@@ -9,6 +9,8 @@ import {
   Options2,
   RegexExpectation,
   Result2,
+  TraceEventType,
+  Tracer2,
   Tweaker2
 } from ".";
 import prettier from "prettier";
@@ -62,7 +64,7 @@ export abstract class Parser2<Value = any, Context = any> {
   compile() {
     const createId = createIdGenerator();
     const children = createId();
-    this.links = as<CommonLinks>({ nochild: [], skip });
+    this.links = as<CommonLinks>({ nochild: [], skip, trace });
     const code = this.generate({ createId, children, links: this.links });
     this.exec = new Function(
       "options",
@@ -207,6 +209,94 @@ export class SequenceParser2 extends Parser2 {
   }
 }
 
+// RepetitionParser2
+
+export class RepetitionParser2 extends Parser2 {
+  readonly parser: Parser2;
+  readonly min: number;
+  readonly max: number;
+
+  constructor(parser: Parser2, min: number, max = min) {
+    super();
+    this.parser = parser;
+    this.min = min;
+    this.max = max;
+  }
+
+  generate(options: CompileOptions): string {
+    const from = options.createId();
+    const to = options.createId();
+    const acc = options.createId();
+    const code = this.parser.generate(options);
+    if (this.max === 1) {
+      if (this.min === 1) return code;
+      return js`
+        var ${from} = options.from;
+        ${code}
+        if(${options.children} === null) {
+          options.from = options.to = ${from};
+          ${options.children} = nochild;
+        }
+      `;
+    }
+    const temp = options.createId();
+    const iterate = (times: number, finish: string = "") =>
+      Array.from(Array(times)).reduceRight(
+        code => js`
+          options.from = ${to};
+          ${temp}();
+          if(${options.children} !== null) {
+            ${acc}.push.apply(${acc}, ${options.children});
+            ${to} = options.to;
+            ${code}
+          }
+        `,
+        finish
+      );
+    return js`
+      var ${from}${strIf(this.min === 0, " = options.from")};
+      function ${temp}() { ${code} }
+      ${temp}();
+      if(${options.children} !== null) {
+        ${from} = options.from;
+        var ${to} = options.to;
+        var ${acc} = ${options.children}.concat();
+        ${iterate(
+          this.min === 0 ? 0 : this.min - 1,
+          js`
+            ${
+              this.max !== Infinity
+                ? iterate(this.max - (this.min === 0 ? 1 : this.min))
+                : js`
+                  while(true) {
+                    options.from = ${to};
+                    ${temp}();
+                    if(${options.children} === null)
+                      break;
+                    ${acc}.push.apply(${acc}, ${options.children});
+                    ${to} = options.to;
+                  }
+                `
+            }
+            options.from = ${from};
+            options.to = ${to};
+            ${options.children} = ${acc};
+          `
+        )}
+      }
+      ${strIf(
+        this.min === 0,
+        js`
+          else {
+            options.from = options.to = ${from};
+            ${options.children} = nochild;
+          }
+        `
+      )}
+    `;
+  }
+}
+
 // AlternativeParser2
 
 export class AlternativeParser2 extends Parser2 {
@@ -239,10 +329,12 @@ export class AlternativeParser2 extends Parser2 {
 
 export class GrammarParser2 extends Parser2 {
   readonly rules: Map<string, [[string, Parser2 | null][], Parser2]>;
+  private readonly start: NonTerminalParser2;
 
   constructor(rules: Map<string, [[string, Parser2 | null][], Parser2]>) {
     super();
     this.rules = rules;
+    this.start = new NonTerminalParser2(rules.keys().next().value);
   }
 
   generate(options: CompileOptions): string {
@@ -272,7 +364,7 @@ export class GrammarParser2 extends Parser2 {
           `
         )
         .join("\n")}
-      ${options.children} = r_${this.rules.keys().next().value}();
+      ${this.start.generate(options)}
     `;
   }
 }
@@ -291,8 +383,8 @@ export class NonTerminalParser2 extends Parser2 {
 
   generate(options: CompileOptions): string {
     const children = options.createId();
-    return js`
-      ${options.children} = r_${this.rule}(${this.parameters
+    const call = js`
+      r_${this.rule}(${this.parameters
       .map(parameter =>
         parameter
           ? js`
@@ -304,7 +396,16 @@ export class NonTerminalParser2 extends Parser2 {
           `
           : js`void 0`
       )
-      .join(",")});
+      .join(",")})
+    `;
+    return js`
+      if(options.trace) {
+        ${options.children} = trace("${this.rule}", options, function() {
+          return (${call});
+        })
+      } else {
+        ${options.children} = ${call};
+      }
     `;
   }
 }
@@ -341,6 +442,10 @@ function as<T>(value: T) {
   return value;
 }
 
+function strIf(test: boolean, code: string) {
+  return test ? code : "";
+}
+
 export const defaultSkipper2 = new RegexParser2(/\s*/);
 defaultSkipper2.compile();
 
@@ -362,6 +467,35 @@ function skip(options: Options2) {
   return true;
 }
 
+function trace(rule: string, options: Options2, exec: () => any[] | null) {
+  const at = options.logger.at(options.from);
+  options.tracer({
+    type: TraceEventType.Enter,
+    rule,
+    at,
+    options
+  });
+  const children = exec();
+  if (children === null)
+    options.tracer({
+      type: TraceEventType.Fail,
+      rule,
+      at,
+      options
+    });
+  else
+    options.tracer({
+      type: TraceEventType.Match,
+      rule,
+      at,
+      options,
+      from: options.logger.at(options.from),
+      to: options.logger.at(options.to),
+      children
+    });
+  return children;
+}
+
 type CompileOptions = {
   createId: ReturnType<typeof createIdGenerator>;
   children: string;
@@ -370,5 +504,28 @@ type CompileOptions = {
 
 type CommonLinks = {
   nochild: [];
-  skip(options: Options2): boolean;
+  skip: typeof skip;
+  trace: typeof trace;
+};
+
+export const defaultTracer2: Tracer2 = event => {
+  const { at } = event;
+  let adjective = "";
+  let complement = "";
+  switch (event.type) {
+    case TraceEventType.Enter:
+      adjective = "Entered";
+      complement = `at (${at.line}:${at.column})`;
+      break;
+    case TraceEventType.Match:
+      const { from, to } = event;
+      adjective = "Matched";
+      complement = `from (${from.line}:${from.column}) to (${to.line}:${to.column})`;
+      break;
+    case TraceEventType.Fail:
+      adjective = "Failed";
+      complement = `at (${at.line}:${at.column})`;
+      break;
+  }
+  console.log(adjective, `"${event.rule}"`, complement);
 };

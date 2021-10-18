@@ -137,7 +137,7 @@ export type Options2<Context = any> = {
   skipper: Parser2<any, Context>;
   skip: boolean;
   ignoreCase: boolean;
-  tracer: Tracer<Context>;
+  tracer: Tracer2<Context>;
   trace: boolean;
   logger: Logger;
   log: boolean;
@@ -228,6 +228,7 @@ export type EnterEvent<Context = any> = TraceCommon<Context> & {
 
 export type MatchEvent<Context = any> = TraceCommon<Context> & {
   type: TraceEventType.Match;
+  from: Location;
   to: Location;
   children: any[];
 };
@@ -244,8 +245,38 @@ export enum TraceEventType {
 
 export type TraceCommon<Context = any> = {
   rule: string;
-  from: Location;
+  at: Location;
   options: Options<Context>;
+};
+
+// Related to tracing
+
+export type Tracer2<Context = any> = (event: TraceEvent2<Context>) => void;
+
+export type TraceEvent2<Context = any> =
+  | EnterEvent2<Context>
+  | MatchEvent2<Context>
+  | FailEvent2<Context>;
+
+export type EnterEvent2<Context = any> = TraceCommon2<Context> & {
+  type: TraceEventType.Enter;
+};
+
+export type MatchEvent2<Context = any> = TraceCommon2<Context> & {
+  type: TraceEventType.Match;
+  from: Location;
+  to: Location;
+  children: any[];
+};
+
+export type FailEvent2<Context = any> = TraceCommon2<Context> & {
+  type: TraceEventType.Fail;
+};
+
+export type TraceCommon2<Context = any> = {
+  rule: string;
+  at: Location;
+  options: Options2<Context>;
 };
 
 // Shared

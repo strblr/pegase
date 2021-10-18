@@ -1,89 +1,122 @@
-/*
-    {
-      nochild: [],
-      skip: [Function: skip],
-      _2: 'A',
-      _3: 'a',
-      _4: { type: 'LITERAL', literal: 'A' },
-      _a: 'b',
-      _b: { type: 'LITERAL', literal: 'b' },
-      _d: [Function (anonymous)],
-      _f: 'c',
-      _g: { type: 'LITERAL', literal: 'c' }
-    }
-
- */
-
 function anonymous(options, links) {
   var nochild = links.nochild;
   var skip = links.skip;
-  var _2 = links._2;
-  var _3 = links._3;
-  var _4 = links._4;
-  var _a = links._a;
+  var trace = links.trace;
   var _b = links._b;
-  var _d = links._d;
+  var _c = links._c;
+  var _e = links._e;
   var _f = links._f;
-  var _g = links._g;
+  var _s = links._s;
+  var _t = links._t;
+  var _v = links._v;
+  var _w = links._w;
+  var _10 = links._10;
+  var _11 = links._11;
+  var _12 = links._12;
   var _0;
 
-  function r_expr(r_a) {
-    r_a =
-      r_a !== void 0
-        ? r_a
-        : function () {
-            var _1;
-
-            if (!skip(options)) _1 = null;
-            else {
-              options.to = options.from + _2.length;
-              var _5 = options.input.substring(options.from, options.to);
-              if (options.ignoreCase ? _3 === _5.toLowerCase() : _2 === _5)
-                _1 = nochild;
-              else {
-                options.log && options._ffExpect(options.from, _4);
-                _1 = null;
-              }
-            }
-
-            return _1;
-          };
-
+  function r_expr() {
     var _1;
 
-    _1 = r_a();
+    if (options.trace) {
+      _1 = trace("term", options, function () {
+        return r_term();
+      });
+    } else {
+      _1 = r_term();
+    }
 
     if (_1 !== null) {
-      var _7 = options.from;
-      var _6 = _1.concat();
+      var _3 = options.from;
+      var _2 = _1.concat();
 
       options.from = options.to;
 
-      if (!skip(options)) _1 = null;
-      else {
-        options.to = options.from + _a.length;
-        var _c = options.input.substring(options.from, options.to);
-        if (options.ignoreCase ? _a === _c.toLowerCase() : _a === _c)
-          _1 = nochild;
+      var _5 = options.from;
+      function _i() {
+        var _a = options.from;
+
+        if (!skip(options)) _1 = null;
         else {
-          options.log && options._ffExpect(options.from, _b);
-          _1 = null;
+          options.to = options.from + _e.length;
+          var _g = options.input.substring(options.from, options.to);
+          if (options.ignoreCase ? _e === _g.toLowerCase() : _e === _g)
+            _1 = nochild;
+          else {
+            options.log && options._ffExpect(options.from, _f);
+            _1 = null;
+          }
         }
+
+        if (_1 === null) {
+          options.from = _a;
+
+          if (!skip(options)) _1 = null;
+          else {
+            options.to = options.from + _b.length;
+            var _d = options.input.substring(options.from, options.to);
+            if (options.ignoreCase ? _b === _d.toLowerCase() : _b === _d)
+              _1 = nochild;
+            else {
+              options.log && options._ffExpect(options.from, _c);
+              _1 = null;
+            }
+          }
+
+          if (_1 === null) {
+            options.from = _a;
+          }
+        }
+
+        if (_1 !== null) {
+          var _9 = options.from;
+          var _8 = _1.concat();
+
+          options.from = options.to;
+
+          if (options.trace) {
+            _1 = trace("term", options, function () {
+              return r_term();
+            });
+          } else {
+            _1 = r_term();
+          }
+
+          if (_1 !== null) {
+            _8.push.apply(_8, _1);
+
+            options.from = _9;
+            _1 = _8;
+          }
+        }
+      }
+      _i();
+      if (_1 !== null) {
+        _5 = options.from;
+        var _6 = options.to;
+        var _7 = _1.concat();
+
+        while (true) {
+          options.from = _6;
+          _i();
+          if (_1 === null) break;
+          _7.push.apply(_7, _1);
+          _6 = options.to;
+        }
+
+        options.from = _5;
+        options.to = _6;
+        _1 = _7;
+      } else {
+        options.from = options.to = _5;
+        _1 = nochild;
       }
 
       if (_1 !== null) {
-        _6.push.apply(_6, _1);
+        _2.push.apply(_2, _1);
 
-        options.from = options.to;
-
-        _1 = r_term();
-
-        if (_1 !== null) {
-          _6.push.apply(_6, _1);
-
-          options.from = _7;
-          _1 = _6;
-        }
+        options.from = _3;
+        _1 = _2;
       }
     }
 
@@ -93,26 +126,140 @@ function anonymous(options, links) {
   function r_term() {
     var _1;
 
-    var _e = _d(options);
-
-    if (!skip(options)) _1 = null;
-    else {
-      options.to = options.from + _f.length;
-      var _h = options.input.substring(options.from, options.to);
-      if (options.ignoreCase ? _f === _h.toLowerCase() : _f === _h)
-        _1 = nochild;
-      else {
-        options.log && options._ffExpect(options.from, _g);
-        _1 = null;
-      }
+    if (options.trace) {
+      _1 = trace("fact", options, function () {
+        return r_fact();
+      });
+    } else {
+      _1 = r_fact();
     }
 
-    _1 = _e(_1);
+    if (_1 !== null) {
+      var _k = options.from;
+      var _j = _1.concat();
+
+      options.from = options.to;
+
+      var _m = options.from;
+      function _z() {
+        var _r = options.from;
+
+        if (!skip(options)) _1 = null;
+        else {
+          options.to = options.from + _v.length;
+          var _x = options.input.substring(options.from, options.to);
+          if (options.ignoreCase ? _v === _x.toLowerCase() : _v === _x)
+            _1 = nochild;
+          else {
+            options.log && options._ffExpect(options.from, _w);
+            _1 = null;
+          }
+        }
+
+        if (_1 === null) {
+          options.from = _r;
+
+          if (!skip(options)) _1 = null;
+          else {
+            options.to = options.from + _s.length;
+            var _u = options.input.substring(options.from, options.to);
+            if (options.ignoreCase ? _s === _u.toLowerCase() : _s === _u)
+              _1 = nochild;
+            else {
+              options.log && options._ffExpect(options.from, _t);
+              _1 = null;
+            }
+          }
+
+          if (_1 === null) {
+            options.from = _r;
+          }
+        }
+
+        if (_1 !== null) {
+          var _q = options.from;
+          var _p = _1.concat();
+
+          options.from = options.to;
+
+          if (options.trace) {
+            _1 = trace("fact", options, function () {
+              return r_fact();
+            });
+          } else {
+            _1 = r_fact();
+          }
+
+          if (_1 !== null) {
+            _p.push.apply(_p, _1);
+
+            options.from = _q;
+            _1 = _p;
+          }
+        }
+      }
+
+      _z();
+      if (_1 !== null) {
+        _m = options.from;
+        var _n = options.to;
+        var _o = _1.concat();
+
+        while (true) {
+          options.from = _n;
+          _z();
+          if (_1 === null) break;
+          _o.push.apply(_o, _1);
+          _n = options.to;
+        }
+
+        options.from = _m;
+        options.to = _n;
+        _1 = _o;
+      } else {
+        options.from = options.to = _m;
+        _1 = nochild;
+      }
+
+      if (_1 !== null) {
+        _j.push.apply(_j, _1);
+
+        options.from = _k;
+        _1 = _j;
+      }
+    }
 
     return _1;
   }
 
-  _0 = r_expr();
+  function r_fact() {
+    var _1;
+
+    if (!skip(options)) _1 = null;
+    else {
+      var _13 = options.ignoreCase ? _11 : _10;
+      _13.lastIndex = options.from;
+      var _14 = _13.exec(options.input);
+      if (_14 !== null) {
+        if (_14.groups) Object.assign(options.captures, _14.groups);
+        options.to = options.from + _14[0].length;
+        _1 = _14.slice(1);
+      } else {
+        options.log && options._ffExpect(options.from, _12);
+        _1 = null;
+      }
+    }
+
+    return _1;
+  }
+
+  if (options.trace) {
+    _0 = trace("expr", options, function () {
+      return r_expr();
+    });
+  } else {
+    _0 = r_expr();
+  }
 
   return _0;
 }

@@ -333,34 +333,40 @@ export class NonTerminalParser extends TweakParser {
 
   constructor(rule: string, parser?: Parser) {
     super(parser, options => {
+      const { captures } = options;
+      options.captures = {};
+      if (!options.trace)
+        return match => {
+          options.captures = captures;
+          return match;
+        };
+      const at = options.logger.at(options.from);
       options.trace &&
         options.tracer({
           type: TraceEventType.Enter,
           rule,
-          from: options.logger.at(options.from),
+          at,
           options
         });
-      const { captures } = options;
-      options.captures = {};
       return match => {
         options.captures = captures;
-        if (options.trace)
-          if (match === null)
-            options.tracer({
-              type: TraceEventType.Fail,
-              rule,
-              from: options.logger.at(options.from),
-              options
-            });
-          else
-            options.tracer({
-              type: TraceEventType.Match,
-              rule,
-              from: options.logger.at(match.from),
-              to: options.logger.at(match.to),
-              children: match.children,
-              options
-            });
+        if (match === null)
+          options.tracer({
+            type: TraceEventType.Fail,
+            rule,
+            at,
+            options
+          });
+        else
+          options.tracer({
+            type: TraceEventType.Match,
+            rule,
+            at,
+            from: options.logger.at(match.from),
+            to: options.logger.at(match.to),
+            children: match.children,
+            options
+          });
         return match;
       };
     });
@@ -505,22 +511,22 @@ export const endOfInput = new TokenParser(
 );
 
 export const defaultTracer: Tracer = event => {
-  const { from } = event;
+  const { at } = event;
   let adjective = "";
   let complement = "";
   switch (event.type) {
     case TraceEventType.Enter:
       adjective = "Entered";
-      complement = `at (${from.line}:${from.column})`;
+      complement = `at (${at.line}:${at.column})`;
       break;
     case TraceEventType.Match:
-      const { to } = event;
+      const { from, to } = event;
       adjective = "Matched";
       complement = `from (${from.line}:${from.column}) to (${to.line}:${to.column})`;
       break;
     case TraceEventType.Fail:
       adjective = "Failed";
-      complement = `at (${from.line}:${from.column})`;
+      complement = `at (${at.line}:${at.column})`;
       break;
   }
   console.log(adjective, `"${event.rule}"`, complement);
