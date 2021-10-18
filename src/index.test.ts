@@ -62,6 +62,15 @@ test("The peg tag should correctly parse regex literals", () => {
   expect(g5.regex.toString()).toBe(/[[^()]*|(\(.*?\))]*/.toString());
 });
 
+test("The 'complete' option should work", () => {
+  const p = peg`0`;
+  expect(p.test(" 0 ")).toBe(true);
+  expect(p.test("  0 1 ")).toBe(false);
+  p.defaultOptions.complete = false;
+  expect(p.test(" 0 ")).toBe(true);
+  expect(p.test("  0 1 ")).toBe(true);
+});
+
 test("Repetition parsers should work", () => {
   const g1 = peg`"a"?`;
   const g2 = peg`"a" +`;

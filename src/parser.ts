@@ -11,7 +11,6 @@ import {
   extendFlags,
   hooks,
   idGenerator,
-  js,
   Links,
   LiteralExpectation,
   Options,
@@ -111,9 +110,9 @@ export abstract class Parser<Value = any, Context = any> {
     this.exec = new Function(
       "options",
       "links",
-      js`
+      `
         ${Object.keys(this.links)
-          .map(key => js`var ${key} = links.${key};`)
+          .map(key => `var ${key} = links.${key};`)
           .join("\n")}
         var ${children};
         ${code}
@@ -152,7 +151,7 @@ export class LiteralParser extends Parser {
       type: ExpectationType.Literal,
       literal: this.literal
     });
-    return js`
+    return `
       if(!skip(options))
         ${options.children} = null;
       else {
@@ -193,7 +192,7 @@ export class RegexParser extends Parser {
       type: ExpectationType.RegExp,
       regex: this.regex
     });
-    return js`
+    return `
       if(!skip(options))
         ${options.children} = null;
       else {
@@ -239,7 +238,7 @@ export class TokenParser extends Parser {
       return "";
     }
     const code = this.parser.generate(options);
-    return js`
+    return `
       if(!skip(options))
         ${options.children} = null;
       else {
@@ -248,7 +247,7 @@ export class TokenParser extends Parser {
         ${
           !this.displayName
             ? code
-            : js`
+            : `
               var ${log} = options.log;
               options.log = false;
               ${code}
@@ -276,7 +275,7 @@ export class BackReferenceParser extends Parser {
   generate(options: CompileOptions): string {
     const reference = options.id();
     const raw = options.id();
-    return js`
+    return `
       if(!skip(options))
         ${options.children} = null;
       else {
@@ -303,7 +302,7 @@ export class BackReferenceParser extends Parser {
 
 export class CutParser extends Parser {
   generate(options: CompileOptions): string {
-    return js`
+    return `
       options.cut = true;
       options.to = options.from;
       ${options.children} = nochild;
@@ -324,12 +323,12 @@ export class AlternativeParser extends Parser {
   generate(options: CompileOptions): string {
     const from = options.id();
     const cut = options.id();
-    return js`
+    return `
       var ${from} = options.from;
       var ${cut} = options.cut;
       options.cut = false;
       ${this.parsers.reduceRight(
-        (code, parser) => js`
+        (code, parser) => `
           ${parser.generate(options)}
           if(${options.children} === null && !options.cut) {
             options.from = ${from};
@@ -357,13 +356,13 @@ export class SequenceParser extends Parser {
     const [first, ...rest] = this.parsers;
     const acc = options.id();
     const from = options.id();
-    return js`
+    return `
       ${first.generate(options)}
       if(${options.children} !== null) {
         var ${from} = options.from;
         var ${acc} = ${options.children}.concat();
         ${rest.reduceRight(
-          (code, parser) => js`
+          (code, parser) => `
             options.from = options.to;
             ${parser.generate(options)}
             if(${options.children} !== null) {
@@ -371,7 +370,7 @@ export class SequenceParser extends Parser {
               ${code}
             }
           `,
-          js`
+          `
             options.from = ${from};
             ${options.children} = ${acc};
           `
@@ -402,7 +401,7 @@ export class RepetitionParser extends Parser {
     const code = this.parser.generate(options);
     if (this.max === 1) {
       if (this.min === 1) return code;
-      return js`
+      return `
         var ${from} = options.from;
         ${code}
         if(${options.children} === null) {
@@ -414,7 +413,7 @@ export class RepetitionParser extends Parser {
     const temp = options.id();
     const iterate = (times: number, finish: string = "") =>
       Array.from(Array(times)).reduceRight(
-        code => js`
+        code => `
           options.from = ${to};
           ${temp}();
           if(${options.children} !== null) {
@@ -425,7 +424,7 @@ export class RepetitionParser extends Parser {
         `,
         finish
       );
-    return js`
+    return `
       var ${from}${this.min === 0 ? " = options.from" : ""};
       function ${temp}() { ${code} }
       ${temp}();
@@ -435,11 +434,11 @@ export class RepetitionParser extends Parser {
         var ${acc} = ${options.children}.concat();
         ${iterate(
           this.min === 0 ? 0 : this.min - 1,
-          js`
+          `
             ${
               this.max !== Infinity
                 ? iterate(this.max - (this.min === 0 ? 1 : this.min))
-                : js`
+                : `
                   while(true) {
                     options.from = ${to};
                     ${temp}();
@@ -458,7 +457,7 @@ export class RepetitionParser extends Parser {
       }
       ${
         this.min === 0
-          ? js`
+          ? `
             else {
               options.from = options.to = ${from};
               ${options.children} = nochild;
@@ -485,24 +484,25 @@ export class GrammarParser extends Parser {
   generate(options: CompileOptions): string {
     const children = options.id();
     const captures = options.id();
-    return js`
+    return `
       ${Array.from(this.rules)
         .map(
-          ([rule, [parameters, parser]]) => js`
+          ([rule, [parameters, parser]]) => `
             function r_${rule}(${parameters
             .map(([name]) => `r_${name}`)
             .join(",")}) {
               ${parameters
                 .filter(([_, defaultParser]) => defaultParser)
                 .map(
-                  ([name, defaultParser]) => js`
+                  ([name, defaultParser]) => `
                     r_${name} = r_${name} !== void 0 ? r_${name} : function() {
                       var ${children};
                       ${defaultParser!.generate({ ...options, children })}
                       return ${children};
                     }
                   `
-                )}
+                )
+                .join("\n")}
               var ${children};
               var ${captures} = options.captures;
               options.captures = {};
@@ -532,22 +532,22 @@ export class NonTerminalParser extends Parser {
 
   generate(options: CompileOptions): string {
     const children = options.id();
-    const call = js`
+    const call = `
       r_${this.rule}(${this.parameters
       .map(parameter =>
         parameter
-          ? js`
+          ? `
             (function() {
               var ${children};
               ${parameter.generate({ ...options, children })}
               return ${children};
             })
           `
-          : js`void 0`
+          : "void 0"
       )
       .join(",")})
     `;
-    return js`
+    return `
       if(options.trace) {
         ${options.children} = trace("${this.rule}", options, function() {
           return (${call});
@@ -576,7 +576,7 @@ export class PredicateParser extends Parser {
     const log = options.id();
     const code = this.parser.generate(options);
     if (this.polarity)
-      return js`
+      return `
         var ${from} = options.from;
         ${code}
         if(${options.children} !== null) {
@@ -584,7 +584,7 @@ export class PredicateParser extends Parser {
           ${options.children} = nochild;
         }
       `;
-    return js`
+    return `
       var ${from} = options.from;
       var ${log} = options.log;
       options.log = false;
@@ -620,15 +620,13 @@ export class CaptureParser extends Parser {
   }
 
   generate(options: CompileOptions): string {
-    return js`
+    return `
       ${this.parser.generate(options)}
       if(${options.children} !== null)
         options.captures["${this.name}"] = ${
       this.all
         ? options.children
-        : js`
-            ${options.children}.length === 1 ? ${options.children}[0] : undefined;
-          `
+        : `${options.children}.length === 1 ? ${options.children}[0] : undefined;`
     };
     `;
   }
@@ -650,7 +648,7 @@ export class TweakParser extends Parser {
     const tweaker = options.id();
     const cleanUp = options.id();
     options.links[tweaker] = this.tweaker;
-    return js`
+    return `
       var ${cleanUp} = ${tweaker}(options);
       ${this.parser.generate(options)}
       ${options.children} = ${cleanUp}(${options.children})

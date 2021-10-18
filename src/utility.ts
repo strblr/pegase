@@ -30,10 +30,6 @@ import {
   WarningType
 } from ".";
 
-// js
-
-export const js = String.raw;
-
 // as
 
 export function as<T>(value: T) {
