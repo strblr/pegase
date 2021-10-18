@@ -140,15 +140,6 @@ export function trace(
   return children;
 }
 
-// resolveRule
-
-export function resolveRule(plugins: Plugin[], rule: string) {
-  const plugin = plugins.find(
-    plugin => plugin.resolve && has(plugin.resolve, rule)
-  );
-  return plugin?.resolve![rule];
-}
-
 // resolveCast
 
 export function resolveCast(plugins: Plugin[], value: any) {

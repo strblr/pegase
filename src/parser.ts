@@ -26,6 +26,9 @@ import {
   Tweaker,
   WarningType
 } from ".";
+import prettier from "prettier";
+
+const format = prettier.format;
 
 // Parser
 
@@ -66,6 +69,19 @@ export abstract class Parser<Value = any, Context = any> {
         options: opts,
         logger: opts.logger
       };
+    }
+    if (opts.complete) {
+      const from = opts.from;
+      opts.from = opts.to;
+      if (endOfInput.exec!(opts, endOfInput.links!) === null) {
+        opts._ffCommit();
+        return {
+          success: false,
+          options: opts,
+          logger: opts.logger
+        };
+      }
+      opts.from = from;
     }
     const visitors = castArray(opts.visit);
     children = children.map(child =>
@@ -218,6 +234,10 @@ export class TokenParser extends Parser {
         type: ExpectationType.Token,
         displayName: this.displayName!
       }));
+    if (!this.parser.generate) {
+      console.log({ this: this });
+      return "";
+    }
     const code = this.parser.generate(options);
     return js`
       if(!skip(options))
@@ -464,6 +484,7 @@ export class GrammarParser extends Parser {
 
   generate(options: CompileOptions): string {
     const children = options.id();
+    const captures = options.id();
     return js`
       ${Array.from(this.rules)
         .map(
@@ -483,7 +504,10 @@ export class GrammarParser extends Parser {
                   `
                 )}
               var ${children};
+              var ${captures} = options.captures;
+              options.captures = {};
               ${parser.generate({ ...options, children })}
+              options.captures = ${captures};
               return ${children};
             }
           `
