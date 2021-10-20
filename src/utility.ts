@@ -88,6 +88,17 @@ export function idGenerator() {
   };
 }
 
+// assign
+
+export function assign() {
+  const target = arguments[0];
+  for (let i = 1; i < arguments.length; ++i) {
+    const source = arguments[i];
+    for (const key in source) if (has(source, key)) target[key] = source[key];
+  }
+  return target;
+}
+
 // skip
 
 export function skip(options: Options) {

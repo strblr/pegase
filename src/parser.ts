@@ -3,6 +3,7 @@ import {
   $to,
   applyVisitor,
   as,
+  assign,
   buildOptions,
   castArray,
   castExpectation,
@@ -105,7 +106,7 @@ export abstract class Parser<Value = any, Context = any> {
   compile() {
     const id = idGenerator();
     const children = id();
-    this.links = { nochild: [], skip, trace };
+    this.links = { nochild: [], assign, skip, trace };
     const code = this.generate({ id, children, links: this.links });
     this.exec = new Function(
       "options",
@@ -200,7 +201,7 @@ export class RegexParser extends Parser {
         ${usedRegex}.lastIndex = options.from;
         var ${result} = ${usedRegex}.exec(options.input);
         if(${result} !== null) {
-          if (${result}.groups) Object.assign(options.captures, ${result}.groups);
+          if (${result}.groups) assign(options.captures, ${result}.groups);
           options.to = options.from + ${result}[0].length;
           ${options.children} = ${result}.slice(1);
         } else {
