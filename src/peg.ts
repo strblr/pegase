@@ -66,7 +66,7 @@ parser:
   grammarParser | optionsParser
 
 grammarParser:
-  (identifier directives ':' ^ optionsParser)+
+  (identifier ruleParameterDefinitions directives ':' ^ optionsParser)+
 
 optionsParser:
   '|'? directiveParser % '|'
@@ -103,7 +103,7 @@ primaryParser:
 | '(' ^ optionsParser ')'
 | '>' ^ identifier '<'
 | '@' ^ directive
-| nonTerminal !(directives ':')
+| !(identifier ruleParameterDefinitions directives ':') nonTerminal
 | numberLiteral
 | stringLiteral
 | characterClass
@@ -114,11 +114,20 @@ primaryParser:
 
 # Secondary rules:
 
+nonTerminal:
+  identifier ruleParameters
+
 repetitionRange:
 | '?'
 | '+'
 | '*'
 | '{' value (',' value?)? '}'
+
+ruleParameterDefinitions:
+  ('(' (identifier ('=' optionsParser)?) % ',' ')')?
+
+ruleParameters:
+  ('(' optionsParser? % ',' ')')?
 
 directives:
   directive*
@@ -145,9 +154,6 @@ value:
 
 identifier @token('identifier'):
   /(\$?[_a-zA-Z][_a-zA-Z0-9]*)/
-
-nonTerminal @token('non-terminal'):
-  identifier
 
 numberLiteral @token('number literal'):
   /[0-9]+\.?[0-9]* /
@@ -195,20 +201,21 @@ const metaparser = new GrammarParser([
           new ActionParser(
             new SequenceParser([
               new NonTerminalParser("identifier"),
+              new NonTerminalParser("ruleParameterDefinitions"),
               new NonTerminalParser("directives"),
               new LiteralParser(":"),
               new CutParser(),
               new NonTerminalParser("optionsParser")
             ]),
             () => {
-              let [rule, directives, parser] = $children();
+              let [rule, parameters, directives, parser] = $children();
               if (rule.startsWith("$")) {
                 const token = resolveDirective($context().plugins, "token");
                 if (!token) return unresolvedDirectiveFail("token");
                 rule = rule.substring(1);
                 directives = [...directives, [token, [spaceCase(rule)]]];
               }
-              return [rule, [[], pipeDirectives(parser, directives)]];
+              return [rule, [parameters, pipeDirectives(parser, directives)]];
             }
           ),
           [1, Infinity]
@@ -448,14 +455,16 @@ const metaparser = new GrammarParser([
           () => pipeDirectives(new LiteralParser(""), $children())
         ),
         new SequenceParser([
-          new NonTerminalParser("nonTerminal"),
           new PredicateParser(
             new SequenceParser([
+              new NonTerminalParser("identifier"),
+              new NonTerminalParser("ruleParameterDefinitions"),
               new NonTerminalParser("directives"),
               new LiteralParser(":")
             ]),
             false
-          )
+          ),
+          new NonTerminalParser("nonTerminal")
         ]),
         new ActionParser(
           new NonTerminalParser("numberLiteral"),
@@ -479,6 +488,19 @@ const metaparser = new GrammarParser([
         ),
         new NonTerminalParser("castableTagArgument")
       ])
+    ]
+  ],
+  [
+    "nonTerminal",
+    [
+      [],
+      new ActionParser(
+        new SequenceParser([
+          new NonTerminalParser("identifier"),
+          new NonTerminalParser("ruleParameters")
+        ]),
+        () => new NonTerminalParser($children()[0], $children()[1])
+      )
     ]
   ],
   [
@@ -513,6 +535,61 @@ const metaparser = new GrammarParser([
           }
         )
       ])
+    ]
+  ],
+  [
+    "ruleParameterDefinitions",
+    [
+      [],
+      new ActionParser(
+        new RepetitionParser(
+          new SequenceParser([
+            defaultPlugin.directives!.noskip(new LiteralParser("(")),
+            modulo(
+              new ActionParser(
+                new SequenceParser([
+                  new NonTerminalParser("identifier"),
+                  new AlternativeParser([
+                    new SequenceParser([
+                      new LiteralParser("="),
+                      new NonTerminalParser("optionsParser")
+                    ]),
+                    new ActionParser(new CutParser(), () => null)
+                  ])
+                ]),
+                () => $children()
+              ),
+              new LiteralParser(",")
+            ),
+            new LiteralParser(")")
+          ]),
+          [0, 1]
+        ),
+        () => $children()
+      )
+    ]
+  ],
+  [
+    "ruleParameters",
+    [
+      [],
+      new ActionParser(
+        new RepetitionParser(
+          new SequenceParser([
+            defaultPlugin.directives!.noskip(new LiteralParser("(")),
+            modulo(
+              new AlternativeParser([
+                new NonTerminalParser("optionsParser"),
+                new ActionParser(new CutParser(), () => null)
+              ]),
+              new LiteralParser(",")
+            ),
+            new LiteralParser(")")
+          ]),
+          [0, 1]
+        ),
+        () => $children()
+      )
     ]
   ],
   [
@@ -603,19 +680,6 @@ const metaparser = new GrammarParser([
       new TokenParser(
         new RegexParser(/(\$?[_a-zA-Z][_a-zA-Z0-9]*)/),
         "identifier"
-      )
-    ]
-  ],
-  [
-    "nonTerminal",
-    [
-      [],
-      new TokenParser(
-        new ActionParser(
-          new NonTerminalParser("identifier"),
-          () => new NonTerminalParser($children()[0])
-        ),
-        "non-terminal"
       )
     ]
   ],

@@ -525,7 +525,7 @@ export class NonTerminalParser extends Parser {
   readonly rule: string;
   readonly parameters: (Parser | null)[];
 
-  constructor(rule: string, parameters: Parser[] = []) {
+  constructor(rule: string, parameters: (Parser | null)[] = []) {
     super();
     this.rule = rule;
     this.parameters = parameters;
@@ -533,22 +533,28 @@ export class NonTerminalParser extends Parser {
 
   generate(options: CompileOptions): string {
     const children = options.id();
+    const parameters = this.parameters.map(
+      (parameter): [string, Parser] | null =>
+        parameter ? [options.id(), parameter] : null
+    );
     const call = `
-      r_${this.rule}(${this.parameters
-      .map(parameter =>
-        parameter
-          ? `
-            (function() {
-              var ${children};
-              ${parameter.generate({ ...options, children })}
-              return ${children};
-            })
-          `
-          : "void 0"
-      )
+      r_${this.rule}(${parameters
+      .map(parameter => (parameter ? parameter[0] : "void 0"))
       .join(",")})
     `;
     return `
+      ${parameters
+        .filter(parameter => Boolean(parameter))
+        .map(
+          parameter => `
+            function ${parameter![0]}() {
+              var ${children};
+              ${parameter![1].generate({ ...options, children })}
+              return ${children};
+            };
+          `
+        )
+        .join("\n")}
       if(options.trace) {
         ${options.children} = trace("${this.rule}", options, function() {
           return (${call});

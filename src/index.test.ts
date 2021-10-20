@@ -174,6 +174,13 @@ test("The modulo operator should work", () => {
   ]);
 });
 
+test("Parametrized rules should work", () => {
+  const a = peg`
+    list(item, test): list('a',,'x')
+  `;
+  console.log(a.exec!.toString());
+});
+
 test("Prefix math expressions should be correctly converted to postfix", () => {
   const g = peg`
     expr:
