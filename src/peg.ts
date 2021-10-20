@@ -124,11 +124,11 @@ directives:
   directive*
 
 directive:
-| '@' ^ identifier directiveArguments
+| '@' ^ identifier directiveParameters
 | actionTagArgument
 | '=>' value
 
-directiveArguments:
+directiveParameters:
   ('(' value % ',' ')')?
 
 value:
@@ -536,7 +536,7 @@ const metaparser = new GrammarParser([
               new LiteralParser("@"),
               new CutParser(),
               new NonTerminalParser("identifier"),
-              new NonTerminalParser("directiveArguments")
+              new NonTerminalParser("directiveParameters")
             ]),
             () => $children()
           ),
@@ -562,7 +562,7 @@ const metaparser = new GrammarParser([
     ]
   ],
   [
-    "directiveArguments",
+    "directiveParameters",
     [
       [],
       new ActionParser(
