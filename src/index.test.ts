@@ -176,8 +176,14 @@ test("The modulo operator should work", () => {
 
 test("Parametrized rules should work", () => {
   const a = peg`
-    list(item, test): list('a',,'x')
+    expr(num = number):
+    | num
+    | operator ^ expr(num) expr(num)
+    
+    operator: "+" | "-" | "*" | "/"
+    $number @raw: [0-9]
   `;
+
   console.log(a.exec!.toString());
 });
 

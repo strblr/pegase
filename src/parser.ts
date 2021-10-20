@@ -106,8 +106,15 @@ export abstract class Parser<Value = any, Context = any> {
   compile() {
     const id = idGenerator();
     const children = id();
+    const captures = id();
     this.links = { nochild: [], assign, skip, trace };
-    const code = this.generate({ id, children, links: this.links });
+    const code = this.generate({
+      id,
+      children,
+      captures,
+      cut: null,
+      links: this.links
+    });
     this.exec = new Function(
       "options",
       "links",
@@ -116,6 +123,7 @@ export abstract class Parser<Value = any, Context = any> {
           .map(key => `var ${key} = links.${key};`)
           .join("\n")}
         var ${children};
+        var ${captures} = {};
         ${code}
         return ${children};
       `
@@ -201,7 +209,7 @@ export class RegexParser extends Parser {
         ${usedRegex}.lastIndex = options.from;
         var ${result} = ${usedRegex}.exec(options.input);
         if(${result} !== null) {
-          if (${result}.groups) assign(options.captures, ${result}.groups);
+          if (${result}.groups) assign(${options.captures}, ${result}.groups);
           options.to = options.from + ${result}[0].length;
           ${options.children} = ${result}.slice(1);
         } else {
@@ -280,7 +288,7 @@ export class BackReferenceParser extends Parser {
       if(!skip(options))
         ${options.children} = null;
       else {
-        var ${reference} = options.captures["${this.name}"];
+        var ${reference} = ${options.captures}["${this.name}"];
         options.to = options.from + ${reference}.length;
         var ${raw} = options.input.substring(options.from, options.to);
         if(options.ignoreCase
@@ -304,7 +312,7 @@ export class BackReferenceParser extends Parser {
 export class CutParser extends Parser {
   generate(options: CompileOptions): string {
     return `
-      options.cut = true;
+      ${options.cut ? `${options.cut} = true;` : ""}
       options.to = options.from;
       ${options.children} = nochild;
     `;
@@ -323,22 +331,23 @@ export class AlternativeParser extends Parser {
 
   generate(options: CompileOptions): string {
     const from = options.id();
+    const captures = options.id();
     const cut = options.id();
     return `
       var ${from} = options.from;
-      var ${cut} = options.cut;
-      options.cut = false;
+      var ${captures};
+      var ${cut} = false;
       ${this.parsers.reduceRight(
         (code, parser) => `
-          ${parser.generate(options)}
-          if(${options.children} === null && !options.cut) {
+          ${captures} = {};
+          ${parser.generate({ ...options, captures, cut })}
+          if(${options.children} === null && !${cut}) {
             options.from = ${from};
             ${code}
           }
         `,
         ""
       )}
-      options.cut = ${cut};
     `;
   }
 }
@@ -492,23 +501,25 @@ export class GrammarParser extends Parser {
             function r_${rule}(${parameters
             .map(([name]) => `r_${name}`)
             .join(",")}) {
+              var ${children};
+              var ${captures} = {};
               ${parameters
                 .filter(([_, defaultParser]) => defaultParser)
                 .map(
                   ([name, defaultParser]) => `
                     r_${name} = r_${name} !== void 0 ? r_${name} : function() {
                       var ${children};
-                      ${defaultParser!.generate({ ...options, children })}
+                      ${defaultParser!.generate({
+                        ...options,
+                        children,
+                        captures
+                      })}
                       return ${children};
                     }
                   `
                 )
                 .join("\n")}
-              var ${children};
-              var ${captures} = options.captures;
-              options.captures = {};
-              ${parser.generate({ ...options, children })}
-              options.captures = ${captures};
+              ${parser.generate({ ...options, children, captures })}
               return ${children};
             }
           `
@@ -630,7 +641,7 @@ export class CaptureParser extends Parser {
     return `
       ${this.parser.generate(options)}
       if(${options.children} !== null)
-        options.captures["${this.name}"] = ${
+        ${options.captures}["${this.name}"] = ${
       this.all
         ? options.children
         : `${options.children}.length === 1 ? ${options.children}[0] : undefined;`
@@ -656,7 +667,7 @@ export class TweakParser extends Parser {
     const cleanUp = options.id();
     options.links[tweaker] = this.tweaker;
     return `
-      var ${cleanUp} = ${tweaker}(options);
+      var ${cleanUp} = ${tweaker}(options, ${options.captures});
       ${this.parser.generate(options)}
       ${options.children} = ${cleanUp}(${options.children})
     `;
@@ -669,7 +680,7 @@ export class ActionParser extends TweakParser {
   readonly action: SemanticAction;
 
   constructor(parser: Parser, action: SemanticAction) {
-    super(parser, options => {
+    super(parser, (options, captures) => {
       const ffIndex = options._ffIndex,
         ffType = options._ffType,
         ffSemantic = options._ffSemantic,
@@ -725,7 +736,7 @@ export class ActionParser extends TweakParser {
           })
         });
         try {
-          value = action(options.captures);
+          value = action(captures);
         } catch (e) {
           hooks.pop();
           throw e;

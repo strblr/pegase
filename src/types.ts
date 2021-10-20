@@ -17,7 +17,8 @@ export type Plugin = {
 export type Directive = (parser: Parser, ...args: any[]) => Parser;
 
 export type Tweaker = (
-  options: Options
+  options: Options,
+  captures: Record<string, any>
 ) => (children: any[] | null) => any[] | null;
 
 export type SemanticAction<Value = any> = (
@@ -27,6 +28,8 @@ export type SemanticAction<Value = any> = (
 export type CompileOptions = {
   id: ReturnType<typeof idGenerator>;
   children: string;
+  captures: string;
+  cut: string | null;
   links: Links;
 };
 
@@ -131,8 +134,6 @@ export type Options<Context = any> = {
   log: boolean;
   context: Context;
   visit: Visitor | Visitor[];
-  cut: boolean;
-  captures: Record<string, any>;
   _ffIndex: number;
   _ffType: FailureType | null;
   _ffSemantic: string | null;

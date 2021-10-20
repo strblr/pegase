@@ -271,8 +271,6 @@ export function buildOptions<Context>(
     log: true,
     context: undefined as any,
     visit: [],
-    cut: false,
-    captures: {},
     _ffIndex: 0,
     _ffType: null,
     _ffSemantic: null,
