@@ -32,11 +32,11 @@ import {
 // createTag
 
 export function createTag() {
-  function peg<Value = any, Context = any>(
+  function metaparse<Value, Context>(
     chunks: TemplateStringsArray | string,
-    ...args: Any[]
+    args: any[]
   ): Parser<Value, Context> {
-    const parser: Parser<Value, Context> = metaparser.value(
+    return metaparser.value(
       typeof chunks === "string"
         ? chunks
         : chunks.raw.reduce(
@@ -48,138 +48,44 @@ export function createTag() {
         context: { plugins: peg.plugins, args }
       }
     );
-    parser.compile();
-    return parser;
   }
+
+  function peg<Value = any, Context = any>(
+    chunks: TemplateStringsArray | string,
+    ...args: Any[]
+  ) {
+    return metaparse<Value, Context>(chunks, args).compile();
+  }
+
+  peg.lazy = function <Value = any, Context = any>(
+    chunks: TemplateStringsArray | string,
+    ...args: Any[]
+  ) {
+    return metaparse<Value, Context>(chunks, args);
+  };
+
+  peg.merge = function <Value, Context>(
+    first: Parser<Value, Context>,
+    ...rest: Parser[]
+  ) {
+    const rules: GrammarParser["rules"] = new Map();
+    for (const source of [first, ...rest])
+      if (!(source instanceof GrammarParser))
+        throw new Error("Only GrammarParser can be merged");
+      else
+        for (const [rule, definition] of source.rules)
+          if (rules.has(rule))
+            throw new Error(`Conflicting declaration of rule "${rule}"`);
+          else rules.set(rule, definition);
+    return new GrammarParser([...rules]).compile();
+  };
 
   peg.trace = false;
   peg.plugins = [defaultPlugin];
   return peg;
 }
 
-// metagrammar
-
-/*
-# Main rules:
-
-parser:
-  grammarParser | optionsParser
-
-grammarParser:
-  (identifier ruleParameterDefinitions directives ':' ^ optionsParser)+
-
-optionsParser:
-  '|'? directiveParser % '|'
-
-directiveParser:
-  sequenceParser directives
-
-sequenceParser:
-  minusParser+
-
-minusParser:
-  moduloParser % '-'
-
-moduloParser:
-  forwardParser % ('%' repetitionRange?)
-
-forwardParser:
-  '...'? captureParser
-
-captureParser:
-  ('<' '...'? identifier? '>')? predicateParser
-
-predicateParser:
-  ('&' | '!')? repetitionParser
-
-repetitionParser:
-  primaryParser repetitionRange?
-
-primaryParser:
-| '.'
-| '$' - identifier
-| 'ε'
-| '^'
-| '(' ^ optionsParser ')'
-| '>' ^ identifier '<'
-| '@' ^ directive
-| !(identifier ruleParameterDefinitions directives ':') nonTerminal
-| numberLiteral
-| stringLiteral
-| characterClass
-| escapedMeta
-| regexLiteral
-| castableTagArgument
-
-
-# Secondary rules:
-
-nonTerminal:
-  identifier ruleParameters
-
-repetitionRange:
-| '?'
-| '+'
-| '*'
-| '{' value (',' value?)? '}'
-
-ruleParameterDefinitions:
-  ('(' (identifier ('=' optionsParser)?) % ',' ')')?
-
-ruleParameters:
-  ('(' optionsParser? % ',' ')')?
-
-directives:
-  directive*
-
-directive:
-| '@' ^ identifier directiveParameters
-| actionTagArgument
-| '=>' value
-
-directiveParameters:
-  ('(' value % ',' ')')?
-
-value:
-| tagArgument
-| stringLiteral
-| numberLiteral
-| nonTerminal
-| characterClass
-| escapedMeta
-| regexLiteral
-
-
-# Tokens:
-
-identifier @token('identifier'):
-  /(\$?[_a-zA-Z][_a-zA-Z0-9]*)/
-
-numberLiteral @token('number literal'):
-  /[0-9]+\.?[0-9]* /
-
-stringLiteral @token('string literal'):
-| /'((?:[^\\']|\\.)*)'/
-| /"(?:[^\\"]|\\.)*"/
-
-regexLiteral @token('regex literal'):
-/\/((?:\[[^\]]*]|[^\\\/]|\\.)+)\//
-
-characterClass @token('character class'):
-/\[(?:[^\\\]]|\\.)*]/
-
-escapedMeta @token('escaped metacharacter'):
-/\\[a-zA-Z0-9]+/
-
-tagArgument @token('tag argument'):
-/~(\d+)/
-
-castableTagArgument @token('castable tag argument'):
-tagArgument
-
-actionTagArgument @token('action tag argument'):
-tagArgument
- */
+// metaparser
 
 const metaparser = new GrammarParser([
   [
@@ -796,9 +702,7 @@ const metaparser = new GrammarParser([
       )
     ]
   ]
-]);
-
-metaparser.compile();
+]).compile();
 
 function unresolvedDirectiveFail(directive: string) {
   $fail(

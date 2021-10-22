@@ -7,7 +7,7 @@ parser:
   grammarParser | optionsParser
 
 grammarParser:
-  (identifier directives ':' ^ optionsParser)+
+  (identifier ruleParameterDefinitions directives ':' ^ optionsParser)+
 
 optionsParser:
   '|'? directiveParser % '|'
@@ -44,7 +44,7 @@ primaryParser:
 | '(' ^ optionsParser ')'
 | '>' ^ identifier '<'
 | '@' ^ directive
-| nonTerminal !(directives ':')
+| !(identifier ruleParameterDefinitions directives ':') nonTerminal
 | numberLiteral
 | stringLiteral
 | characterClass
@@ -55,21 +55,30 @@ primaryParser:
 
 # Secondary rules:
 
+nonTerminal:
+  identifier ruleParameters
+
 repetitionRange:
 | '?'
 | '+'
 | '*'
 | '{' value (',' value?)? '}'
 
+ruleParameterDefinitions:
+  ('(' (identifier ('=' optionsParser)?) % ',' ')')?
+
+ruleParameters:
+  ('(' optionsParser? % ',' ')')?
+
 directives:
   directive*
 
 directive:
-| '@' ^ identifier directiveArguments
+| '@' ^ identifier directiveParameters
 | actionTagArgument
 | '=>' value
 
-directiveArguments:
+directiveParameters:
   ('(' value % ',' ')')?
 
 value:
@@ -87,11 +96,8 @@ value:
 identifier @token('identifier'):
   /(\$?[_a-zA-Z][_a-zA-Z0-9]*)/
 
-nonTerminal @token('non-terminal'):
-  identifier
-
 numberLiteral @token('number literal'):
-  /[0-9]+\.?[0-9]*/
+  /[0-9]+\.?[0-9]* /
 
 stringLiteral @token('string literal'):
 | /'((?:[^\\']|\\.)*)'/

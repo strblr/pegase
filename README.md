@@ -12,7 +12,7 @@
 
 - **_Inline_**, meaning grammars are directly expressed as [tagged template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates). No generation step, no CLI. Pegase works in symbiosis with JS.
 - **_Fast_**. Pegase is heavily optimized to be extremely fast while providing an extensive range of features.
-- **_Complete_**. Pegase has *everything* you will ever need: an elegant grammar syntax with a lot of flexibility, semantic actions, support for native regexps, error recovery, warnings, AST generation, AST visitors, cut operator, back references, and a lot more.
+- **_Complete_**. Pegase has *everything* you will ever need: an elegant grammar syntax with a lot of flexibility, semantic actions, parametrized rules, support for native regexps, error recovery, warnings, AST generation, AST visitors, cut operator, back references, and a lot more.
 - **_Lightweight_**. Pegase is a _zero-dependency_ package, and weights around 8kB gzipped.
 - **_Intuitive_**, in that it lets you express complex grammars and semantic processes in very simple ways. You will never feel lost.
 - **_Extensible_**: You can define your own `Parser` subclasses, add plugins, write custom directives, etc.
@@ -131,6 +131,24 @@ const g = peg`
 ```
 
 Read more in [Failures and warnings](https://ostrebler.github.io/pegase/basic-concepts/Failures-and-warnings/).
+
+### Parametrized rules
+
+With the possibility of omitted parameters and default parameter values.
+
+```ts 
+const g = peg`
+	root: array | array('a') | array('b' | 'c')
+  array(item = \d): '[' commaList(item) ']'
+  commaList(item): item % ','
+`;
+
+g.test("[ a, a, a, a]");   // true
+g.test("[ a, 5, a, a]");   // false
+g.test("[b, c]");          // true
+g.test("[b, a]");          // false
+g.test("[4, 5, 3, 9, 0]"); // true
+```
 
 ### Report multiple failures with recovery
 

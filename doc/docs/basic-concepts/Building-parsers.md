@@ -1,3 +1,5 @@
+### Overview
+
 **The `peg` tag accepts any valid Pegase expression and always returns a `Parser` instance.**
 
 Pegase parsers follow the *combinator* paradigm: simple parsers are combined to form more complex parsers. You can read more about it in the [API > `Parser`](/pegase/api/Parser/) section. In the following table are the different expressions you can use as building blocks (`a` and `b` representing any peg expression of higher precedence):
@@ -203,7 +205,7 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
       <td align="center">9</td>
     </tr>
     <tr>
-      <td><pre>id: a<br/>$id: a</br/>id @dir: a</pre>etc.</td>
+      <td><pre>id: a<br/>$id: a</br/>id @dir: a<br/>id(x, y): a<br/>id(p = \d): a</pre>etc.</td>
       <td>Rule. This creates a non-terminal <code>id</code> as an alias to parser <code>a</code>. Rules can be stacked to form <b>grammars</b>. If directives are specified right after the rule name, they are applied to the whole right-side expression <code>a</code>. Adding <code>$</code> at the beginning of a rule name applies an implicit <code>@token</code> directive (the display name in failure reports will be the rule name transformed to space case, i.e. <code>$myToken: a</code> is equivalent to <code>myToken @token("my token"): a</code>).</td>
       <td>Forwarded from the topmost rule</td>
       <td align="center">10</td>

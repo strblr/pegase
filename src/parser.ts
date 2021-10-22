@@ -26,9 +26,6 @@ import {
   Tweaker,
   WarningType
 } from ".";
-import prettier from "prettier";
-
-const format = prettier.format;
 
 // Parser
 
@@ -128,6 +125,7 @@ export abstract class Parser<Value = any, Context = any> {
         return ${children};
       `
     ) as any;
+    return this;
   }
 
   abstract generate(options: CompileOptions): string;
@@ -754,18 +752,16 @@ export class ActionParser extends TweakParser {
 
 // Presets
 
-export const defaultSkipper = new RegexParser(/\s*/);
+export const defaultSkipper = new RegexParser(/\s*/).compile();
 
-export const pegSkipper = new RegexParser(/(?:\s|#[^#\r\n]*[#\r\n])*/);
+export const pegSkipper = new RegexParser(
+  /(?:\s|#[^#\r\n]*[#\r\n])*/
+).compile();
 
 export const endOfInput = new TokenParser(
   new PredicateParser(new RegexParser(/./), false),
   "end of input"
-);
-
-defaultSkipper.compile();
-pegSkipper.compile();
-endOfInput.compile();
+).compile();
 
 export const defaultTracer: Tracer = event => {
   const { at } = event;

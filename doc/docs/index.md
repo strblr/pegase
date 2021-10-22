@@ -1,10 +1,6 @@
 ---
 title: Home
-hide:
-  - toc
 ---
-
-![NPM](https://img.shields.io/npm/l/pegase) ![npm](https://img.shields.io/npm/v/pegase) ![npm bundle size](https://img.shields.io/bundlephobia/minzip/pegase?label=gzip)
 
 <p align="center">  
   <img alt="pegase" src="/pegase/assets/images/pegase.png">  
@@ -12,11 +8,13 @@ hide:
 
 > ⚠️ This library is still under development. This is a pre-release but some functionalities might still change.
 
+### Overview
+
 Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
 
 - **_Inline_**, meaning grammars are directly expressed as [tagged template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates). No generation step, no CLI. Pegase works in symbiosis with JS.
 - **_Fast_**. Pegase is heavily optimized to be extremely fast while providing an extensive range of features.
-- **_Complete_**. Pegase has *everything* you will ever need: an elegant grammar syntax with a lot of flexibility, semantic actions, support for native regexps, error recovery, warnings, AST generation, AST visitors, cut operator, back references, and a lot more.
+- **_Complete_**. Pegase has *everything* you will ever need: an elegant grammar syntax with a lot of flexibility, semantic actions, parametrized rules, support for native regexps, error recovery, warnings, AST generation, AST visitors, cut operator, back references, and a lot more.
 - **_Lightweight_**. Pegase is a _zero-dependency_ package, and weights around 8kB gzipped.
 - **_Intuitive_**, in that it lets you express complex grammars and semantic processes in very simple ways. You will never feel lost.
 - **_Extensible_**: You can define your own `Parser` subclasses, add plugins, write custom directives, etc.
