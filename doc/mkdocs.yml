@@ -16,6 +16,7 @@ nav:
       - basic-concepts/Directives.md
       - basic-concepts/Failures-and-warnings.md
   - Advanced concepts:
+      - advanced-concepts/Parametrized-rules.md
       - advanced-concepts/AST-and-visitors.md
       - advanced-concepts/Working-with-RegExp.md
       - advanced-concepts/Cut-operator.md
