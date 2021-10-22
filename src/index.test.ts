@@ -515,12 +515,15 @@ test("Math expressions should be correctly calculated", () => {
   };
 
   const calc = peg<number>`
-      expr: term % ("+" | "-") @infix(${doop})
-      term: fact % ("*" | "/") @infix(${doop})
-      fact: $number | '(' expr ')'
-      $number @number:
-        '-'? [0-9]+ ('.' [0-9]*)?
-    `;
+    expr: operation(term, "+" | "-")
+    term: operation(fact, "*" | "/")
+    fact: $number | '(' expr ')'
+    $number @number:
+      '-'? [0-9]+ ('.' [0-9]*)?
+      
+    operation(operand, operator):
+      operand % operator @infix(${doop})
+  `;
 
   expect(calc.value("2 + 3")).toBe(5);
   expect(calc.value("2 * 3")).toBe(6);
