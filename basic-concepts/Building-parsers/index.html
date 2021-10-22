@@ -339,6 +339,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#nullary-directives" class="md-nav__link">
+    Nullary directives
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -803,6 +810,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#nullary-directives" class="md-nav__link">
+    Nullary directives
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1063,10 +1077,18 @@
 <h3 id="back-reference">Back reference</h3>
 <pre><code>&gt;id&lt;
 </code></pre>
-<p><strong>Children</strong>: <code>[]</code></p>
-<p><strong>Precedence</strong>: 0</p>
+<p><strong>Children</strong>: <code>[]</code>
+<strong>Precedence</strong>: 0</p>
 <p>Back reference to an earlier string capture. This will matches the string literal captured as <code>id</code>.</p>
 <p>Read more in <a href="https://ostrebler.github.io/pegase/basic-concepts/Semantic-action-and-dataflow/">Semantic action and dataflow</a>.</p>
+<h3 id="nullary-directives">Nullary directives</h3>
+<pre><code>@@dir
+@${func}
+@ =&gt; 'label'
+</code></pre>
+<p><strong>Children</strong>: Directives generate new parsers. So <code>children</code> depends on whatever parser is generated.</p>
+<p><strong>Precedence</strong>: 0</p>
+<p>Syntactic sugar for directives applied to the empty literal parser: <code>'' @dir</code>, <code>'' ${func}</code>, etc. Handy if you don't care about a directive's wrapped parser.</p>
                 
               
               
