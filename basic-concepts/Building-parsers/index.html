@@ -297,6 +297,48 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#any-character" class="md-nav__link">
+    Any character
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#end-of-input" class="md-nav__link">
+    End of input
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epsilon" class="md-nav__link">
+    Epsilon
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cut-operator" class="md-nav__link">
+    Cut operator
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parenthesis" class="md-nav__link">
+    Parenthesis
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#back-reference" class="md-nav__link">
+    Back reference
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -719,6 +761,48 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#any-character" class="md-nav__link">
+    Any character
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#end-of-input" class="md-nav__link">
+    End of input
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epsilon" class="md-nav__link">
+    Epsilon
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cut-operator" class="md-nav__link">
+    Cut operator
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parenthesis" class="md-nav__link">
+    Parenthesis
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#back-reference" class="md-nav__link">
+    Back reference
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -945,6 +1029,50 @@
     </tr>
   </tbody>
 </table>
+<h3 id="any-character">Any character</h3>
+<p><strong>Syntax</strong>:</p>
+<pre><code>.
+</code></pre>
+<p><strong>Children</strong>: <code>[]</code></p>
+<p><strong>Precedence</strong>: 0</p>
+<p>Matches any character.</p>
+<h3 id="end-of-input">End of input</h3>
+<p><strong>Syntax</strong>:</p>
+<pre><code>$
+</code></pre>
+<p><strong>Children</strong>: <code>[]</code></p>
+<p><strong>Precedence</strong>: 0</p>
+<p>Matches the end of the input. This expression is syntactic sugar for <code>!. @token("end of input")</code>. Indeed, the end of the input has been reached when there's no character left, thus when "not any character" (<code>!.</code>) can be evaluated as true.</p>
+<h3 id="epsilon">Epsilon</h3>
+<p><strong>Syntax</strong>:</p>
+<pre><code>ε
+</code></pre>
+<p><strong>Children</strong>: <code>[]</code></p>
+<p><strong>Precedence</strong>: 0</p>
+<p>Matches the empty string. Strictly equivalent to <code>''</code> and always a success.</p>
+<h3 id="cut-operator">Cut operator</h3>
+<p><strong>Syntax</strong>:</p>
+<pre><code>^
+</code></pre>
+<p><strong>Children</strong>: <code>[]</code></p>
+<p><strong>Precedence</strong>: 0</p>
+<p>In an ordered choice expression, the cut operator commits to the current alternative to prevent exploring any further in case it fails. Example : <code>'x' ^ a | b</code> will <strong>not</strong> try <code>b</code> if <code>'x'</code> was found but <code>a</code> failed. Although it's called an <em>operator</em>, it's really a <code>Parser</code> on its own. Used outside an ordered choice expression, it's a no-op.</p>
+<p>Read more in <a href="https://ostrebler.github.io/pegase/advanced-concepts/Cut-operator/">Cut operator</a>.</p>
+<h3 id="parenthesis">Parenthesis</h3>
+<p><strong>Syntax</strong>:</p>
+<pre><code>(a)
+</code></pre>
+<p><strong>Children</strong>: Forwarded from <code>a</code></p>
+<p><strong>Precedence</strong>: 0</p>
+<p>Delegates the parsing to any peg subexpression <code>a</code>.</p>
+<h3 id="back-reference">Back reference</h3>
+<p><strong>Syntax</strong>:</p>
+<pre><code>&gt;id&lt;
+</code></pre>
+<p><strong>Children</strong>: <code>[]</code></p>
+<p><strong>Precedence</strong>: 0</p>
+<p>Back reference to an earlier string capture. This will matches the string literal captured as <code>id</code>.</p>
+<p>Read more in <a href="https://ostrebler.github.io/pegase/basic-concepts/Semantic-action-and-dataflow/">Semantic action and dataflow</a>.</p>
                 
               
               
