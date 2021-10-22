@@ -70,6 +70,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#overview" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -264,9 +269,37 @@
       
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Building parsers
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         Building parsers
       </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    Overview
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -651,6 +684,36 @@
               </div>
             
             
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    Overview
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
           
           <div class="md-content" data-md-component="content">
             <article class="md-content__inner md-typeset">
@@ -659,7 +722,8 @@
                 
                   <h1>Building parsers</h1>
                 
-                <p><strong>The <code>peg</code> tag accepts any valid Pegase expression and always returns a <code>Parser</code> instance.</strong></p>
+                <h3 id="overview">Overview</h3>
+<p><strong>The <code>peg</code> tag accepts any valid Pegase expression and always returns a <code>Parser</code> instance.</strong></p>
 <p>Pegase parsers follow the <em>combinator</em> paradigm: simple parsers are combined to form more complex parsers. You can read more about it in the <a href="/pegase/api/Parser/">API &gt; <code>Parser</code></a> section. In the following table are the different expressions you can use as building blocks (<code>a</code> and <code>b</code> representing any peg expression of higher precedence):</p>
 <table>
   <thead>
@@ -862,7 +926,7 @@
       <td align="center">9</td>
     </tr>
     <tr>
-      <td><pre>id: a<br/>$id: a</br/>id @dir: a</pre>etc.</td>
+      <td><pre>id: a<br/>$id: a</br/>id @dir: a<br/>id(x, y): a<br/>id(p = \d): a</pre>etc.</td>
       <td>Rule. This creates a non-terminal <code>id</code> as an alias to parser <code>a</code>. Rules can be stacked to form <b>grammars</b>. If directives are specified right after the rule name, they are applied to the whole right-side expression <code>a</code>. Adding <code>$</code> at the beginning of a rule name applies an implicit <code>@token</code> directive (the display name in failure reports will be the rule name transformed to space case, i.e. <code>$myToken: a</code> is equivalent to <code>myToken @token("my token"): a</code>).</td>
       <td>Forwarded from the topmost rule</td>
       <td align="center">10</td>

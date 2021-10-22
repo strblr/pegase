@@ -71,7 +71,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#motivation" class="md-skip">
+        <a href="#overview" class="md-skip">
           Skip to content
         </a>
       
@@ -170,8 +170,6 @@
           
             
               
-                
-              
               <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
@@ -238,6 +236,13 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    Overview
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#motivation" class="md-nav__link">
@@ -719,9 +724,7 @@
             
             
               
-                
-              
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" hidden>
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
@@ -735,6 +738,13 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    Overview
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#motivation" class="md-nav__link">
@@ -792,19 +802,19 @@
                 
                   <h1>Home</h1>
                 
-                <p><img alt="NPM" src="https://img.shields.io/npm/l/pegase" /> <img alt="npm" src="https://img.shields.io/npm/v/pegase" /> <img alt="npm bundle size" src="https://img.shields.io/bundlephobia/minzip/pegase?label=gzip" /></p>
-<p align="center">  
+                <p align="center">  
   <img alt="pegase" src="/pegase/assets/images/pegase.png">  
 </p>
 
 <blockquote>
 <p>⚠️ This library is still under development. This is a pre-release but some functionalities might still change.</p>
 </blockquote>
+<h3 id="overview">Overview</h3>
 <p>Pegase is a PEG parser generator for JavaScript and TypeScript. It's:</p>
 <ul>
 <li><strong><em>Inline</em></strong>, meaning grammars are directly expressed as <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates">tagged template literals</a>. No generation step, no CLI. Pegase works in symbiosis with JS.</li>
 <li><strong><em>Fast</em></strong>. Pegase is heavily optimized to be extremely fast while providing an extensive range of features.</li>
-<li><strong><em>Complete</em></strong>. Pegase has <em>everything</em> you will ever need: an elegant grammar syntax with a lot of flexibility, semantic actions, support for native regexps, error recovery, warnings, AST generation, AST visitors, cut operator, back references, and a lot more.</li>
+<li><strong><em>Complete</em></strong>. Pegase has <em>everything</em> you will ever need: an elegant grammar syntax with a lot of flexibility, semantic actions, parametrized rules, support for native regexps, error recovery, warnings, AST generation, AST visitors, cut operator, back references, and a lot more.</li>
 <li><strong><em>Lightweight</em></strong>. Pegase is a <em>zero-dependency</em> package, and weights around 8kB gzipped.</li>
 <li><strong><em>Intuitive</em></strong>, in that it lets you express complex grammars and semantic processes in very simple ways. You will never feel lost.</li>
 <li><strong><em>Extensible</em></strong>: You can define your own <code>Parser</code> subclasses, add plugins, write custom directives, etc.</li>

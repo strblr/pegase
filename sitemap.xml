@@ -2,132 +2,132 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://ostrebler.github.io/pegase/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/Quick-start/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/advanced-concepts/AST-and-visitors/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/advanced-concepts/Cut-operator/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/advanced-concepts/Debugging-with-tracers/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/advanced-concepts/Error-recovery/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/advanced-concepts/L-attributed-grammars/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/advanced-concepts/Using-TypeScript/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/advanced-concepts/Working-with-RegExp/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/advanced-concepts/Writing-a-Parser-subclass/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/advanced-concepts/Writing-a-plugin/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/api/Hooks/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/api/Metagrammar/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/api/Parser/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/api/Types/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/api/Utility-functions/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/api/defaultPlugin/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/api/peg-createTag/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/basic-concepts/Building-parsers/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/basic-concepts/Directives/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/basic-concepts/Failures-and-warnings/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/basic-concepts/Handling-whitespaces/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/basic-concepts/Semantic-action-and-dataflow/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/basic-concepts/Tokens/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/more/Bug-report-and-discussion/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ostrebler.github.io/pegase/more/Ideas/</loc>
-         <lastmod>2021-10-13</lastmod>
+         <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
