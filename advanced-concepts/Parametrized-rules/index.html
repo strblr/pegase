@@ -11,14 +11,14 @@
       
       
       
-        <link rel="canonical" href="https://ostrebler.github.io/pegase/advanced-concepts/Using-TypeScript/">
+        <link rel="canonical" href="https://ostrebler.github.io/pegase/advanced-concepts/Parametrized-rules/">
       
       <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.2.2, mkdocs-material-7.2.8">
     
     
       
-        <title>Using TypeScript - Pegase</title>
+        <title>Parametrized rules - Pegase</title>
       
     
     
@@ -95,7 +95,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Using TypeScript
+              Parametrized rules
             
           </span>
         </div>
@@ -357,11 +357,19 @@
             
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../Parametrized-rules/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         Parametrized rules
       </a>
+      
     </li>
   
 
@@ -417,19 +425,11 @@
             
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../Using-TypeScript/" class="md-nav__link">
         Using TypeScript
       </a>
-      
     </li>
   
 
@@ -669,23 +669,9 @@
               
                 
                 
-                  <h1>Using TypeScript</h1>
+                  <h1>Parametrized rules</h1>
                 
-                <p>Pegase was coded in TypeScript and ships with its own type declarations. The types of <em>all</em> entities, from semantic actions to failure objects, result objects, directives, plugins, etc. can directly be imported from <code>pegase</code>. For a list of all available types, please refer to <a href="/pegase/api/Types">API &gt; Types</a>. Furthermore, the <code>peg</code> tag accepts two optional generics: the first one types the <em>value</em> of the resulting parser, the second types the context option.</p>
-<pre><code class="language-ts">import peg, { $context, $raw, $fail } from &quot;pegase&quot;;
-
-type Context = Map&lt;string, number&gt;;
-
-const g = peg&lt;number, Context&gt;`
-  [a-z]+ ${() =&gt; {
-    const val = $context().get($raw());
-    if (!val) $fail(`Undeclared identifier &quot;${$raw()}&quot;`);
-    else return val;
-  }}
-`;
-
-// g is of type Parser&lt;number, Context&gt;
-</code></pre>
+                <p><em>Coming soon...</em></p>
                 
               
               
@@ -705,7 +691,7 @@ const g = peg&lt;number, Context&gt;`
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../Debugging-with-tracers/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Debugging with tracers" rel="prev">
+        <a href="../../basic-concepts/Failures-and-warnings/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Failures and warnings" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -714,20 +700,20 @@ const g = peg&lt;number, Context&gt;`
               <span class="md-footer__direction">
                 Previous
               </span>
-              Debugging with tracers
+              Failures and warnings
             </div>
           </div>
         </a>
       
       
         
-        <a href="../Error-recovery/" class="md-footer__link md-footer__link--next" aria-label="Next: Error recovery" rel="next">
+        <a href="../AST-and-visitors/" class="md-footer__link md-footer__link--next" aria-label="Next: AST and visitors" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Error recovery
+              AST and visitors
             </div>
           </div>
           <div class="md-footer__button md-icon">

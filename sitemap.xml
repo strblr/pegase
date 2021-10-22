@@ -36,6 +36,11 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://ostrebler.github.io/pegase/advanced-concepts/Parametrized-rules/</loc>
+         <lastmod>2021-10-22</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://ostrebler.github.io/pegase/advanced-concepts/Using-TypeScript/</loc>
          <lastmod>2021-10-22</lastmod>
          <changefreq>daily</changefreq>
