@@ -1,8 +1,3 @@
----
-hide:
-- toc
----
-
 Producing accurate error messages is notoriously difficult when it comes to PEG parsing. That's because when an input error triggers a parse failure, the parser *backtracks* to all the parent alternatives, tries them out, **fails repetitively**, before ultimately exiting with an error. Thus, failures are being emitted way after the one that's relevant. So which one should be displayed ? You also can't just short-exit on the first failure you encounter, since that would prohibit any backtracking and defeat the purpose of PEGs.
 
 **Because of PEG's backtracking nature, a parse failure isn't necessarily an input *error*.**
@@ -25,7 +20,7 @@ These are automatically emitted when a literal, a regexp or a token mismatched, 
 const g = peg`'a' ('b' | 'c' | 'd' @token("the awesome letter d") | ![b-e] .)`;
 ```
 
-#### > `g.parse('ae').logger.toString()`
+**`g.parse('ae').logger.toString()`**
 
 ```
 (1:2) Failure: Expected "b", "c", the awesome letter d or mismatch of "e"
@@ -42,7 +37,7 @@ const g = peg`'a' ('b' | . ${() => {
 }})`;
 ```
 
-#### > `g.parse("ae").logger.toString()`
+**`g.parse("ae").logger.toString()`**
 
 ```
 (1:2) Failure: Expected "b", "c" or "d"
@@ -65,13 +60,13 @@ const g = peg`[a-z]+ ${() => {
 const context = new Map([["foo", 42], ["bar", 18]]);
 ```
 
-#### `g.value("foo", { context })`
+**`g.value("foo", { context })`**
 
 ```js
 42
 ```
 
-#### `g.parse("baz", { context }).logger.toString()`
+**`g.parse("baz", { context }).logger.toString()`**
 
 ```
 (1:1) Failure: Undeclared identifier "baz"
@@ -103,7 +98,7 @@ const p = peg`
 `;
 ```
 
-#### > `p.parse("class test {").logger.toString()`
+**`p.parse("class test {").logger.toString()`**
 
 ```
 (1:7) Warning: Class names should be capitalized

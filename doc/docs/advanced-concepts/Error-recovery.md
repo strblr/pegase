@@ -24,7 +24,7 @@ const g = peg`
 
 Given a erroneous input like `[0, 4, 1, 2, 0, 1]`, the parser won't be able to parse past `4`:
 
-#### > `g.parse("[0, 4, 1, 2, 0, 1]").logger.toString()`
+**`g.parse("[0, 4, 1, 2, 0, 1]").logger.toString()`**
 
 ```
 (1:5) Failure: Expected "0" or "1"
@@ -43,7 +43,7 @@ const g = peg`
 `;
 ```
 
-#### > `g.parse("[0, 4, 1, 2, 0, 1]").logger.toString()`
+**`g.parse("[0, 4, 1, 2, 0, 1]").logger.toString()`**
 
 ```
 (1:5) Failure: Expected "0" or "1"

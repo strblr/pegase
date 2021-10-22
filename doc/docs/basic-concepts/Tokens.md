@@ -1,8 +1,3 @@
----
-hide:
-  - toc
----
-
 To understand the need for a token concept, let's take a look at a quick example. Let's try and write a grammar to match and extract a coma-separated integer list:
 
 ```js
@@ -29,7 +24,7 @@ const intList = peg`
 
 But this doesn't work either, because now you don't allow for whitespaces *before* integers. So a simple `"1 , 1"` would fail when it should not:
 
-#### > `intList.parse("1 , 1").logger.toString();`
+**`intList.parse("1 , 1").logger.toString()`**
 
 ```
 (1:4) Failure: Expected /\d/
@@ -51,7 +46,7 @@ const intList = peg`
 `;
 ```
 
-#### > `intList.parse("23 4, 45").logger.toString()`
+**`intList.parse("23 4, 45").logger.toString()`**
 
 ```
 (1:4) Failure: Expected "," or end of input
@@ -71,7 +66,7 @@ const intList = peg`
 `;
 ```
 
-#### > `intList.parse("12, ").logger.toString()`
+**`intList.parse("12, ").logger.toString()`**
 
 ```
 (1:5) Failure: Expected fancy integer

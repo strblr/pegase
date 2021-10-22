@@ -45,19 +45,19 @@ const expr = peg`
 
 Let's see how this plays out :
 
-#### > `expr.value("2 + (17-2*30) *(-5)+2")`
+**`expr.value("2 + (17-2*30) *(-5)+2")`**
 
 ```json
 219
 ```
 
-#### > `expr.test("2* (4 + )/32")`
+**`expr.test("2* (4 + )/32")`**
 
 ```json
 false
 ```
 
-#### > `expr.parse("2* (4 + )/32").logger.toString()`
+**`expr.parse("2* (4 + )/32").logger.toString()`**
 
 ```
 (1:9) Failure: Expected integer or "("

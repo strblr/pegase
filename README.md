@@ -47,19 +47,19 @@ const expr = peg`
 `;
 ```
 
-#### > `expr.value("2 + (17-2*30) *(-5)+2")`
+**`expr.value("2 + (17-2*30) *(-5)+2")`**
 
 ```json
 219
 ```
 
-#### > `expr.test("2* (4 + )/32")`
+**`expr.test("2* (4 + )/32")`**
 
 ```json
 false
 ```
 
-#### > `expr.parse("2* (4 + )/32").logger.toString()`
+**`expr.parse("2* (4 + )/32").logger.toString()`**
 
 ```
 (1:9) Failure: Expected integer or "("
@@ -116,7 +116,7 @@ const g = peg`
 `;
 ```
 
-#### > `g.parse("class test {").logger.toString()`
+**`g.parse("class test {").logger.toString()`**
 
 ```
 (1:7) Warning: Class names should be capitalized
@@ -160,7 +160,7 @@ const g = peg`
 `;
 ```
 
-#### > `g.parse("[0, 4, 1, 2, 0, 1]").logger.toString()`
+**`g.parse("[0, 4, 1, 2, 0, 1]").logger.toString()`**
 
 ```
 (1:5) Failure: Expected "0" or "1"
