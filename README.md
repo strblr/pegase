@@ -42,7 +42,7 @@ function calc(left, op, right) {
 const expr = peg`  
   expr: term % ("+" | "-") @infix(${calc})  
   term: fact % ("*" | "/") @infix(${calc})  
-  fact: integer | '(' expr ')'
+  fact: $integer | '(' expr ')'
   $integer @number: '-'? [0-9]+
 `;
 ```
@@ -107,7 +107,7 @@ function isCap(str) {
 const g = peg`
   classDef:
     'class'
-    (identifier ${() => {
+    ($identifier ${() => {
       if (!isCap($raw())) $warn("Class names should be capitalized");
     }})
     '{' '}'
@@ -220,7 +220,7 @@ Read more in [Working with RegExp](https://ostrebler.github.io/pegase/advanced-c
 ```ts
 const prefix = peg`
   expr:
-  | <>integer => 'INT'
+  | <>$integer => 'INT'
   | '+' <a>expr <b>expr => 'PLUS'
 
   $integer @raw: \d+
@@ -246,12 +246,12 @@ import peg, { $children } from "pegase";
 
 peg.plugins.push({
   directives: {
-    max: parser => peg`${parser} ${() => Math.max(...$children())}
+    max: parser => peg`${parser} ${() => Math.max(...$children())}`
   }
 });
 
 const max = peg`
-  list: int+ @max
+  list: $int+ @max
   $int: \d+ @number
 `;
 

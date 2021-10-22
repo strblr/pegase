@@ -24,7 +24,7 @@ Now, instead of copy/pasting the semantic action every time you need to convert 
 
 ```ts
 const p = peg`
-  num: int @toNumber
+  num: $int @toNumber
   $int: \d+
 `;
 
@@ -47,7 +47,7 @@ peg.plugins.push({
 
 ```ts
 const p = peg`
-  num: int @toNumber @toBase(16)
+  num: $int @toNumber @toBase(16)
   $int: \d+
 `;
 

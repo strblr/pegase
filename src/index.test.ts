@@ -175,16 +175,17 @@ test("The modulo operator should work", () => {
 });
 
 test("Parametrized rules should work", () => {
-  const a = peg`
-    expr(num = number):
-    | num
-    | operator ^ expr(num) expr(num)
-    
-    operator: "+" | "-" | "*" | "/"
-    $number @raw: [0-9]
+  const g = peg`
+    root: array | array('a') | array('b' | 'c')
+    array(item = \d): '[' commaList(item) ']'
+    commaList(item): item % ','
   `;
 
-  console.log(a.exec!.toString());
+  expect(g.test("[ a, a, a, a]")).toBe(true); // true
+  expect(g.test("[ a, 5, a, a]")).toBe(false); // false
+  expect(g.test("[b, c]")).toBe(true); // true
+  expect(g.test("[b, a]")).toBe(false); // false
+  expect(g.test("[4, 5, 3, 9, 0]")).toBe(true); // true
 });
 
 test("Prefix math expressions should be correctly converted to postfix", () => {

@@ -11,7 +11,7 @@ Let's illustrate that:
 
 ```ts
 const g = peg`
-  array: '[' (number | boolean) % ',' ']'
+  array: '[' ($number | $boolean) % ',' ']'
   $number: \d+
   $boolean: 'true' | 'false'
 `;

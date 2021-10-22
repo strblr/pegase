@@ -79,10 +79,10 @@ const intList = peg`
 
 ```js
 peg`$lowerCaseWord: [a-z]+`;
-// is equivalent to
-peg`lowerCaseWord @token("lower case word"): [a-z]+`;
+// is equivalent, without the sugar, to
+peg`$lowerCaseWord @token("lower case word"): [a-z]+`;
 
 peg`$two_digit_integer: \d{2}`;
 // is equivalent to
-peg`two_digit_integer @token("two digit integer"): \d{2}`;
+peg`$two_digit_integer @token("two digit integer"): \d{2}`;
 ```

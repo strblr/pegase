@@ -21,7 +21,7 @@ Testing it:
 
 ```ts
 const max = peg`
-  list: int+ @max
+  list: $int+ @max
   $int: \d+ @number
 `;
 
