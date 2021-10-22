@@ -689,7 +689,7 @@
 </code></pre>
 <p>Testing it:</p>
 <pre><code class="language-ts">const max = peg`
-  list: int+ @max
+  list: $int+ @max
   $int: \d+ @number
 `;
 

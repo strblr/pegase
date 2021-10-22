@@ -680,7 +680,7 @@
 </ul>
 <p>Let's illustrate that:</p>
 <pre><code class="language-ts">const g = peg`
-  array: '[' (number | boolean) % ',' ']'
+  array: '[' ($number | $boolean) % ',' ']'
   $number: \d+
   $boolean: 'true' | 'false'
 `;

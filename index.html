@@ -793,7 +793,7 @@ function calc(left, op, right) {
 const expr = peg`  
   expr: term % (&quot;+&quot; | &quot;-&quot;) @infix(${calc})  
   term: fact % (&quot;*&quot; | &quot;/&quot;) @infix(${calc})  
-  fact: integer | '(' expr ')'
+  fact: $integer | '(' expr ')'
   $integer @number: '-'? [0-9]+
 `;
 </code></pre>

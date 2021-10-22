@@ -686,7 +686,7 @@
 <p>Please refer to the <a href="/pegase/advanced-concepts/Writing-a-plugin/">Writing a plugin</a> section for more info about plugins.</p>
 <p>Now, instead of copy/pasting the semantic action every time you need to convert a portion of the input into a number, you can simply apply the directive:</p>
 <pre><code class="language-ts">const p = peg`
-  num: int @toNumber
+  num: $int @toNumber
   $int: \d+
 `;
 
@@ -703,7 +703,7 @@ p.value(&quot;65&quot;);    // 65
 });
 </code></pre>
 <pre><code class="language-ts">const p = peg`
-  num: int @toNumber @toBase(16)
+  num: $int @toNumber @toBase(16)
   $int: \d+
 `;
 

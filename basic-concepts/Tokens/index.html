@@ -722,12 +722,12 @@
 </code></pre>
 <p><strong>The <code>$id</code> shortcut</strong>: The pattern that will appear the most is probably <code>fancyToken @token("fancy token")</code>, there will likely be some repetition between the rule name and the display name. That's why Pegase has a shortcut for it: by starting your rule name with a dollar sign, an implicit <code>@token</code> directive is added whose display name is inferred by transforming PascalCase, camelCase and snake_case rule names to space case:</p>
 <pre><code class="language-js">peg`$lowerCaseWord: [a-z]+`;
-// is equivalent to
-peg`lowerCaseWord @token(&quot;lower case word&quot;): [a-z]+`;
+// is equivalent, without the sugar, to
+peg`$lowerCaseWord @token(&quot;lower case word&quot;): [a-z]+`;
 
 peg`$two_digit_integer: \d{2}`;
 // is equivalent to
-peg`two_digit_integer @token(&quot;two digit integer&quot;): \d{2}`;
+peg`$two_digit_integer @token(&quot;two digit integer&quot;): \d{2}`;
 </code></pre>
                 
               
