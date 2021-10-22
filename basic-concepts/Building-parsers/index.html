@@ -1068,19 +1068,22 @@
 <p><strong>Precedence</strong>: 0</p>
 <p>In an ordered choice expression, the cut operator commits to the current alternative to prevent exploring any further in case it fails. Example : <code>'x' ^ a | b</code> will <strong>not</strong> try <code>b</code> if <code>'x'</code> was found but <code>a</code> failed. Although it's called an <em>operator</em>, it's really a <code>Parser</code> on its own. Used outside an ordered choice expression, it's a no-op.</p>
 <p>Read more in <a href="https://ostrebler.github.io/pegase/advanced-concepts/Cut-operator/">Cut operator</a>.</p>
+<hr />
 <h3 id="parenthesis">Parenthesis</h3>
 <pre><code>(a)
 </code></pre>
 <p><strong>Children</strong>: Forwarded from <code>a</code></p>
 <p><strong>Precedence</strong>: 0</p>
 <p>Delegates the parsing to any peg subexpression <code>a</code>.</p>
+<hr />
 <h3 id="back-reference">Back reference</h3>
 <pre><code>&gt;id&lt;
 </code></pre>
-<p><strong>Children</strong>: <code>[]</code>
-<strong>Precedence</strong>: 0</p>
+<p><strong>Children</strong>: <code>[]</code></p>
+<p><strong>Precedence</strong>: 0</p>
 <p>Back reference to an earlier string capture. This will matches the string literal captured as <code>id</code>.</p>
 <p>Read more in <a href="https://ostrebler.github.io/pegase/basic-concepts/Semantic-action-and-dataflow/">Semantic action and dataflow</a>.</p>
+<hr />
 <h3 id="nullary-directives">Nullary directives</h3>
 <pre><code>@@dir
 @${func}
