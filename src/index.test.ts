@@ -26,8 +26,6 @@ function echo(entity: any) {
         if (val instanceof RegExp) return val.toString();
         if (val instanceof Function) return val.toString();
         if (val === Infinity) return "Infinity";
-        if (typeof val === "object" && val !== null && val["$label"])
-          return (({ $match, ...rest }) => rest)(val);
         return val;
       },
       2
@@ -191,7 +189,7 @@ test("Parametrized rules should work", () => {
 test("Prefix math expressions should be correctly converted to postfix", () => {
   const g = peg`
     expr:
-    | number
+    | $number
     | <>operator <e1>expr <e2>expr ${({ operator, e1, e2 }) =>
       [e1, e2, operator].join(" ")}
 
@@ -249,7 +247,7 @@ test("The plugin system should work", () => {
   });
 
   const max = tag`
-    list: int+ @max
+    list: $int+ @max
     $int: \d+ @number
   `;
 
@@ -302,7 +300,7 @@ test("Warnings should work correctly", () => {
   const g = peg`
     class:
       'class'
-      (identifier ${() => {
+      ($identifier ${() => {
         if (!/^[A-Z]/.test($raw())) $warn("Class names should be capitalized");
       }})
       '{' '}'
@@ -327,7 +325,7 @@ test("AST and visitors should work", () => {
   for (let i = 0; i !== 1000; ++i) {
     const g = peg`
       expr:
-      | <>integer ${({ integer }) => $node("INT", { integer })}
+      | <>$integer ${({ $integer }) => $node("INT", { integer: $integer })}
       | "+" <a>expr <b>expr ${({ a, b }) => $node("PLUS", { a, b })}
   
       $integer @raw: \d+
@@ -477,7 +475,7 @@ test("Benchmark between Pegase and competitor", () => {
   const calc = peg<number>`
     expr: term % ("+" | "-") @infix(${lowOp})
     term: fact % ("*" | "/") @infix(${highOp})
-    fact: '(' expr ')' | integer
+    fact: '(' expr ')' | $integer
     $integer @number: [0-9]+
   `;
 
@@ -519,7 +517,7 @@ test("Math expressions should be correctly calculated", () => {
   const calc = peg<number>`
       expr: term % ("+" | "-") @infix(${doop})
       term: fact % ("*" | "/") @infix(${doop})
-      fact: number | '(' expr ')'
+      fact: $number | '(' expr ')'
       $number @number:
         '-'? [0-9]+ ('.' [0-9]*)?
     `;
