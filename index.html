@@ -249,33 +249,6 @@
     Motivation
   </a>
   
-    <nav class="md-nav" aria-label="Motivation">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#exprvalue2-17-230-52" class="md-nav__link">
-    &gt; expr.value("2 + (17-2*30) *(-5)+2")
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#exprtest2-4-32" class="md-nav__link">
-    &gt; expr.test("2* (4 + )/32")
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#exprparse2-4-32loggertostring" class="md-nav__link">
-    &gt; expr.parse("2* (4 + )/32").logger.toString()
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -751,33 +724,6 @@
     Motivation
   </a>
   
-    <nav class="md-nav" aria-label="Motivation">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#exprvalue2-17-230-52" class="md-nav__link">
-    &gt; expr.value("2 + (17-2*30) *(-5)+2")
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#exprtest2-4-32" class="md-nav__link">
-    &gt; expr.test("2* (4 + )/32")
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#exprparse2-4-32loggertostring" class="md-nav__link">
-    &gt; expr.parse("2* (4 + )/32").logger.toString()
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -840,13 +786,13 @@ const expr = peg`
 `;
 </code></pre>
 <p>Let's see how this plays out :</p>
-<h4 id="exprvalue2-17-230-52">&gt; <code>expr.value("2 + (17-2*30) *(-5)+2")</code></h4>
+<p><strong><code>expr.value("2 + (17-2*30) *(-5)+2")</code></strong></p>
 <pre><code class="language-json">219
 </code></pre>
-<h4 id="exprtest2-4-32">&gt; <code>expr.test("2* (4 + )/32")</code></h4>
+<p><strong><code>expr.test("2* (4 + )/32")</code></strong></p>
 <pre><code class="language-json">false
 </code></pre>
-<h4 id="exprparse2-4-32loggertostring">&gt; <code>expr.parse("2* (4 + )/32").logger.toString()</code></h4>
+<p><strong><code>expr.parse("2* (4 + )/32").logger.toString()</code></strong></p>
 <pre><code>(1:9) Failure: Expected integer or &quot;(&quot;
 
 &gt; 1 | 2* (4 + )/32
