@@ -70,11 +70,6 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
-        
-        <a href="#gparseaeloggertostring" class="md-skip">
-          Skip to content
-        </a>
-      
     </div>
     <div data-md-component="announce">
       
@@ -169,8 +164,6 @@
         <div class="md-main__inner md-grid">
           
             
-              
-                
               
               <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
                 <div class="md-sidebar__scrollwrap">
@@ -331,65 +324,9 @@
       
       
       
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Failures and warnings
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
       <a href="./" class="md-nav__link md-nav__link--active">
         Failures and warnings
       </a>
-      
-        
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#gparseaeloggertostring" class="md-nav__link">
-    &gt; g.parse('ae').logger.toString()
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#gparseaeloggertostring_1" class="md-nav__link">
-    &gt; g.parse("ae").logger.toString()
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#gvaluefoo-context" class="md-nav__link">
-    g.value("foo", { context })
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#gparsebaz-context-loggertostring" class="md-nav__link">
-    g.parse("baz", { context }).logger.toString()
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#pparseclass-test-loggertostring" class="md-nav__link">
-    &gt; p.parse("class test {").logger.toString()
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
       
     </li>
   
@@ -714,66 +651,6 @@
               </div>
             
             
-              
-                
-              
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" hidden>
-                <div class="md-sidebar__scrollwrap">
-                  <div class="md-sidebar__inner">
-                    
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#gparseaeloggertostring" class="md-nav__link">
-    &gt; g.parse('ae').logger.toString()
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#gparseaeloggertostring_1" class="md-nav__link">
-    &gt; g.parse("ae").logger.toString()
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#gvaluefoo-context" class="md-nav__link">
-    g.value("foo", { context })
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#gparsebaz-context-loggertostring" class="md-nav__link">
-    g.parse("baz", { context }).logger.toString()
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#pparseclass-test-loggertostring" class="md-nav__link">
-    &gt; p.parse("class test {").logger.toString()
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-                  </div>
-                </div>
-              </div>
-            
           
           <div class="md-content" data-md-component="content">
             <article class="md-content__inner md-typeset">
@@ -795,7 +672,7 @@
 <p>These are automatically emitted when a literal, a regexp or a token mismatched, or if a portion of the input matched where it should not have (cf. <em>negative predicates</em> (<code>!a</code>)).</p>
 <pre><code class="language-js">const g = peg`'a' ('b' | 'c' | 'd' @token(&quot;the awesome letter d&quot;) | ![b-e] .)`;
 </code></pre>
-<h4 id="gparseaeloggertostring">&gt; <code>g.parse('ae').logger.toString()</code></h4>
+<p><strong><code>g.parse('ae').logger.toString()</code></strong></p>
 <pre><code>(1:2) Failure: Expected &quot;b&quot;, &quot;c&quot;, the awesome letter d or mismatch of &quot;e&quot;
 
 &gt; 1 | ae
@@ -806,7 +683,7 @@
   if (![&quot;c&quot;, &quot;d&quot;].includes($raw())) $expected([&quot;c&quot;, &quot;d&quot;]);
 }})`;
 </code></pre>
-<h4 id="gparseaeloggertostring_1">&gt; <code>g.parse("ae").logger.toString()</code></h4>
+<p><strong><code>g.parse("ae").logger.toString()</code></strong></p>
 <pre><code>(1:2) Failure: Expected &quot;b&quot;, &quot;c&quot; or &quot;d&quot;
 
 &gt; 1 | ae
@@ -824,10 +701,10 @@
 
 const context = new Map([[&quot;foo&quot;, 42], [&quot;bar&quot;, 18]]);
 </code></pre>
-<h4 id="gvaluefoo-context"><code>g.value("foo", { context })</code></h4>
+<p><strong><code>g.value("foo", { context })</code></strong></p>
 <pre><code class="language-js">42
 </code></pre>
-<h4 id="gparsebaz-context-loggertostring"><code>g.parse("baz", { context }).logger.toString()</code></h4>
+<p><strong><code>g.parse("baz", { context }).logger.toString()</code></strong></p>
 <pre><code>(1:1) Failure: Undeclared identifier &quot;baz&quot;
 
 &gt; 1 | baz
@@ -852,7 +729,7 @@ const context = new Map([[&quot;foo&quot;, 42], [&quot;bar&quot;, 18]]);
   $identifier: [a-zA-Z]+
 `;
 </code></pre>
-<h4 id="pparseclass-test-loggertostring">&gt; <code>p.parse("class test {").logger.toString()</code></h4>
+<p><strong><code>p.parse("class test {").logger.toString()</code></strong></p>
 <pre><code>(1:7) Warning: Class names should be capitalized
 
 &gt; 1 | class test {
@@ -867,8 +744,6 @@ const context = new Map([[&quot;foo&quot;, 42], [&quot;bar&quot;, 18]]);
 <li>If you want to do more elaborated stuff than to simply pretty-print the logs, like processing them programmatically, you have direct access using the <code>warnings</code> and <code>failures</code> properties on the result object. These are just arrays of objects describing the log events. Please see <a href="/pegase/api/Parser/">API &gt; <code>Parser</code></a> for more details.</li>
 <li>Warnings and failures can also be emitted during AST visits. See <a href="/pegase/advanced-concepts/AST-and-visitors/">Advanced concepts &gt; AST and visitors</a>.</li>
 </ul>
-                
-                  
                 
               
               
