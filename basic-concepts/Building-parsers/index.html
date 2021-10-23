@@ -1064,7 +1064,7 @@
 ('a' 'b' 'c')
 ${jsParser}
 </code></pre>
-<p>Delegates the parsing to a sub-parser. This happens when wrapping a peg expression in parenthesis, or by injecting an external <code>Parser</code> instance via tag argument.</p>
+<p>Delegates the parsing to a sub-parser. This happens when wrapping a peg expression in parentheses, or by injecting an external <code>Parser</code> instance via tag argument.</p>
 <p><strong>Children</strong>: Forwarded from the sub-parser.</p>
 <p><strong>Precedence</strong>: 0</p>
 <hr />
@@ -1260,11 +1260,23 @@ a =&gt; 'label'
 <h3 id="rules-and-grammars">Rules and grammars</h3>
 <pre><code>id: a
 $id: a
-id @dir: a
-id(u, v): a
+id @directive: a
+id(p1, p2): a
+id(p1, p2) @directive: a
 id(p = \d): a
+id(p1, p2 = 'a', p3): a
 </code></pre>
-<p>Rule. This creates a rule as an alias to parser <code>a</code>. Rules can be stacked to form <strong>grammars</strong>. They can also be parametrized and the parameters can take default values. If directives are specified just before <code>:</code>, they are applied to the whole right-side expression <code>a</code>. Adding <code>$</code> at the beginning of a rule name applies an implicit <code>@token</code> directive (the display name in failure reports will be the rule name transformed to space case, i.e. <code>$myToken: a</code> is equivalent to <code>$myToken @token("my token"): a</code>).</p>
+<p>These expressions create rules. Think of rules as alias to peg expressions. Once defined, they can be invoked via non-terminals (see <a href="#non-terminals">Non-terminals</a>). Rules can be stacked to form <strong>grammars</strong>. They can also be parametrized and the parameters can take default values. Since non-terminal invocations can skip any parameter, default parameters values don't need to appear at the last parameter positions.</p>
+<p>If directives are specified just before <code>:</code>, they are applied to the whole right-side expression.</p>
+<p>Adding <code>$</code> at the beginning of a rule name acts as syntactic sugar. It applies an implicit <code>@token</code> directive whose the display name in failure reports will be the rule name transformed to space case. Example: <code>$myToken: a</code> is equivalent to <code>$myToken @token("my token"): a</code>.</p>
+<p>Grammars can be nested by using <a href="#sub-parsers">parentheses</a>:</p>
+<pre><code>r1: 'a' (
+  nested1: 'u' nested2
+  nested2: 'v'
+) r2
+r2: 'b'
+</code></pre>
+<p>Nesting grammars can be used to parametrize entire grammars, or as a separation of concern method.</p>
 <p><strong>Children</strong>: Forwarded from the topmost rule</p>
 <p><strong>Precedence</strong>: 10</p>
                 
