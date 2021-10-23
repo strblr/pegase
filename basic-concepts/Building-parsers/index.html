@@ -1099,8 +1099,10 @@ ${jsParser}
 <hr />
 <h3 id="non-terminals">Non-terminals</h3>
 <pre><code>identifier
+identifier('a', 'c' | 'd')
+identifier('a',, 'd')
 </code></pre>
-<p>Matches the non-terminal. A non-terminal can refer to a <em>grammar rule</em> or to a <em>rule parameter</em>.</p>
+<p>Matches the non-terminal. A non-terminal can refer to a <em>grammar rule</em> or to a <em>rule parameter</em>. Since rules can be parametrized, non-terminals can have parameters. Parameters can be omitted at any place if the corresponding rule defines a default value for them.</p>
 <p><strong>Children</strong>: Forwarded from the non-terminal (<code>identifier</code> in the example)</p>
 <p><strong>Precedence</strong>: 0</p>
 <hr />
