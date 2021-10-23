@@ -306,6 +306,7 @@ Matches `a` but not `b` (fails if `b` succeeds). Strictly equivalent to `!b a`.
 
 ```
 a b
+a b c
 ```
 
 Matches `a` followed by `b`.
@@ -346,6 +347,7 @@ Directives are a powerful and central tool within Pegase. Read more about it in 
 
 ```
 a | b
+| a | b | c
 ```
 
 Ordered choices (or *alternatives*) try their subexpression one by one in order and succeed if a subexpression succeeds. Fails otherwise. Please note that you can add a leading bar for aesthetic purposes.
