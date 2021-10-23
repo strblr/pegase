@@ -25,6 +25,7 @@ import {
   TraceEventType,
   Tracer,
   TweakParser,
+  VisitOptions,
   Visitor,
   Warning,
   WarningType
@@ -321,7 +322,7 @@ export function buildOptions<Context>(
 export function applyVisitor<Value, Context>(
   node: Node,
   visitor: Visitor<Value>,
-  options: Options<Context>,
+  options: VisitOptions<Context>,
   parent: Node | null = null
 ) {
   let value,
@@ -330,8 +331,8 @@ export function applyVisitor<Value, Context>(
   hooks.push({
     $from: () => from,
     $to: () => to,
-    $raw: () => options.input.substring(from.index, to.index),
-    $options: () => options,
+    $raw: () => options.logger.input.substring(from.index, to.index),
+    $options: () => options as any,
     $context: () => options.context,
     $warn(message) {
       options.log &&

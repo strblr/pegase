@@ -172,6 +172,11 @@ export type Node = {
 
 export type Visitor<Value = any> = Record<string, (node: Node) => Value>;
 
+export type VisitOptions<Context = any> = Pick<
+  Options,
+  "logger" | "log" | "context"
+>;
+
 // Related to tracing
 
 export type Tracer<Context = any> = (event: TraceEvent<Context>) => void;
