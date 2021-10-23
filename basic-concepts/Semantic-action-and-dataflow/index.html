@@ -70,6 +70,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#understanding-the-dataflow" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -276,9 +281,58 @@
       
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Semantic action and dataflow
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         Semantic action and dataflow
       </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#understanding-the-dataflow" class="md-nav__link">
+    Understanding the dataflow
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#semantic-actions" class="md-nav__link">
+    Semantic actions
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#captures" class="md-nav__link">
+    Captures
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-emitted-children" class="md-nav__link">
+    Custom emitted children
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -675,6 +729,57 @@
               </div>
             
             
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#understanding-the-dataflow" class="md-nav__link">
+    Understanding the dataflow
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#semantic-actions" class="md-nav__link">
+    Semantic actions
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#captures" class="md-nav__link">
+    Captures
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-emitted-children" class="md-nav__link">
+    Custom emitted children
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
           
           <div class="md-content" data-md-component="content">
             <article class="md-content__inner md-typeset">
@@ -683,7 +788,8 @@
                 
                   <h1>Semantic action and dataflow</h1>
                 
-                <p>Differentiating between faulty and correct inputs is generally only part of the job we expect from a parser. Another big part is to <strong>run routines</strong> and <strong>generate data</strong> as a side-effect. In this section, we'll talk <em>semantic actions</em>, <em>dataflow</em>, <em>parse children</em> and <em>captures</em>.</p>
+                <h3 id="understanding-the-dataflow">Understanding the dataflow</h3>
+<p>Differentiating between faulty and correct inputs is generally only part of the job we expect from a parser. Another big part is to <strong>run routines</strong> and <strong>generate data</strong> as a side-effect. In this section, we'll talk <em>semantic actions</em>, <em>dataflow</em>, <em>parse children</em> and <em>captures</em>.</p>
 <p>PEG parsers are top-down parsers, meaning the peg expressions are recursively invoked in a depth-first manner, guided by a left-to-right input read. This process can be represented as a tree, called concrete syntax tree. Let's illustrate that with the following grammar:</p>
 <pre><code class="language-js">const prefix = peg`
   expr: op expr expr | \d
@@ -708,6 +814,8 @@
 prefix.children(&quot;+ 5 * 2 6&quot;);       // [&quot;+&quot;, &quot;5&quot;, &quot;*&quot;, &quot;2&quot;, &quot;6&quot;]
 </code></pre>
 <p>That can already be pretty useful, but what you usually want to do is to process these <code>children</code> in certain ways at strategic steps during parse time in order to incrementally build your desired output. This is where <em>semantic actions</em> come into play.</p>
+<hr />
+<h3 id="semantic-actions">Semantic actions</h3>
 <p><strong>A semantic action wraps around a <code>Parser</code> and calls a callback on success. If it returns <code>undefined</code>, children will be forwarded. Any other return value will be emitted as a single child.</strong></p>
 <p>Let's take our <code>prefix</code> grammar and say we want to make it generate the input expression in postfix notation (operators <em>after</em> operands). All we need to do is wrap a semantic action around <code>op expr expr</code>, reorder its <code>children</code> to postfix order, join them into a string and emit that string as a single child.</p>
 <pre><code class="language-js">import peg, { $children } from &quot;pegase&quot;;
@@ -736,6 +844,8 @@ prefix.value(&quot;+ 5 * 2 6&quot;);       // &quot;5 2 6 * +&quot;
 </code></pre>
 <p><code>value</code> is <code>undefined</code> if there is no child, or multiple children. You can quickly convince yourself that the <code>prefix</code> grammar can only ever return one child. Thus, except in case of a parse failure, there is always a <code>value</code> to be read from <code>prefix</code>. A well designed peg expression should always have easily predictable <code>children</code> for itself and all its nested parser parts. A quick glimpse at a grammar should always give you a good general picture of the dataflow. In most cases, a good design choice is to ensure that non-terminals always emit only up to one child but that's ultimately up to you.</p>
 <p>Great, but at the end of the day <code>children</code> are just unlabeled propagated values. Sometimes that's what you want (typically when you're parsing list-ish data: a list of phone numbers, a list of operators and operands, a list of arguments to a function, etc.), but very often in semantic actions, you want to be able to grab a specific parser's value by name. This is where <em>captures</em> will come in handy.</p>
+<hr />
+<h3 id="captures">Captures</h3>
 <p><strong>A capture expression <code>&lt;id&gt;a</code> binds the <em>value</em> (the single child) of parser <code>a</code> to the identifier <code>id</code>, which can be used in semantic actions.</strong></p>
 <p>Two things to keep in mind:</p>
 <ul>
@@ -752,6 +862,8 @@ prefix.value(&quot;+ 5 * 2 6&quot;);       // &quot;5 2 6 * +&quot;
 `;
 </code></pre>
 <p>As an exercise, try to rewrite the <code>prefix</code> grammar so that its value is the actual result of the calculation.</p>
+<hr />
+<h3 id="custom-emitted-children">Custom emitted <code>children</code></h3>
 <p>What if you want to emit more than one child, no child at all, or <code>[undefined]</code> from a semantic action ? This has to be done explicitly by calling the <code>$emit</code> hook which takes a custom <code>children</code> array as an argument:</p>
 <pre><code class="language-js">import peg, { $emit } from &quot;pegase&quot;;
 
