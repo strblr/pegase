@@ -23,6 +23,7 @@ nav:
       - advanced-concepts/Debugging-with-tracers.md
       - advanced-concepts/Using-TypeScript.md
       - advanced-concepts/Error-recovery.md
+      - advanced-concepts/Grammar-fragments.md
       - advanced-concepts/Writing-a-plugin.md
       - advanced-concepts/Writing-a-Parser-subclass.md
       - advanced-concepts/L-attributed-grammars.md

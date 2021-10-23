@@ -374,7 +374,7 @@ These expressions create rules. Think of rules as alias to peg expressions. Once
 
 If directives are specified just before `:`, they are applied to the whole right-side expression.
 
-Adding `$` at the beginning of a rule name acts as syntactic sugar. It applies an implicit `@token` directive whose the display name in failure reports will be the rule name transformed to space case. Example: `$myToken: a` is equivalent to `$myToken @token("my token"): a`.
+Adding `$` at the beginning of a rule name acts as syntactic sugar. It applies an implicit `@token` directive whose display name in failure reports will be the rule name transformed to space case. Example: `$myToken: a` is equivalent to `$myToken @token("my token"): a`.
 
 Grammars can be nested by using [parentheses](#sub-parsers):
 

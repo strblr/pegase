@@ -369,6 +369,22 @@ test("AST and visitors should work", () => {
   }
 });
 
+test("Grammar fragmentation should work", () => {
+  const fragment1 = peg`
+    a: 'a' b
+    b: 'b' c
+  `;
+  const fragment2 = peg`
+    c: 'c' d
+    d: 'd' a?
+  `;
+  const p = peg.merge(fragment1, fragment2);
+  expect(p.test("abc")).toBe(false);
+  expect(p.test("abcd")).toBe(true);
+  expect(p.test("abcdabcc")).toBe(false);
+  expect(p.test("abcdabcd")).toBe(true);
+});
+
 test("Failure recovery should work", () => {
   const g = peg`
     bitArray: '[' (bit | sync) % ',' ']'

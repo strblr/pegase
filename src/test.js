@@ -3,10 +3,10 @@ function anonymous(options, links) {
   var assign = links.assign;
   var skip = links.skip;
   var trace = links.trace;
-  var _b = links._b;
+  var _6 = links._6;
+  var _7 = links._7;
   var _c = links._c;
-  var _f = links._f;
-  var _g = links._g;
+  var _d = links._d;
   var _0;
   var _1 = {};
 
@@ -14,12 +14,38 @@ function anonymous(options, links) {
     var _2;
     var _3 = {};
 
-    if (options.trace) {
-      _2 = trace("b", options, function () {
-        return r_b();
-      });
-    } else {
-      _2 = r_b();
+    if (!skip(options)) _2 = null;
+    else {
+      options.to = options.from + _6.length;
+      var _8 = options.input.substring(options.from, options.to);
+      if (options.ignoreCase ? _6 === _8.toLowerCase() : _6 === _8)
+        _2 = nochild;
+      else {
+        _2 = null;
+        options.log && options._ffExpect(options.from, _7);
+      }
+    }
+
+    if (_2 !== null) {
+      var _5 = options.from;
+      var _4 = _2.concat();
+
+      options.from = options.to;
+
+      if (options.trace) {
+        _2 = trace("b", options, function () {
+          return r_b();
+        });
+      } else {
+        _2 = r_b();
+      }
+
+      if (_2 !== null) {
+        _4.push.apply(_4, _2);
+
+        options.from = _5;
+        _2 = _4;
+      }
     }
 
     return _2;
@@ -31,78 +57,36 @@ function anonymous(options, links) {
 
     if (!skip(options)) _2 = null;
     else {
-      var _5 = options.skip;
-      options.skip = false;
-
-      function r_u() {
-        var _7;
-        var _8 = {};
-
-        if (!skip(options)) _7 = null;
-        else {
-          options.to = options.from + _b.length;
-          var _d = options.input.substring(options.from, options.to);
-          if (options.ignoreCase ? _b === _d.toLowerCase() : _b === _d)
-            _7 = nochild;
-          else {
-            _7 = null;
-            options.log && options._ffExpect(options.from, _c);
-          }
-        }
-
-        if (_7 !== null) {
-          var _a = options.from;
-          var _9 = _7.concat();
-
-          options.from = options.to;
-
-          if (options.trace) {
-            _7 = trace("v", options, function () {
-              return r_v();
-            });
-          } else {
-            _7 = r_v();
-          }
-
-          if (_7 !== null) {
-            _9.push.apply(_9, _7);
-
-            options.from = _a;
-            _7 = _9;
-          }
-        }
-
-        return _7;
+      options.to = options.from + _c.length;
+      var _e = options.input.substring(options.from, options.to);
+      if (options.ignoreCase ? _c === _e.toLowerCase() : _c === _e)
+        _2 = nochild;
+      else {
+        _2 = null;
+        options.log && options._ffExpect(options.from, _d);
       }
+    }
 
-      function r_v() {
-        var _7;
-        var _8 = {};
+    if (_2 !== null) {
+      var _b = options.from;
+      var _a = _2.concat();
 
-        if (!skip(options)) _7 = null;
-        else {
-          options.to = options.from + _f.length;
-          var _h = options.input.substring(options.from, options.to);
-          if (options.ignoreCase ? _f === _h.toLowerCase() : _f === _h)
-            _7 = nochild;
-          else {
-            _7 = null;
-            options.log && options._ffExpect(options.from, _g);
-          }
-        }
-
-        return _7;
-      }
+      options.from = options.to;
 
       if (options.trace) {
-        _2 = trace("u", options, function () {
-          return r_u();
+        _2 = trace("c", options, function () {
+          return r_c();
         });
       } else {
-        _2 = r_u();
+        _2 = r_c();
       }
 
-      options.skip = _5;
+      if (_2 !== null) {
+        _a.push.apply(_a, _2);
+
+        options.from = _b;
+        _2 = _a;
+      }
     }
 
     return _2;
