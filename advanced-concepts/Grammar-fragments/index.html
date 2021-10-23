@@ -11,14 +11,14 @@
       
       
       
-        <link rel="canonical" href="https://ostrebler.github.io/pegase/advanced-concepts/Error-recovery/">
+        <link rel="canonical" href="https://ostrebler.github.io/pegase/advanced-concepts/Grammar-fragments/">
       
       <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.2.2, mkdocs-material-7.2.8">
     
     
       
-        <title>Error recovery - Pegase</title>
+        <title>Grammar fragments - Pegase</title>
       
     
     
@@ -95,7 +95,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Error recovery
+              Grammar fragments
             
           </span>
         </div>
@@ -164,8 +164,6 @@
         <div class="md-main__inner md-grid">
           
             
-              
-                
               
               <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
                 <div class="md-sidebar__scrollwrap">
@@ -431,6 +429,18 @@
             
   
   
+  
+    <li class="md-nav__item">
+      <a href="../Error-recovery/" class="md-nav__link">
+        Error recovery
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
     
   
   
@@ -441,21 +451,9 @@
       
       
       <a href="./" class="md-nav__link md-nav__link--active">
-        Error recovery
-      </a>
-      
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../Grammar-fragments/" class="md-nav__link">
         Grammar fragments
       </a>
+      
     </li>
   
 
@@ -683,53 +681,9 @@
               
                 
                 
-                  <h1>Error recovery</h1>
+                  <h1>Grammar fragments</h1>
                 
-                <p>Sometimes you may need to keep parsing even after encountering what would otherwise be a fatal input error. This is the case in various compilers to report as many errors and warnings as possible in a single pass. It's also common practice in most advanced code editors in order to provide correct syntax highlighting and autocompletion even when you're not done typing.</p>
-<p>The way Pegase works without error recovery is described in <a href="/pegase/basic-concepts/Failures-and-warnings">Basic concepts &gt; Failures and warnings</a>: failures may be an instruction to backtrack or the sign of an actual input error. That's why emitted failures are not directly collected into an array, they are emitted as <em>candidates</em> and sorted out using the farthest failure heuristic. The general idea of error recovery is to <em>commit</em> the current farthest failure to the final failures array, and resume parsing after <em>skipping</em> the erroneous input section. Here is how it's done with Pegase:</p>
-<ul>
-<li>Identify the subsection of your peg expression that you wanna recover from.</li>
-<li>Add an alternative to this subsection. In it:</li>
-<li>Commit the current farthest failure by using the <code>$commit</code> hook or the <code>@commit</code> directive.</li>
-<li>Identify an expression / terminal / set of terminals you're likely to find <em>after</em> the erroneous portion and <em>from where the parsing can resume from</em>. This is called a <strong>synchronization expression</strong>. In C-like languages, it could be the semi-colon <code>;</code> or a closing block bracket <code>}</code> for example.</li>
-<li>Skip input character by character until that expression is found. This is called <em>synchronization</em> and can be achieved by using the <code>...</code> operator, called sync operator. The peg expression <code>...a</code> is in fact syntactic sugar for <code>(!a .)* a</code>. See <a href="/pegase/basic-concepts/Building-parsers/">Basic concepts &gt; Building parsers</a>.</li>
-</ul>
-<p>Here is a grammar that parses an array of bits:</p>
-<pre><code class="language-ts">const g = peg`
-  bitArray: '[' bit % ',' ']'
-  bit: 0 | 1
-`;
-</code></pre>
-<p>Given a erroneous input like <code>[0, 4, 1, 2, 0, 1]</code>, the parser won't be able to parse past <code>4</code>:</p>
-<p><strong><code>g.parse("[0, 4, 1, 2, 0, 1]").logger.toString()</code></strong></p>
-<pre><code>(1:5) Failure: Expected &quot;0&quot; or &quot;1&quot;
-
-&gt; 1 | [0, 4, 1, 2, 0, 1]
-    |     ^
-</code></pre>
-<p>If we want to report <em>every</em> faulty bit, we need to add an alternative to <code>bit</code> where we'll commit the current farthest failure and sync the parser. To do the latter, we need to identify a synchronization expression. The question to ask here is: <em>"What can follow a <code>bit</code> ?"</em>. The answer is <code>','</code> or <code>']'</code>. Which gives us:</p>
-<pre><code class="language-ts">const g = peg`
-  bitArray: '[' (bit | sync) % ',' ']'
-  bit: 0 | 1
-  sync: @@commit ...&amp;(',' | ']')
-`;
-</code></pre>
-<p><strong><code>g.parse("[0, 4, 1, 2, 0, 1]").logger.toString()</code></strong></p>
-<pre><code>(1:5) Failure: Expected &quot;0&quot; or &quot;1&quot;
-
-&gt; 1 | [0, 4, 1, 2, 0, 1]
-    |     ^
-
-(1:11) Failure: Expected &quot;0&quot; or &quot;1&quot;
-
-&gt; 1 | [0, 4, 1, 2, 0, 1]
-    |           ^
-</code></pre>
-<p><strong>Be aware</strong>: the <code>success</code> status of the parsing will be <code>true</code>. With error recovery, a successful parsing doesn't necessarily imply "no failure", it just tells you that the parsing was able to finish successfully. This is indeed what <em>recovery</em> means. To check if there are any failures, check the size of the <code>failures</code> array:</p>
-<pre><code class="language-ts">g.parse(&quot;[1, 0, 1, 3, 0, 1, 2, 1]&quot;).logger.failures.length !== 0 // true
-</code></pre>
-                
-                  
+                <p><em>Coming soon...</em></p>
                 
               
               
@@ -749,7 +703,7 @@
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../Using-TypeScript/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Using TypeScript" rel="prev">
+        <a href="../Error-recovery/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Error recovery" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -758,20 +712,20 @@
               <span class="md-footer__direction">
                 Previous
               </span>
-              Using TypeScript
+              Error recovery
             </div>
           </div>
         </a>
       
       
         
-        <a href="../Grammar-fragments/" class="md-footer__link md-footer__link--next" aria-label="Next: Grammar fragments" rel="next">
+        <a href="../Writing-a-plugin/" class="md-footer__link md-footer__link--next" aria-label="Next: Writing a plugin" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Grammar fragments
+              Writing a plugin
             </div>
           </div>
           <div class="md-footer__button md-icon">

@@ -31,6 +31,11 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://ostrebler.github.io/pegase/advanced-concepts/Grammar-fragments/</loc>
+         <lastmod>2021-10-23</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://ostrebler.github.io/pegase/advanced-concepts/L-attributed-grammars/</loc>
          <lastmod>2021-10-23</lastmod>
          <changefreq>daily</changefreq>
