@@ -181,10 +181,12 @@ export class LiteralParser extends Parser {
 
 export class RegexParser extends Parser {
   readonly regex: RegExp;
+  private readonly hasCaptures: boolean;
 
   constructor(regex: RegExp) {
     super();
     this.regex = regex;
+    this.hasCaptures = /\(\?<[\w]+>/.test(this.regex.toString());
   }
 
   generate(options: CompileOptions): string {
@@ -207,7 +209,11 @@ export class RegexParser extends Parser {
         ${usedRegex}.lastIndex = options.from;
         var ${result} = ${usedRegex}.exec(options.input);
         if(${result} !== null) {
-          if (${result}.groups) assign(${options.captures}, ${result}.groups);
+          ${
+            this.hasCaptures
+              ? `if (${result}.groups) assign(${options.captures}, ${result}.groups);`
+              : ""
+          }
           options.to = options.from + ${result}[0].length;
           ${options.children} = ${result}.slice(1);
         } else {
