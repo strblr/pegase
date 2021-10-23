@@ -339,7 +339,7 @@ const metaparser = new GrammarParser([
         new SequenceParser([
           new LiteralParser("("),
           new CutParser(),
-          new NonTerminalParser("optionsParser"),
+          new NonTerminalParser("parser"),
           new LiteralParser(")")
         ]),
         new ActionParser(

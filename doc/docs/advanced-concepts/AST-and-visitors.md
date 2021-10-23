@@ -28,7 +28,7 @@ The specifics of how this happens is totally up to you (see [Basic concepts > Se
 ```ts
 const prefix = peg`
   expr:
-  | <>integer ${({ integer }) => $node("INT", { integer })}
+  | <>$integer ${({ $integer }) => $node("INT", { $integer })}
   | '+' <a>expr <b>expr ${({ a, b }) => $node("PLUS", { a, b })}
 
   $integer @raw: \d+
@@ -46,19 +46,19 @@ You may have noticed that the custom node fields are the captures. This is actua
 ```ts
 const prefix = peg`
   expr:
-  | <>integer @node('INT')
+  | <>$integer @node('INT')
   | '+' <a>expr <b>expr @node('PLUS')
 
   $integer @raw: \d+
 `;
 ```
 
-But it gets even better. Just like `$` rules are syntactic sugar for `@token` rules, the `=>` operator is syntactic sugar for `@node`:
+But it gets even better. Just like `$` rules are syntactic sugar for `@token` rules, the `=>` operator is syntactic sugar for the `@node` directive:
 
 ```ts
 const prefix = peg`
   expr:
-  | <>integer => 'INT'
+  | <>$integer => 'INT'
   | '+' <a>expr <b>expr => 'PLUS'
 
   $integer @raw: \d+
@@ -72,7 +72,7 @@ To illustrate that, let's parse complex numbers written in the form *"a + bi"*. 
 ```ts
 const complex = peg`
   complex:
-    <r>num <i>('+' num 'i')?
+    <r>$num <i>('+' $num 'i')?
       @node('COMPLEX', ${({ i }) => ({ i: i || 0 })})
 
   $num @number: \d+
@@ -108,7 +108,7 @@ Let's build a simple visitor that transforms the output `Node` of our previous `
 ```ts
 const prefix = peg`
   expr:
-  | <>integer => 'INT'
+  | <>$integer => 'INT'
   | '+' <a>expr <b>expr => 'PLUS'
 
   $integer @raw: \d+
@@ -135,7 +135,7 @@ Let's dive a bit deeper: how would you implement a visitor that calculates the s
 
 ```ts
 const sumVisitor = {
-  INT: node => Number(node.integer),
+  INT: node => Number(node.$integer),
   PLUS: node => $visit(node.a) + $visit(node.b)
 };
 
@@ -143,12 +143,12 @@ prefix.value("182", { visit: sumVisitor });         // 182
 prefix.value("+ 12 + 42 3", { visit: sumVisitor }); // 57
 ```
 
-Next, to illustrate visitor piping, we're going to add a visitor right before `sumVisitor` that preserves the AST but *doubles* the `integer` value of `INT` nodes. This basically implies that each visitor callback will have to be an identity function, returning the node it was passed and only performing side-effects. For `INT` nodes, the side-effect is to double the value. For `PLUS` nodes, it's to visit the child nodes. Giving us:
+Next, to illustrate visitor piping, we're going to add a visitor right before `sumVisitor` that preserves the AST but *doubles* the `$integer` value of `INT` nodes. This basically implies that each visitor callback will have to be an identity function, returning the node it was passed and only performing side-effects. For `INT` nodes, the side-effect is to double the value. For `PLUS` nodes, it's to visit the child nodes. Giving us:
 
 ```ts
 const doubleVisitor = {
   INT: node => {
-    node.integer *= 2;
+    node.$integer *= 2;
     return node;
   },
   PLUS: node => {
@@ -169,8 +169,8 @@ You get the idea. Have fun !
 ```ts
 const sumVisitor = {
   INT: node => {
-    if (node.integer === "42") $warn("42 is too powerful");
-    return Number(node.integer);
+    if (node.$integer === "42") $warn("42 is too powerful");
+    return Number(node.$integer);
   },
   PLUS: node => $visit(node.a) + $visit(node.b)
 };

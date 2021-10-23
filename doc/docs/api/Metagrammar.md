@@ -41,7 +41,7 @@ primaryParser:
 | '$' - identifier
 | 'ε'
 | '^'
-| '(' ^ optionsParser ')'
+| '(' ^ parser ')'
 | '>' ^ identifier '<'
 | '@' ^ directive
 | !(identifier ruleParameterDefinitions directives ':') nonTerminal

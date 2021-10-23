@@ -227,7 +227,7 @@ const prefix = peg`
 `;
 
 const sumVisitor = {
-  INT: node => Number(node.integer),
+  INT: node => Number(node.$integer),
   PLUS: node => $visit(node.a) + $visit(node.b)
 };
 

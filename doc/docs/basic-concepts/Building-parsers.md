@@ -1,215 +1,392 @@
-### Overview
-
 **The `peg` tag accepts any valid Pegase expression and always returns a `Parser` instance.**
 
-Pegase parsers follow the *combinator* paradigm: simple parsers are combined to form more complex parsers. You can read more about it in the [API > `Parser`](/pegase/api/Parser/) section. In the following table are the different expressions you can use as building blocks (`a` and `b` representing any peg expression of higher precedence):
+Pegase parsers follow the *combinator* paradigm: simple parsers are combined to form more complex parsers. You can read more about it in the [`Parser`](/pegase/api/Parser/) section. In the following sections are the different expressions you can use as building blocks. To see the exact grammar of pegs (called metagrammar), please refer to the [Metagrammar](/pegase/api/Metagrammar/) page.
 
-<table>
-  <thead>
-    <tr>
-      <th>Pegase</th>
-      <th>Description</th>
-      <th>Children</th>
-      <th>Precedence</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><pre>.</pre></td>
-      <td>Matches any character</td>
-      <td><code>[]</code></td>
-      <td align="center" rowspan="16">0</td>
-    </tr>
-    <tr>
-      <td><pre>$</pre></td>
-      <td>Matches the end of the input (equivalent to <code>!. @token("end of input")</code>)</td>
-      <td><code>[]</code></td>
-    </tr>
-    <tr>
-      <td><pre>ε</pre></td>
-      <td>Matches the empty string. Equivalent to <code>''</code> and always a success.</td>
-      <td><code>[]</code></td>
-    </tr>
-    <tr>
-      <td><pre>^</pre></td>
-      <td>The cut operator. Always a success, commits to an alternative to prevent exploring any further in an ordered choice expression. Example : <code>'x' ^ a &#124; b</code> will <b>not</b> try <code>b</code> if <code>'x'</code> was found but <code>a</code> failed.</td>
-      <td><code>[]</code></td>
-    </tr>
-    <tr>
-      <td><pre>(a)</pre></td>
-      <td>Matches <code>a</code></td>
-      <td>Forwarded from <code>a</code></td>
-    </tr>
-    <tr>
-      <td><pre>>id<</pre></td>
-      <td>Back reference. Matches the string literal captured as <code>id</code>.</td>
-      <td><code>[]</code></td>
-    </tr>
-    <tr>
-      <td><pre>@@dir<br/>@${func}<br/>@ => 'label'</pre>etc.</td>
-      <td>Syntactic sugar for directives applied to the empty literal parser: <code>'' @dir</code>, <code>'' ${func}</code>, etc. Handy if you don't care about a directive's wrapped parser.</td>
-      <td>Directives generate new parsers. So <code>children</code> depends on whatever parser is generated.</td>
-    </tr>
-    <tr>
-      <td><pre>identifier</pre></td>
-      <td>Matches the non-terminal <code>identifier</code></td>
-      <td>Forwarded from the non-terminal <code>identifier</code></td>
-    </tr>
-    <tr>
-      <td><pre>'literal'</pre></td>
-      <td>Matches the string <i>"literal"</i></td>
-      <td><code>[]</code></td>
-    </tr>
-    <tr>
-      <td><pre>"literal"</pre></td>
-      <td>Matches the string <i>"literal"</i></td>
-      <td><code>["literal"]</code></td>
-    </tr>
-    <tr>
-      <td><pre>42</pre></td>
-      <td>Matches the number literally (equivalent to <code>'42'</code>)</td>
-      <td><code>[]</code></td>
-    </tr>
-    <tr>
-      <td><pre>${arg}</pre></td>
-      <td>Template tag argument (<code>arg</code> is a JS expression). It can be a number (matches the number literally), a string (matches the string), a <code>RegExp</code> (matches the regular expression), or a <code>Parser</code> instance. Plugins can add support for additionnal values.</td>
-      <td>If <code>arg</code> is a string or a number: <code>[]</code>. If <code>arg</code> is a <code>RegExp</code>, it emits its capturing groups (if any). If <code>arg</code> is a <code>Parser</code> instance, its children are forwarded.</td>
-    </tr>
-    <tr>
-      <td><pre>[a-zA-Z]</pre></td>
-      <td>Matches one character in the given character class (same syntax as <code>RegExp</code> character classes)</td>
-      <td><code>[]</code></td>
-    </tr>
-    <tr>
-      <td><pre>[^a-zA-Z]</pre></td>
-      <td>Matches one character <b>not</b> in the given character class (same syntax as <code>RegExp</code> negated character classes)</td>
-      <td><code>[]</code></td>
-    </tr>
-    <tr>
-      <td><pre>\n<br/>\s<br/>\xAF<br/>\uA6F1</pre>etc.</td>
-      <td>Matches the escaped metacharacter as a <code>RegExp</code> expression (i.e. <code>\s</code> matches any whitespace, <code>\S</code> any non-whitespace, <code>\uA6F1</code> matches the unicode character <code>A6F1</code>, etc. (<a href="https://www.w3schools.com/jsref/jsref_obj_regexp.asp">See <code>RegExp</code> documentation</a> for a complete list of supported metacharacters).</td>
-      <td><code>[]</code></td>
-    </tr>
-    <tr>
-      <td><pre>/ab/<br/>/\w+/<br/>/(\d+):(\d+)/</pre>etc.</td>
-      <td>Matches the regex (same syntax as JS' <code>RegExp</code> literals)</td>
-      <td>The regex's capturing groups</td>
-    </tr>
-    <tr>
-      <td><pre>a?</pre></td>
-      <td>Matches zero or one <code>a</code></td>
-      <td>Forwarded from <code>a</code></td>
-      <td align="center" rowspan="6">1</td>
-    </tr>
-    <tr>
-      <td><pre>a+</pre></td>
-      <td>Matches one or more <code>a</code></td>
-      <td>Forwarded and concatenated from <code>a</code></td>
-    </tr>
-    <tr>
-      <td><pre>a*</pre></td>
-      <td>Matches zero or more <code>a</code></td>
-      <td>Forwarded and concatenated from <code>a</code></td>
-    </tr>
-    <tr>
-      <td><pre>a{4}</pre></td>
-      <td>Matches <code>a</code> exactly 4 times. Please note that quantifiers can be parametrized by tag argument: <code>a{${n}}</code>, where <code>n</code> is a JS expression.</td>
-      <td>Forwarded and concatenated from <code>a</code></td>
-    </tr>
-    <tr>
-      <td><pre>a{4, 15}</pre></td>
-      <td>Matches <code>a</code> between 4 and 15 times</td>
-      <td>Forwarded and concatenated from <code>a</code></td>
-    </tr>
-    <tr>
-      <td><pre>a{4,}</pre></td>
-      <td>Matches <code>a</code> at least 4 times</td>
-      <td>Forwarded and concatenated from <code>a</code></td>
-    </tr>
-    <tr>
-      <td><pre>&amp;a</pre></td>
-      <td>Matches <code>a</code> without consuming any input</td>
-      <td><code>[]</code></td>
-      <td align="center" rowspan="2">2</td>
-    </tr>
-    <tr>
-      <td><pre>!a</pre></td>
-      <td>Succeeds if <code>a</code> fails and vice-versa, doesn't consume input</td>
-      <td><code>[]</code></td>
-    </tr>
-    <tr>
-      <td><pre>&lt;id&gt;a</pre></td>
-      <td>If <code>a</code> emits a single child (called <i>value of <code>a</code></i>), it's captured and assigned to the identifier <i>"id"</i>, which can then be used in semantic actions and back references. Otherwise, <i>"id"</i> will be set to <code>undefined</code>.</td>
-      <td>Forwarded from <code>a</code></td>
-      <td align="center" rowspan="4">3</td>
-    </tr>
-    <tr>
-      <td><pre>&lt;&gt;id</pre></td>
-      <td>Shortcut for <code>&lt;id&gt;id</code>, where <code>id</code> is a non-terminal</td>
-      <td>Forwarded from the non-terminal <code>id</code></td>
-    </tr>
-    <tr>
-      <td><pre>&lt;...id&gt;a</pre></td>
-      <td>Captures the children of <code>a</code> and assigns them to the identifier <i>"id"</i> as an array</td>
-      <td>Forwarded from <code>a</code></td>
-    </tr>
-    <tr>
-      <td><pre>&lt;...&gt;id</pre></td>
-      <td>Shortcut for <code>&lt;...id&gt;id</code>, where <code>id</code> is a non-terminal</td>
-      <td>Forwarded from the non-terminal <code>id</code></td>
-    </tr>
-    <tr>
-      <td><pre>...a</pre></td>
-      <td>Skips input character by character until <code>a</code> is matched. This can be used to implement <i>synchronization</i> to recover from errors and is equivalent to <code>(!a .)* a</code>. Write <code>...&amp;a</code> if you want to sync to <code>a</code> without consuming <code>a</code>. See <a href="#failure-recovery">Failure recovery</a>.</td>
-      <td>Forwarded from <code>a</code></td>
-      <td align="center">4</td>
-    </tr>
-    <tr>
-      <td><pre>a % b<br/>a %? b<br/>a %{3} b<br/>a %{3,} b</pre>etc.</td>
-      <td>Matches a sequence of <code>a</code> separated by <code>b</code>. The <code>%</code> operator can be parametrized using the quantifiers described above. <code>a % b</code> is equivalent to <code>a (b a)*</code>, <code>a %? b</code> to <code>a (b a)?</code>, etc.</td>
-      <td>Forwarded and concatenated from the matched sequence of <code>a</code> and <code>b</code></td>
-      <td align="center">5</td>
-    </tr>
-    <tr>
-      <td><pre>a - b</pre></td>
-      <td>Matches <code>a</code> but not <code>b</code> (fails if <code>b</code> succeeds). Equivalent to <code>!b a</code>.</td>
-      <td>Forwarded from <code>a</code></td>
-      <td align="center">6</td>
-    </tr>
-    <tr>
-      <td><pre>a b</pre></td>
-      <td>Matches <code>a</code> followed by <code>b</code></td>
-      <td>Forwarded and concatenated from <code>a</code> and <code>b</code></td>
-      <td align="center">7</td>
-    </tr>
-    <tr>
-      <td><pre>a @dir<br/>a @dir(x, y)<br/>a @dir(x, ${y})<br/>a @dir @other</pre>etc.</td>
-      <td>Applies the directive(s) to the parser <code>a</code>. Directives are functions that take a parser and return a new parser. They can take additional arguments and can be chained.</td>
-      <td>Directives generate new parsers. So <code>children</code> depends on whatever parser is generated.</td>
-      <td align="center" rowspan="3">8</td>
-    </tr>
-    <tr>
-      <td><pre>a ${func}</pre></td>
-      <td>Semantic action. <code>func</code> is a JS function passed as tag argument. It will be called if <code>a</code> succeeds and will receive <code>a</code>'s captures as a single object argument. This is in fact a shortcut for <code>a @action(${func})</code> and can thus be chained with other directives as described above.</td>
-      <td><code>[&lt;return value of func&gt;]</code> if that value is different than <code>undefined</code>, otherwise forwarded from <code>a</code></td>
-    </tr>
-    <tr>
-      <td><pre>a => 'label'</pre></td>
-      <td>Shortcut for <code>a @node('label')</code>. It will generate a Pegase node labeled <i>"label"</i> and emit it as a single child. See <a href="#ast-and-visitors">AST and visitors</a>. The label value can be inserted via tag argument: <code>a => ${str}</code>, where <code>str</code> is a JS string.</td>
-      <td><code>[&lt;the generated node&gt;]</code></td>
-    </tr>
-    <tr>
-      <td><pre>a | b</pre></td>
-      <td>Ordered choice. Succeeds if <code>a</code> or <code>b</code> succeeds (order matters). Please note that you can add a leading bar for aesthetic purposes.</td>
-      <td>Forwarded from <code>a</code> or <code>b</code></td>
-      <td align="center">9</td>
-    </tr>
-    <tr>
-      <td><pre>id: a<br/>$id: a</br/>id @dir: a<br/>id(u, v): a<br/>id(p = \d): a</pre>etc.</td>
-      <td>Rule. This creates a rule as an alias to parser <code>a</code>. Rules can be stacked to form <b>grammars</b>. They can also be parametrized and the parameters can take default values. If directives are specified just before <code>:</code>, they are applied to the whole right-side expression <code>a</code>. Adding <code>$</code> at the beginning of a rule name applies an implicit <code>@token</code> directive (the display name in failure reports will be the rule name transformed to space case, i.e. <code>$myToken: a</code> is equivalent to <code>$myToken @token("my token"): a</code>).</td>
-      <td>Forwarded from the topmost rule</td>
-      <td align="center">10</td>
-    </tr>
-  </tbody>
-</table>
+---
+
+### Any character
+
+```
+.
+```
+
+Matches any character.
+
+**Children**: `[]`
+
+**Precedence**: 0
+
+---
+
+### End of input
+
+```
+$
+```
+
+Matches the end of the input. This expression is syntactic sugar for `!. @token("end of input")`. Indeed, the end of the input has been reached when there's no character left, thus when "not any character" (`!.`) can be evaluated as true.
+
+**Children**: `[]`
+
+**Precedence**: 0
+
+---
+
+### Epsilon
+
+```
+ε
+```
+
+Matches the empty string. Strictly equivalent to `''` and always a success.
+
+**Children**: `[]`
+
+**Precedence**: 0
+
+---
+
+### Cut operator
+
+```
+^
+```
+
+In an ordered choice expression, the cut operator commits to the current alternative to prevent exploring any further in case it fails. Example : `'x' ^ a | b` will **not** try `b` if `'x'` was found but `a` failed. Although it's called an *operator*, it's really a `Parser` on its own. Used outside an ordered choice expression, it's a no-op. Read more in [Cut operator](https://ostrebler.github.io/pegase/advanced-concepts/Cut-operator/).
+
+**Children**: `[]`
+
+**Precedence**: 0
+
+---
+
+### Sub-parsers
+
+```
+(expr)
+('a' 'b' 'c')
+${jsParser}
+```
+
+Delegates the parsing to a sub-parser. This happens when wrapping a peg expression in parentheses, or by injecting an external `Parser` instance via tag argument.
+
+**Children**: Forwarded from the sub-parser.
+
+**Precedence**: 0
+
+---
+
+### Back references
+
+```
+>id<
+```
+
+Back reference to an earlier string capture. This will matches the string literal captured as `id`. Read more in [Semantic action and dataflow](https://ostrebler.github.io/pegase/basic-concepts/Semantic-action-and-dataflow/).
+
+**Children**: `[]`
+
+**Precedence**: 0
+
+---
+
+### Nullary directives
+
+```
+@@dir
+@@dir(x, y)
+@${jsFunction}
+@ => 'label'
+```
+
+This is syntactic sugar for directives applied to the empty literal parser: `'' @dir`, `'' ${jsFunction}`, etc. Handy if the directive you want to invoke doesn't care about a wrapped parser. Read more in [Directives](https://ostrebler.github.io/pegase/basic-concepts/Directives/).
+
+**Children**: Directives generate new parsers. So `children` depends on whatever parser is generated.
+
+**Precedence**: 0
+
+---
+
+### Non-terminals
+
+```
+identifier
+```
+
+Matches the non-terminal. A non-terminal can refer to a *grammar rule* or to a *rule parameter*.
+
+**Children**: Forwarded from the non-terminal (`identifier` in the example)
+
+**Precedence**: 0
+
+---
+
+### String literals
+
+```
+"lit"
+'test'
+''
+${jsString}
+42
+${jsNumber}
+```
+
+Matches the string literal. When a JS string value is inserted as a tag argument into the a peg expression, it's cast into a non-emissive string literal parser. String literals that represent numbers can directly be written as numbers, without quotes. Inserting a JS number via tag argument also creates a string literal parser.
+
+**Children**: When double-quotes are used, the parsed substring is emitted as a single child. `[]` otherwise.
+
+**Precedence**: 0
+
+---
+
+### Character classes
+
+```
+[abc]
+[0-9]
+[a-zA-Z]
+[^u]
+[^a-zA-Z]
+```
+
+There are two types of character classes: non-negated and negated (`^`). Non-negated classes match one character in the given character class. Negated classes match one character **not** in the given class. Internally, characters classes are instantiated as `RegExp` instances and thus end up as regex parsers.
+
+**Children**: `[]`
+
+**Precedence**: 0
+
+---
+
+### Metacharacters
+
+```
+\n
+\s
+\w
+\xAF
+\uA6F1
+```
+
+Matches the escaped metacharacter. The same metacharacters available in `RegExp` expressions are available in Pegase, meaning `\s` matches any whitespace, `\S` any non-whitespace, `\uA6F1` matches the unicode character `A6F1`, etc. ([See `RegExp` documentation](https://www.w3schools.com/jsref/jsref_obj_regexp.asp) for a complete list of supported metacharacters).
+
+**Children**: `[]`
+
+**Precedence**: 0
+
+---
+
+### Regex literals
+
+```
+/ab/
+/\w+/
+/(\d+):(\d+)/
+${jsRegExp}
+```
+
+Matches the regex. It can either be a regex literal (same syntax as JS' `RegExp`), or an actual `RegExp` instance injected as tag argument.
+
+**Children**: The regex's capturing groups
+
+**Precedence**: 0
+
+---
+
+### Repetitions
+
+```
+a?
+a+
+a*
+a{4}
+a{4, 15}
+a{4,}
+a{${jsNumber}, 15}
+```
+
+Invokes a sub-parser (`a`) **greedily** as many times as specified. Different kind of quantifiers are available:
+
+| Expression form | Meaning                                                      |
+| --------------- | ------------------------------------------------------------ |
+| `a?`            | Optional `a` (zero or one)                                   |
+| `a+`            | Matches one or more `a`                                      |
+| `a*`            | Matches any sequence of `a` (zero or more)                   |
+| `a{n}`          | Matches `a` exactly `n` times. `n` can be a number literal or a JS number injected via tag argument. |
+| `a{n, m}`       | Matches `a` between `n` and `m` times. Number literals and tag arguments are allowed for `n` and `m`. |
+| `a{n,}`         | Matches `a` at least `n` times. As above, `n` is a number literal or a tag argument. |
+
+**Children**: Forwarded and concatenated from the wrapped expression
+
+**Precedence**: 1
+
+---
+
+### Predicates
+
+```
+&a
+!a
+```
+
+In case of a positive predicate (`$`), `a` is matched without consuming any input. For negative predicates (`!`), the expression fails if `a` succeeds and vice-versa.
+
+**Children**: `[]`
+
+**Precedence**: 2
+
+---
+
+### Captures
+
+```
+<id>a
+<>id
+<...id>a
+<...>id
+```
+
+Captures associate a parser's `value` or `children` to an identifier (`id` in the example). To captures the `children` array, use `...`. When the wrapped expression is a non-terminal of the same name than the capture, the capture's name can be omitted.
+
+Captures are accumulated in *scopes*, can be overwritten and be read in semantic actions and custom parsers. Rule definitions and ordered choice alternatives create new capture scopes. Read more in [Semantic action and dataflow](https://ostrebler.github.io/pegase/basic-concepts/Semantic-action-and-dataflow/).
+
+**Children**: Forwarded from the wrapped expression
+
+**Precedence**: 3
+
+---
+
+### Synchronizations
+
+```
+...a
+```
+
+Skips input character by character until `a` is matched. This can be used to implement *synchronization* to recover from errors and is equivalent to `(!a .)* a`. Write `...&a` if you want to sync to `a` without consuming `a`. See [Failure recovery](https://ostrebler.github.io/pegase/basic-concepts/Building-parsers/#failure-recovery).
+
+**Children**: Forwarded from the wrapped expression
+
+**Precedence**: 4
+
+---
+
+### Repetitions with separators
+
+```
+a % b
+a %? b
+a %{3} b
+a %{3,} b
+a %{3, ${jsNumber}} b
+```
+
+Matches a sequence of `a` separated by `b`. The `%` operator can be quantified explicitly using the quantifiers described in [Repetitions](#repetitions). `a % b` is equivalent to `a (b a)*`, `a %? b` to `a (b a)?`, etc.
+
+**Children**: Forwarded and concatenated from the subexpressions
+
+**Precedence**: 5
+
+---
+
+### Subtractions
+
+```
+a - b
+```
+
+Matches `a` but not `b` (fails if `b` succeeds). Strictly equivalent to `!b a`.
+
+**Children**: Forwarded from expression `a`
+
+**Precedence**: 6
+
+---
+
+### Sequences
+
+```
+a b
+```
+
+Matches `a` followed by `b`.
+
+**Children**: Forwarded and concatenated from expression `a` and `b`
+
+**Precedence**: 7
+
+---
+
+### Directives (includes semantic actions)
+
+```
+a @dir
+a @dir(x, y)
+a @dir(x, ${y})
+a @dir @other
+
+a ${jsFunction}
+a => 'label'
+```
+
+Applies the directive(s) to the parser `a`. Directives are functions that take a parser and return a new parser. They can take additional arguments and can be chained. These arguments can include number, string, regex literals, characters classes, metacharacters, non-terminals and tag arguments.
+
+Injecting a JS function right after a peg expression is syntactic sugar for the `@action` directive, which builds an action parser (a parser that calls a custom function on success). So `a ${jsFunction}` and `a @action(${jsFunction})` are strictly equivalent.
+
+The `a => 'label'` syntax is syntactic sugar for the `@node` directive and is equivalent to `a @node('label')`. The label can be specified via a string tag argument if necessary.
+
+Directives are a powerful and central tool within Pegase. Read more about it in [Directives](/pegase/basic-concepts/Directives/).
+
+**Children**: Directives generate new parsers. So `children` depends on whatever parser is generated. When using the `@action` shorthand (`a ${jsFunction}`), one can emit a single child by returning a non-`undefined` value from the function, or emit multiple children by calling [the `$emit` hook](/pegase/api/Hooks/) inside the function. Not returning anything and not calling `$emit` will forward the wrapped expression's `children`. When using the `@node` shorthand (`a => 'label'`), the generated `Node` is emitted as a single child (see [AST and visitors](/pegase/advanced-concepts/AST-and-visitors/)).
+
+**Precedence**: 8
+
+---
+
+### Ordered choices
+
+```
+a | b
+```
+
+Ordered choices (or *alternatives*) try their subexpression one by one in order and succeed if a subexpression succeeds. Fails otherwise. Please note that you can add a leading bar for aesthetic purposes.
+
+**Children**: Forwarded from the successful subexpression (`a` or `b` in the example)
+
+**Precedence**: 9
+
+---
+
+### Rules and grammars
+
+```
+id: a
+$id: a
+id @directive: a
+id(p1, p2): a
+id(p1, p2) @directive: a
+id(p = \d): a
+id(p1, p2 = 'a', p3): a
+```
+
+These expressions create rules. Think of rules as alias to peg expressions. Once defined, they can be invoked via non-terminals (see [Non-terminals](#non-terminals)). Rules can be stacked to form **grammars**. They can also be parametrized and the parameters can take default values. Since non-terminal invocations can skip any parameter, default parameters values don't need to appear at the last parameter positions.
+
+If directives are specified just before `:`, they are applied to the whole right-side expression.
+
+Adding `$` at the beginning of a rule name acts as syntactic sugar. It applies an implicit `@token` directive whose the display name in failure reports will be the rule name transformed to space case. Example: `$myToken: a` is equivalent to `$myToken @token("my token"): a`.
+
+Grammars can be nested by using [parentheses](#sub-parsers):
+
+```
+r1: 'a' (
+  nested1: 'u' nested2
+  nested2: 'v'
+) r2
+r2: 'b'
+```
+
+Nesting grammars can be used to parametrize entire grammars, or as a separation of concern method.
+
+**Children**: Forwarded from the topmost rule
+
+**Precedence**: 10
 

@@ -333,11 +333,11 @@ export class AlternativeParser extends Parser {
     const cut = options.id();
     return `
       var ${from} = options.from;
-      var ${captures};
+      var ${captures} = {};
       var ${cut} = false;
       ${this.parsers.reduceRight(
-        (code, parser) => `
-          ${captures} = {};
+        (code, parser, index) => `
+          ${index !== 0 ? `${captures} = {};` : ""}
           ${parser.generate({ ...options, captures, cut })}
           if(${options.children} === null && !${cut}) {
             options.from = ${from};
