@@ -1270,7 +1270,7 @@ id(p1, p2 = 'a', p3): a
 </code></pre>
 <p>These expressions create rules. Think of rules as alias to peg expressions. Once defined, they can be invoked via non-terminals (see <a href="#non-terminals">Non-terminals</a>). Rules can be stacked to form <strong>grammars</strong>. They can also be parametrized and the parameters can take default values. Since non-terminal invocations can skip any parameter, default parameters values don't need to appear at the last parameter positions.</p>
 <p>If directives are specified just before <code>:</code>, they are applied to the whole right-side expression.</p>
-<p>Adding <code>$</code> at the beginning of a rule name acts as syntactic sugar. It applies an implicit <code>@token</code> directive whose the display name in failure reports will be the rule name transformed to space case. Example: <code>$myToken: a</code> is equivalent to <code>$myToken @token("my token"): a</code>.</p>
+<p>Adding <code>$</code> at the beginning of a rule name acts as syntactic sugar. It applies an implicit <code>@token</code> directive whose display name in failure reports will be the rule name transformed to space case. Example: <code>$myToken: a</code> is equivalent to <code>$myToken @token("my token"): a</code>.</p>
 <p>Grammars can be nested by using <a href="#sub-parsers">parentheses</a>:</p>
 <pre><code>r1: 'a' (
   nested1: 'u' nested2
