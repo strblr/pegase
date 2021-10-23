@@ -762,9 +762,9 @@
 </tr>
 <tr>
 <td><code>$visit</code></td>
-<td><code>(node: Node, visitor?: Visitor, context?: any) =&gt; any</code></td>
+<td><code>(node: Node, visitor?: Visitor, options?: VisitOptions) =&gt; any</code></td>
 <td>Visitors</td>
-<td>Applies the current visitor (or <code>visitor</code> if the second argument is provided) to <code>node</code> and returns the result. A new context can be passed down.</td>
+<td>Applies the current visitor (or <code>visitor</code> if the second argument is provided) to <code>node</code> and returns the result. New options can be passed down (useful for changing context, or disabling warning and failure reports).</td>
 </tr>
 <tr>
 <td><code>$parent</code></td>
