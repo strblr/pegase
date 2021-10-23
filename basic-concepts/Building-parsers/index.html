@@ -1229,6 +1229,7 @@ a %{3, ${jsNumber}} b
 <hr />
 <h3 id="sequences">Sequences</h3>
 <pre><code>a b
+a b c
 </code></pre>
 <p>Matches <code>a</code> followed by <code>b</code>.</p>
 <p><strong>Children</strong>: Forwarded and concatenated from expression <code>a</code> and <code>b</code></p>
@@ -1252,6 +1253,7 @@ a =&gt; 'label'
 <hr />
 <h3 id="ordered-choices">Ordered choices</h3>
 <pre><code>a | b
+| a | b | c
 </code></pre>
 <p>Ordered choices (or <em>alternatives</em>) try their subexpression one by one in order and succeed if a subexpression succeeds. Fails otherwise. Please note that you can add a leading bar for aesthetic purposes.</p>
 <p><strong>Children</strong>: Forwarded from the successful subexpression (<code>a</code> or <code>b</code> in the example)</p>
@@ -1373,7 +1375,7 @@ r2: 'b'
       
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/highlight.min.js"></script>
       
-        <script src="https://unpkg.com/pegase@0.5.1/umd/index.js"></script>
+        <script src="https://unpkg.com/pegase@0.5.2/umd/index.js"></script>
       
         <script src="../../javascript/config.js"></script>
       
