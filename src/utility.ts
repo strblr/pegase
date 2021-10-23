@@ -367,12 +367,8 @@ export function applyVisitor<Value, Context>(
       $to: to,
       ...fields
     }),
-    $visit(nextNode, nextVisitor = visitor, nextContext = options.context) {
-      const { context } = options;
-      options.context = nextContext;
-      const result = applyVisitor(nextNode, nextVisitor, options, node);
-      options.context = context;
-      return result;
+    $visit(nextNode, nextVisitor = visitor, nextOptions = options) {
+      return applyVisitor(nextNode, nextVisitor, nextOptions, node);
     },
     $parent: () => parent
   });
