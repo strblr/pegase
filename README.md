@@ -138,7 +138,7 @@ With the possibility of omitted parameters and default parameter values.
 
 ```ts 
 const g = peg`
-	root: array | array('a') | array('b' | 'c')
+  root: array | array('a') | array('b' | 'c')
   array(item = \d): '[' commaList(item) ']'
   commaList(item): item % ','
 `;
