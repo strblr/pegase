@@ -118,7 +118,10 @@ const metaparser = new GrammarParser([
               if (rule.startsWith("$")) {
                 const token = resolveDirective($context().plugins, "token");
                 if (!token) return unresolvedDirectiveFail("token");
-                directives = [...directives, [token, [spaceCase(rule)]]];
+                directives = [
+                  ...directives,
+                  [token, [spaceCase(rule.substring(1))]]
+                ];
               }
               return [rule, [parameters, pipeDirectives(parser, directives)]];
             }
