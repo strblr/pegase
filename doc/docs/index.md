@@ -19,6 +19,8 @@ Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
 - **_Intuitive_**, in that it lets you express complex grammars and semantic processes in very simple ways. You will never feel lost.
 - **_Extensible_**: You can define your own `Parser` subclasses, add plugins, write custom directives, etc.
 
+---
+
 ### Motivation
 
 The first and main goal of this library is to get you quickly and painlessly into parsing. Let's take a look at an example: parsing math expressions. With very few lines of code, some directives and semantic actions, you already have a parser _and a calculator_:
@@ -76,6 +78,8 @@ A few early notes here :
 - Notice how some literals are single-quoted like `')'` or double-quoted like `"+"`. Double-quote literals emit their string match as a single child, while single-quotes are silent. Writing the operators with double quotes allows them to be accumulated and processed with `@infix`.
 
 Don't worry if things aren't so clear yet. The rest of the documentation below is here to go step by step in all the underlying concepts, so that you understand the core philosophy and principles at hand.
+
+---
 
 ### Try-it out
 

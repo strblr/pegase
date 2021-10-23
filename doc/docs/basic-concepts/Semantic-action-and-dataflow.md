@@ -1,3 +1,5 @@
+### Understanding the dataflow
+
 Differentiating between faulty and correct inputs is generally only part of the job we expect from a parser. Another big part is to **run routines** and **generate data** as a side-effect. In this section, we'll talk *semantic actions*, *dataflow*, *parse children* and *captures*.
 
 PEG parsers are top-down parsers, meaning the peg expressions are recursively invoked in a depth-first manner, guided by a left-to-right input read. This process can be represented as a tree, called concrete syntax tree. Let's illustrate that with the following grammar:
@@ -43,6 +45,10 @@ prefix.children("+ 5 * 2 6");       // ["+", "5", "*", "2", "6"]
 
 That can already be pretty useful, but what you usually want to do is to process these `children` in certain ways at strategic steps during parse time in order to incrementally build your desired output. This is where *semantic actions* come into play.
 
+---
+
+### Semantic actions
+
 **A semantic action wraps around a `Parser` and calls a callback on success. If it returns `undefined`, children will be forwarded. Any other return value will be emitted as a single child.**
 
 Let's take our `prefix` grammar and say we want to make it generate the input expression in postfix notation (operators *after* operands). All we need to do is wrap a semantic action around `op expr expr`, reorder its `children` to postfix order, join them into a string and emit that string as a single child.
@@ -87,6 +93,10 @@ prefix.value("+ 5 * 2 6");       // "5 2 6 * +"
 
 Great, but at the end of the day `children` are just unlabeled propagated values. Sometimes that's what you want (typically when you're parsing list-ish data: a list of phone numbers, a list of operators and operands, a list of arguments to a function, etc.), but very often in semantic actions, you want to be able to grab a specific parser's value by name. This is where *captures* will come in handy.
 
+---
+
+### Captures
+
 **A capture expression `<id>a` binds the *value* (the single child) of parser `a` to the identifier `id`, which can be used in semantic actions.**
 
 Two things to keep in mind:
@@ -107,6 +117,10 @@ const prefix = peg`
 ```
 
 As an exercise, try to rewrite the `prefix` grammar so that its value is the actual result of the calculation.
+
+---
+
+### Custom emitted `children`
 
 What if you want to emit more than one child, no child at all, or `[undefined]` from a semantic action ? This has to be done explicitly by calling the `$emit` hook which takes a custom `children` array as an argument:
 
