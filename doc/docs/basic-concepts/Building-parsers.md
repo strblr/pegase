@@ -111,9 +111,11 @@ This is syntactic sugar for directives applied to the empty literal parser: `'' 
 
 ```
 identifier
+identifier('a', 'c' | 'd')
+identifier('a',, 'd')
 ```
 
-Matches the non-terminal. A non-terminal can refer to a *grammar rule* or to a *rule parameter*.
+Matches the non-terminal. A non-terminal can refer to a *grammar rule* or to a *rule parameter*. Since rules can be parametrized, non-terminals can have parameters. Parameters can be omitted at any place if the corresponding rule defines a default value for them.
 
 **Children**: Forwarded from the non-terminal (`identifier` in the example)
 
