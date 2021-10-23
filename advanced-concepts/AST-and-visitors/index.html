@@ -689,7 +689,7 @@
 <p>The specifics of how this happens is totally up to you (see <a href="/pegase/basic-concepts/Semantic-action-and-dataflow/">Basic concepts &gt; Semantic actions and dataflow</a>). Here is an example of a grammar generating an AST for sums written in prefix notation:</p>
 <pre><code class="language-ts">const prefix = peg`
   expr:
-  | &lt;&gt;integer ${({ integer }) =&gt; $node(&quot;INT&quot;, { integer })}
+  | &lt;&gt;$integer ${({ $integer }) =&gt; $node(&quot;INT&quot;, { $integer })}
   | '+' &lt;a&gt;expr &lt;b&gt;expr ${({ a, b }) =&gt; $node(&quot;PLUS&quot;, { a, b })}
 
   $integer @raw: \d+
@@ -702,16 +702,16 @@ const ast = prefix.value(&quot;+ 12 + 42 3&quot;);
 <p>You may have noticed that the custom node fields are the captures. This is actually a very common practice and Pegase offers a shortcut for it: the standard <code>@node</code> directive. This directive takes the node label as an argument, and automatically emits a <code>Node</code> whose custom fields <em>are</em> the captures. In other words, the following is <em>strictly equivalent</em> to the previous example:</p>
 <pre><code class="language-ts">const prefix = peg`
   expr:
-  | &lt;&gt;integer @node('INT')
+  | &lt;&gt;$integer @node('INT')
   | '+' &lt;a&gt;expr &lt;b&gt;expr @node('PLUS')
 
   $integer @raw: \d+
 `;
 </code></pre>
-<p>But it gets even better. Just like <code>$</code> rules are syntactic sugar for <code>@token</code> rules, the <code>=&gt;</code> operator is syntactic sugar for <code>@node</code>:</p>
+<p>But it gets even better. Just like <code>$</code> rules are syntactic sugar for <code>@token</code> rules, the <code>=&gt;</code> operator is syntactic sugar for the <code>@node</code> directive:</p>
 <pre><code class="language-ts">const prefix = peg`
   expr:
-  | &lt;&gt;integer =&gt; 'INT'
+  | &lt;&gt;$integer =&gt; 'INT'
   | '+' &lt;a&gt;expr &lt;b&gt;expr =&gt; 'PLUS'
 
   $integer @raw: \d+
@@ -721,7 +721,7 @@ const ast = prefix.value(&quot;+ 12 + 42 3&quot;);
 <p>To illustrate that, let's parse complex numbers written in the form <em>"a + bi"</em>. The imaginary part is optional, so the <code>i</code> capture may be <code>undefined</code>. If that's indeed the case, we want our <code>i</code> node field to default to zero:</p>
 <pre><code class="language-ts">const complex = peg`
   complex:
-    &lt;r&gt;num &lt;i&gt;('+' num 'i')?
+    &lt;r&gt;$num &lt;i&gt;('+' $num 'i')?
       @node('COMPLEX', ${({ i }) =&gt; ({ i: i || 0 })})
 
   $num @number: \d+
@@ -747,7 +747,7 @@ complex.value(&quot;42&quot;);    // { $label: &quot;COMPLEX&quot;, $from: (...)
 <p>Let's build a simple visitor that transforms the output <code>Node</code> of our previous <code>prefix</code> grammar into its label:</p>
 <pre><code class="language-ts">const prefix = peg`
   expr:
-  | &lt;&gt;integer =&gt; 'INT'
+  | &lt;&gt;$integer =&gt; 'INT'
   | '+' &lt;a&gt;expr &lt;b&gt;expr =&gt; 'PLUS'
 
   $integer @raw: \d+
@@ -768,17 +768,17 @@ prefix.value(&quot;+ 12 + 42 3&quot;, { visit: labelVisitor }); // &quot;PLUS&qu
 </code></pre>
 <p>Let's dive a bit deeper: how would you implement a visitor that calculates the sum's result ? Calculating a sum from an AST means <a href="https://en.wikipedia.org/wiki/Fold_(higher-order_function)"><em>folding</em></a> the AST into a single value, which implies recursive visits to child nodes. That's exactly what the <code>$visit</code> hook is for: called from <em>inside</em> a visitor callback and given a node, it applies the current visitor to that node and returns the result. Our sum visitor could be implemented as follows:</p>
 <pre><code class="language-ts">const sumVisitor = {
-  INT: node =&gt; Number(node.integer),
+  INT: node =&gt; Number(node.$integer),
   PLUS: node =&gt; $visit(node.a) + $visit(node.b)
 };
 
 prefix.value(&quot;182&quot;, { visit: sumVisitor });         // 182
 prefix.value(&quot;+ 12 + 42 3&quot;, { visit: sumVisitor }); // 57
 </code></pre>
-<p>Next, to illustrate visitor piping, we're going to add a visitor right before <code>sumVisitor</code> that preserves the AST but <em>doubles</em> the <code>integer</code> value of <code>INT</code> nodes. This basically implies that each visitor callback will have to be an identity function, returning the node it was passed and only performing side-effects. For <code>INT</code> nodes, the side-effect is to double the value. For <code>PLUS</code> nodes, it's to visit the child nodes. Giving us:</p>
+<p>Next, to illustrate visitor piping, we're going to add a visitor right before <code>sumVisitor</code> that preserves the AST but <em>doubles</em> the <code>$integer</code> value of <code>INT</code> nodes. This basically implies that each visitor callback will have to be an identity function, returning the node it was passed and only performing side-effects. For <code>INT</code> nodes, the side-effect is to double the value. For <code>PLUS</code> nodes, it's to visit the child nodes. Giving us:</p>
 <pre><code class="language-ts">const doubleVisitor = {
   INT: node =&gt; {
-    node.integer *= 2;
+    node.$integer *= 2;
     return node;
   },
   PLUS: node =&gt; {
@@ -795,8 +795,8 @@ prefix.value(&quot;+ 12 + 42 3&quot;, { visit: [doubleVisitor, sumVisitor] }); /
 <p><strong>A visitor callback has access to all the hooks available in semantic actions</strong>, except <code>$children</code>, <code>$value</code>, <code>$commit</code> and <code>$emit</code>. So it's totally fine to emit warnings and failures from visitors:</p>
 <pre><code class="language-ts">const sumVisitor = {
   INT: node =&gt; {
-    if (node.integer === &quot;42&quot;) $warn(&quot;42 is too powerful&quot;);
-    return Number(node.integer);
+    if (node.$integer === &quot;42&quot;) $warn(&quot;42 is too powerful&quot;);
+    return Number(node.$integer);
   },
   PLUS: node =&gt; $visit(node.a) + $visit(node.b)
 };
