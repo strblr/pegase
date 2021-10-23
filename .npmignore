@@ -6,3 +6,5 @@ lib/index.test.d.ts
 lib/index.test.js
 lib/competitor.test.d.ts
 lib/competitor.test.js
+lib/index.browser.d.ts
+lib/index.browser.js
