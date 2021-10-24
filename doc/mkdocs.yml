@@ -48,7 +48,8 @@ theme:
     scheme: default
     primary: black
   features:
-    - navigation.expand
+    - toc.integrate
+    - navigation.top
   icon:
     repo: fontawesome/brands/github-square
 extra:

@@ -2,14 +2,6 @@
 title: Home
 ---
 
-<p align="center">  
-  <img alt="pegase" src="/pegase/assets/images/pegase.png">  
-</p>
-
-> ⚠️ This library is still under development. This is a pre-release but some functionalities might still change.
-
-### Overview
-
 Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
 
 - **_Inline_**, meaning grammars are directly expressed as [tagged template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates). No generation step, no CLI. Pegase works in symbiosis with JS.
@@ -18,6 +10,8 @@ Pegase is a PEG parser generator for JavaScript and TypeScript. It's:
 - **_Lightweight_**. Pegase is a _zero-dependency_ package, and weights around 8kB gzipped.
 - **_Intuitive_**, in that it lets you express complex processes in very simple ways. You will never feel lost.
 - **_Extensible_**: You can define your own `Parser` subclasses, add plugins, write custom directives, etc.
+
+> ⚠️ This library is still under development. This is a pre-release but some functionalities might still change.
 
 ---
 
@@ -87,3 +81,6 @@ You can try everything out while reading this website by accessing the JS consol
 
 ![Console demo](/pegase/assets/images/console-demo.png)
 
+<p align="center">  
+  <img alt="pegase" src="/pegase/assets/images/pegase.png">  
+</p>
