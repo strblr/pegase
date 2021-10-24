@@ -822,6 +822,16 @@ bitArray.children(&quot;[0, 1, 1, 0, 1]&quot;); // [&quot;1&quot;, &quot;0&quot;
   array(item): '[' item % ',' ']'
 `;
 </code></pre>
+<p>Let's try it out:</p>
+<pre><code class="language-ts">const result = bitArray.parse(&quot;[1, 0, 1]&quot;);
+if(!result.success)
+  console.log(result.logger.toString());
+</code></pre>
+<pre><code class="language-text">(1:5) Failure: Expected &quot;1&quot;
+
+&gt; 1 | [1, 0, 1]
+    |     ^
+</code></pre>
 <hr />
 <h3 id="try-it-out">Try-it out</h3>
 <p>You can try everything out while reading this website by accessing the JS console tab. The <code>peg</code> tag and hooks will be directly available in your namespace. All other named exports from <code>pegase</code> are available as properties of <code>_</code>. Have fun!</p>
