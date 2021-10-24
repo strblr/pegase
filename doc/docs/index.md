@@ -175,6 +175,21 @@ const bitArray = peg`
 `;
 ```
 
+Let's try it out:
+
+```ts
+const result = bitArray.parse("[1, 0, 1]");
+if(!result.success)
+  console.log(result.logger.toString());
+```
+
+```text
+(1:5) Failure: Expected "1"
+
+> 1 | [1, 0, 1]
+    |     ^
+```
+
 ---
 
 ### Try-it out
