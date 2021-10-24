@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="An inline, fast, powerful and lightweight PEG parser generator for JavaScript and TypeScript, with semantic actions, support for native regexps, error recovery, warnings, AST generation, AST visitors, cut operator, and a lot more.">
+        <meta name="description" content="An inline, fast, powerful and lightweight PEG parser generator for JavaScript and TypeScript, with semantic actions, parametrized rules, support for native regexps, error recovery, warnings, integrated AST generation and visitors, cut operator, back references, grammar merging, and a lot more.">
       
       
       
@@ -29,7 +29,7 @@
         
           
           
-          <meta name="theme-color" content="#ef5552">
+          <meta name="theme-color" content="#000000">
         
       
     
@@ -44,9 +44,11 @@
     
     
     
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/atom-one-dark.min.css">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/stackoverflow-dark.min.css">
     
       <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter">
+    
+      <link rel="stylesheet" href="css/style.css">
     
     
       
@@ -62,7 +64,7 @@
     
     
     
-    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="red" data-md-color-accent="">
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="">
   
     
     <script>function __prefix(e){return new URL(".",location).pathname+"."+e}function __get(e,t=localStorage){return JSON.parse(t.getItem(__prefix(e)))}</script>
@@ -786,9 +788,9 @@
 <ul>
 <li><strong><em>Inline</em></strong>, meaning grammars are directly expressed as <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates">tagged template literals</a>. No generation step, no CLI. Pegase works in symbiosis with JS.</li>
 <li><strong><em>Fast</em></strong>. Pegase is heavily optimized to be extremely fast while providing an extensive range of features.</li>
-<li><strong><em>Complete</em></strong>. Pegase has <em>everything</em> you will ever need: an elegant grammar syntax with a lot of flexibility, semantic actions, parametrized rules, support for native regexps, error recovery, warnings, AST generation, AST visitors, cut operator, back references, and a lot more.</li>
+<li><strong><em>Complete</em></strong>. Pegase has <em>everything</em> you will ever need: an elegant grammar syntax with lots of flexibility, semantic actions, parametrized rules, support for native regexps, error recovery, warnings, integrated AST generation and visitors, cut operator, back references, grammar merging, and <a href="/pegase/basic-concepts/Building-parsers/">a lot more</a>.</li>
 <li><strong><em>Lightweight</em></strong>. Pegase is a <em>zero-dependency</em> package, and weights around 8kB gzipped.</li>
-<li><strong><em>Intuitive</em></strong>, in that it lets you express complex grammars and semantic processes in very simple ways. You will never feel lost.</li>
+<li><strong><em>Intuitive</em></strong>, in that it lets you express complex processes in very simple ways. You will never feel lost.</li>
 <li><strong><em>Extensible</em></strong>: You can define your own <code>Parser</code> subclasses, add plugins, write custom directives, etc.</li>
 </ul>
 <hr />
