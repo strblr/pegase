@@ -187,7 +187,7 @@ Matches the escaped metacharacter. The same metacharacters available in `RegExp`
 ${jsRegExp}
 ```
 
-Matches the regex. It can either be a regex literal (same syntax as JS' `RegExp`), or an actual `RegExp` instance injected as tag argument.
+Matches the regex. It can either be a regex literal (same syntax as JS' `RegExp`), or an actual `RegExp` instance injected as tag argument. *Named* capturing groups are transformed into Pegase captures. Read more in [Working with RegExp](https://ostrebler.github.io/pegase/advanced-concepts/Working-with-RegExp/).
 
 **Children**: The regex's capturing groups
 
