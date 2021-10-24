@@ -75,7 +75,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#overview" class="md-skip">
+        <a href="#motivation" class="md-skip">
           Skip to content
         </a>
       
@@ -180,7 +180,9 @@
                     
 
 
-<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  
+
+<nav class="md-nav md-nav--primary md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
     <a href="." title="Pegase" class="md-nav__button md-logo" aria-label="Pegase" data-md-component="logo">
       
@@ -240,13 +242,6 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
-    Overview
-  </a>
-  
-</li>
       
         <li class="md-nav__item">
   <a href="#motivation" class="md-nav__link">
@@ -724,50 +719,6 @@
               </div>
             
             
-              
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
-                <div class="md-sidebar__scrollwrap">
-                  <div class="md-sidebar__inner">
-                    
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
-    Overview
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#motivation" class="md-nav__link">
-    Motivation
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#try-it-out" class="md-nav__link">
-    Try-it out
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-                  </div>
-                </div>
-              </div>
-            
           
           <div class="md-content" data-md-component="content">
             <article class="md-content__inner md-typeset">
@@ -776,15 +727,7 @@
                 
                   <h1>Home</h1>
                 
-                <p align="center">  
-  <img alt="pegase" src="/pegase/assets/images/pegase.png">  
-</p>
-
-<blockquote>
-<p>⚠️ This library is still under development. This is a pre-release but some functionalities might still change.</p>
-</blockquote>
-<h3 id="overview">Overview</h3>
-<p>Pegase is a PEG parser generator for JavaScript and TypeScript. It's:</p>
+                <p>Pegase is a PEG parser generator for JavaScript and TypeScript. It's:</p>
 <ul>
 <li><strong><em>Inline</em></strong>, meaning grammars are directly expressed as <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates">tagged template literals</a>. No generation step, no CLI. Pegase works in symbiosis with JS.</li>
 <li><strong><em>Fast</em></strong>. Pegase is heavily optimized to be extremely fast while providing an extensive range of features.</li>
@@ -793,6 +736,9 @@
 <li><strong><em>Intuitive</em></strong>, in that it lets you express complex processes in very simple ways. You will never feel lost.</li>
 <li><strong><em>Extensible</em></strong>: You can define your own <code>Parser</code> subclasses, add plugins, write custom directives, etc.</li>
 </ul>
+<blockquote>
+<p>⚠️ This library is still under development. This is a pre-release but some functionalities might still change.</p>
+</blockquote>
 <hr />
 <h3 id="motivation">Motivation</h3>
 <p>The first and main goal of this library is to get you quickly and painlessly into parsing. Let's take a look at an example: parsing math expressions. With very few lines of code, some directives and semantic actions, you already have a parser <em>and a calculator</em>:</p>
@@ -841,6 +787,9 @@ const expr = peg`
 <h3 id="try-it-out">Try-it out</h3>
 <p>You can try everything out while reading this website by accessing the JS console tab. The <code>peg</code> tag and hooks will be directly available in your namespace. All other named exports from <code>pegase</code> are available as properties of <code>_</code>. Have fun!</p>
 <p><img alt="Console demo" src="/pegase/assets/images/console-demo.png" /></p>
+<p align="center">  
+  <img alt="pegase" src="/pegase/assets/images/pegase.png">  
+</p>
                 
                   
                 
@@ -853,6 +802,11 @@ const expr = peg`
             </article>
           </div>
         </div>
+        
+          <a href="#" class="md-top md-icon" data-md-component="top" data-md-state="hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"/></svg>
+            Back to top
+          </a>
         
       </main>
       
@@ -915,7 +869,7 @@ const expr = peg`
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": ".", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "assets/javascripts/workers/search.94ec81fe.min.js", "version": null}</script>
+    <script id="__config" type="application/json">{"base": ".", "features": ["toc.integrate", "navigation.top"], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "assets/javascripts/workers/search.94ec81fe.min.js", "version": null}</script>
     
     
       <script src="assets/javascripts/bundle.48dfec6c.min.js"></script>
