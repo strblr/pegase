@@ -75,7 +75,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#motivation" class="md-skip">
+        <a href="#quick-start" class="md-skip">
           Skip to content
         </a>
       
@@ -244,8 +244,8 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#motivation" class="md-nav__link">
-    Motivation
+  <a href="#quick-start" class="md-nav__link">
+    Quick start
   </a>
   
 </li>
@@ -272,33 +272,18 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="Quick-start/" class="md-nav__link">
-        Quick start
-      </a>
-    </li>
-  
-
-    
-      
-      
-      
-
-  
-  
-  
     
     <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3" type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2" type="checkbox" id="__nav_2" >
       
-      <label class="md-nav__link" for="__nav_3">
+      <label class="md-nav__link" for="__nav_2">
         Basic concepts
         <span class="md-nav__icon md-icon"></span>
       </label>
       <nav class="md-nav" aria-label="Basic concepts" data-md-level="1">
-        <label class="md-nav__title" for="__nav_3">
+        <label class="md-nav__title" for="__nav_2">
           <span class="md-nav__icon md-icon"></span>
           Basic concepts
         </label>
@@ -393,14 +378,14 @@
     <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3" type="checkbox" id="__nav_3" >
       
-      <label class="md-nav__link" for="__nav_4">
+      <label class="md-nav__link" for="__nav_3">
         Advanced concepts
         <span class="md-nav__icon md-icon"></span>
       </label>
       <nav class="md-nav" aria-label="Advanced concepts" data-md-level="1">
-        <label class="md-nav__title" for="__nav_4">
+        <label class="md-nav__title" for="__nav_3">
           <span class="md-nav__icon md-icon"></span>
           Advanced concepts
         </label>
@@ -555,14 +540,14 @@
     <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" >
       
-      <label class="md-nav__link" for="__nav_5">
+      <label class="md-nav__link" for="__nav_4">
         API
         <span class="md-nav__icon md-icon"></span>
       </label>
       <nav class="md-nav" aria-label="API" data-md-level="1">
-        <label class="md-nav__title" for="__nav_5">
+        <label class="md-nav__title" for="__nav_4">
           <span class="md-nav__icon md-icon"></span>
           API
         </label>
@@ -669,14 +654,14 @@
     <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_6" type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" >
       
-      <label class="md-nav__link" for="__nav_6">
+      <label class="md-nav__link" for="__nav_5">
         More
         <span class="md-nav__icon md-icon"></span>
       </label>
       <nav class="md-nav" aria-label="More" data-md-level="1">
-        <label class="md-nav__title" for="__nav_6">
+        <label class="md-nav__title" for="__nav_5">
           <span class="md-nav__icon md-icon"></span>
           More
         </label>
@@ -740,49 +725,103 @@
 <p>⚠️ This library is still under development. This is a pre-release but some functionalities might still change.</p>
 </blockquote>
 <hr />
-<h3 id="motivation">Motivation</h3>
-<p>The first and main goal of this library is to get you quickly and painlessly into parsing. Let's take a look at an example: parsing math expressions. With very few lines of code, some directives and semantic actions, you already have a parser <em>and a calculator</em>:</p>
+<h3 id="quick-start">Quick start</h3>
+<p>First, add Pegase as a dependency:</p>
+<p><code>npm install pegase</code> or <code>yarn add pegase</code></p>
+<p>Next, import the template literal tag that will become your new best friend and there you go, ready to write your first peg expression.</p>
 <pre><code class="language-js">import peg from &quot;pegase&quot;;
 
-function calc(left, op, right) {
-  switch (op) {
-    case &quot;+&quot;: return left + right;
-    case &quot;-&quot;: return left - right;
-    case &quot;*&quot;: return left * right;
-    case &quot;/&quot;: return left / right;
-  }
-}
-
-const expr = peg`  
-  expr: term % (&quot;+&quot; | &quot;-&quot;) @infix(${calc})  
-  term: fact % (&quot;*&quot; | &quot;/&quot;) @infix(${calc})  
-  fact: $integer | '(' expr ')'
-  $integer @number: '-'? [0-9]+
+const parser = peg`your peg expression`;
+</code></pre>
+<p>What about a parser that recognizes a binary digit ? That's a simple alternative:</p>
+<pre><code class="language-js">const bit = peg`0 | 1`;
+</code></pre>
+<p>Ok, <code>bit</code> is now a <code>Parser</code> instance, which has 4 methods : <code>parse</code>, <code>test</code>, <code>value</code> and <code>children</code>. Let's take a look at <code>test</code>. It takes a string input and returns <code>true</code> or <code>false</code> (whether the string conforms to the pattern or not).</p>
+<pre><code class="language-js">if (bit.test(&quot;1&quot;))
+  console.log(&quot;It's a match!&quot;);
+</code></pre>
+<p>What about an array of bits like <code>[0, 1, 1, 0, 1]</code> ?</p>
+<pre><code class="language-js">const bitArray = peg`'[' (0 | 1) % ',' ']'`;
+</code></pre>
+<p>The <code>%</code> operator can be read as "separated by". Let's test it:</p>
+<pre><code class="language-js">if (bitArray.test(&quot; [ 0,1,    1 ,0 , 1 ]  &quot;))
+  console.log(&quot;It's a match!&quot;);
+</code></pre>
+<p>As you might have spotted, whitespaces are handled automatically by default (<a href="/pegase/basic-concepts/Handling-whitespaces">it can be changed</a>). The way this works is pretty simple: whitespace characters are parsed and discarded <strong>before every terminal parser</strong> (like <code>'['</code>, <code>1</code>, etc.). This process is called <strong>skipping</strong>. By default, every parser also adds an implicit "end of input" symbol (<code>$</code>) at the end of the peg expression, which is a terminal, thus the trailing space is skipped too and the whole string matches.</p>
+<p>Good, but so far, a <code>RegExp</code> could have done the job. Things get interesting when we add in <strong>non-terminals</strong>. A non-terminal is an identifier that refers to a more complex peg expression which will be invoked every time the identifier is used. You can think of non-terminals as <em>variables</em> whose value is a parser, initialized in what we call <code>rules</code>. This allows for recursive patterns. Let's say we want to match possibly infinitely-nested bit arrays:</p>
+<pre><code class="language-js">const nestedBitArray = peg`  
+  bitArray: '[' (bit | bitArray) % ',' ']'
+  bit: 0 | 1
 `;
 </code></pre>
-<p>Let's see how this plays out :</p>
-<p><strong><code>expr.value("2 + (17-2*30) *(-5)+2")</code></strong></p>
-<pre><code class="language-json">219
+<p>We have two rules: <code>bitArray</code> and <code>bit</code>. A collection of rules is called a <strong>grammar</strong>. The generated parser, <code>nestedBitArray</code>, always points to the topmost rule, <code>bitArray</code> in this case.</p>
+<p>Testing it:</p>
+<pre><code class="language-js">nestedBitArray.test(&quot;[[0]&quot;);          // false
+nestedBitArray.test(&quot;[ [1, 0], 1] &quot;); // true
+nestedBitArray.test(&quot; [0, [[0] ]]&quot;);  // true
 </code></pre>
-<p><strong><code>expr.test("2* (4 + )/32")</code></strong></p>
-<pre><code class="language-json">false
-</code></pre>
-<p><strong><code>expr.parse("2* (4 + )/32").logger.toString()</code></strong></p>
-<pre><code class="language-text">(1:9) Failure: Expected integer or &quot;(&quot;
+<p>If we already defined <code>bit</code> as a JS variable, we're not obligated to redefine it as a rule. We can simply inject it as a tag argument:</p>
+<pre><code class="language-js">const bit = peg`0 | 1`;
 
-&gt; 1 | 2* (4 + )/32
-    |         ^
+const nestedBitArray = peg`  
+  bitArray: '[' (${bit} | bitArray) % ',' ']'
+`;
 </code></pre>
-<p>A few early notes here :</p>
-<ul>
-<li><code>a % b</code> is a shortcut for <code>a (b a)*</code>, meaning <em>"any sequence of <code>a</code> separated by <code>b</code>"</em>.</li>
-<li>Think of parsers as black boxes <em>emitting</em> (if they succeed) zero or more values, called <code>children</code>. These boxes can be composed together to form more complex parsers.</li>
-<li><code>@infix</code> is a directive. Directives are functions that transform a parser into another, usually to add some desired behavior.</li>
-<li>By default, whitespace <em>skipping</em> is automatically handled for you. It's of course entirely configurable.</li>
-<li>Rules starting with <code>$</code> are <em>tokens</em>. Tokens are parsers with special behavior regarding failure reporting and whitespace skipping.</li>
-<li>Notice how some literals are single-quoted like <code>')'</code> or double-quoted like <code>"+"</code>. Double-quote literals emit their string match as a single child, while single-quotes are silent. Writing the operators with double quotes allows them to be accumulated and processed with <code>@infix</code>.</li>
-</ul>
-<p>Don't worry if things aren't so clear yet. The rest of the documentation below is here to go step by step in all the underlying concepts, so that you understand the core philosophy and principles at hand.</p>
+<p>Okay, the <code>test</code> method is fun but what if you want to do something more elaborated like collecting values, reading warnings or parse failures? The <code>parse</code> method is what you're asking for. It returns a result object containing all the info you might be interested in after a parsing. In fact, all other <code>Parser</code> methods (<code>test</code>, <code>value</code> and <code>children</code>) are <em>wrappers</em> around <code>parse</code>.</p>
+<pre><code class="language-js">const result = nestedBitArray.parse(&quot;[[0]&quot;);
+if(!result.success)
+  console.log(result.logger.toString());
+</code></pre>
+<p>This will output:</p>
+<pre><code class="language-text">(1:5) Failure: Expected &quot;,&quot; or &quot;]&quot;
+
+&gt; 1 | [[0]
+    |     ^
+</code></pre>
+<p>What we are going to do next is collecting the bits we matched in an array. Every parser and subparser has the ability to <em>emit</em> values on success. These values are called <code>children</code> and can be processed in parent parsers, which in turn emit <code>children</code>, etc. You can think of <code>children</code> as Pegase's version of <a href="https://en.wikipedia.org/wiki/Attribute_grammar#Synthesized_attributes">synthesized attributes</a>, values that bubble from bottom to top.</p>
+<p>Back to the grammar. By writing <code>"0"</code> instead of <code>0</code> or <code>'0'</code>, it will emit the matched substring as a single child (same for <code>1</code>):</p>
+<pre><code class="language-ts">const bit = peg`&quot;0&quot; | &quot;1&quot;`;
+bit.parse(&quot;1&quot;).children; // [&quot;1&quot;]
+</code></pre>
+<p>Or directly:</p>
+<pre><code class="language-ts">bit.children(&quot;1&quot;); // [&quot;1&quot;]
+</code></pre>
+<p><code>children</code> are automatically concatenated in case of sequence and repetition:</p>
+<pre><code class="language-ts">const bitArray = peg`'[' (&quot;0&quot; | &quot;1&quot;) % ',' ']'`;
+bitArray.children(&quot;[0, 1, 1, 0, 1]&quot;); // [&quot;0&quot;, &quot;1&quot;, &quot;1&quot;, &quot;0&quot;, &quot;1&quot;]
+</code></pre>
+<p>You can wrap any peg expression in <em>semantic actions</em> by inserting functions on the right-hand side of the expression. These functions will be called when the wrapped expression successfully matches. Actions can, among many other things, read their subparser's <code>children</code>, process them and emit new ones. Let's wrap our entire expression in an action and <code>console.log</code> the <code>children</code> from there:</p>
+<pre><code class="language-ts">import peg, { $children } from &quot;pegase&quot;;
+
+const bitArray = peg`
+  '[' (&quot;0&quot; | &quot;1&quot;) % ',' ']' ${() =&gt; console.log($children())}
+`;
+
+bitArray.parse(&quot;[0, 1, 1, 0, 1]&quot;); // console.log: [&quot;0&quot;, &quot;1&quot;, &quot;1&quot;, &quot;0&quot;, &quot;1&quot;]
+</code></pre>
+<p>If we return a value in our semantic action, it will be emitted as a single child in replacement of the previous <code>children</code>. Let's use this to sum our bits:</p>
+<pre><code class="language-ts">const bitArray = peg`
+  '[' (&quot;0&quot; | &quot;1&quot;) % ',' ']' ${() =&gt; $children().reduce((a, b) =&gt; a + Number(b), 0)}
+`;
+
+bitArray.children(&quot;[0, 1, 1, 0, 1]&quot;); // [3]
+</code></pre>
+<p>When a parser emits a single child, that child is said to be the <code>value</code> of the parser:</p>
+<pre><code class="language-ts">bitArray.value(&quot;[0, 1, 1, 0, 1]&quot;); // 3
+</code></pre>
+<p>Some behaviors are so commonly used that they are abstracted away in reusable bricks called <em>directives</em>. Similarly to semantic actions, un directive wraps a parser and produces another parser. Here is an example of a standard directive, <code>@reverse</code>, that... well, reverses the <code>children</code>:</p>
+<pre><code class="language-ts">const bitArray = peg`'[' (&quot;0&quot; | &quot;1&quot;) % ',' ']' @reverse`;
+bitArray.children(&quot;[0, 1, 1, 0, 1]&quot;); // [&quot;1&quot;, &quot;0&quot;, &quot;1&quot;, &quot;1&quot;, &quot;0&quot;]
+</code></pre>
+<p>Last challenge: what about matching an array of <code>0</code> or an array of <code>1</code>, but not the two mixed up? You could write:</p>
+<pre><code class="language-ts">const bitArray = peg`'[' (0 % ',' | 1 % ',') ']'`;
+</code></pre>
+<p>Or you could factor the whole expression by using <em>parametrized</em> rules:</p>
+<pre><code class="language-ts">const bitArray = peg`
+  bitArray: array(0) | array(1)
+  array(item): '[' item % ',' ']'
+`;
+</code></pre>
 <hr />
 <h3 id="try-it-out">Try-it out</h3>
 <p>You can try everything out while reading this website by accessing the JS console tab. The <code>peg</code> tag and hooks will be directly available in your namespace. All other named exports from <code>pegase</code> are available as properties of <code>_</code>. Have fun!</p>
@@ -817,13 +856,13 @@ const expr = peg`
       
       
         
-        <a href="Quick-start/" class="md-footer__link md-footer__link--next" aria-label="Next: Quick start" rel="next">
+        <a href="basic-concepts/Building-parsers/" class="md-footer__link md-footer__link--next" aria-label="Next: Building parsers" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Quick start
+              Building parsers
             </div>
           </div>
           <div class="md-footer__button md-icon">
