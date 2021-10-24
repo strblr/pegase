@@ -6,7 +6,7 @@ Pegase parsers follow the *combinator* paradigm: simple parsers are combined to 
 
 ### Any character
 
-```
+```text
 .
 ```
 
@@ -20,7 +20,7 @@ Matches any character.
 
 ### End of input
 
-```
+```text
 $
 ```
 
@@ -34,7 +34,7 @@ Matches the end of the input. This expression is syntactic sugar for `!. @token(
 
 ### Epsilon
 
-```
+```text
 ε
 ```
 
@@ -48,7 +48,7 @@ Matches the empty string. Strictly equivalent to `''` and always a success.
 
 ### Cut operator
 
-```
+```text
 ^
 ```
 
@@ -62,7 +62,7 @@ In an ordered choice expression, the cut operator commits to the current alterna
 
 ### Sub-parsers
 
-```
+```text
 (expr)
 ('a' 'b' 'c')
 ${jsParser}
@@ -78,7 +78,7 @@ Delegates the parsing to a sub-parser. This happens when wrapping a peg expressi
 
 ### Back references
 
-```
+```text
 >id<
 ```
 
@@ -92,7 +92,7 @@ Back reference to an earlier string capture. This will matches the string litera
 
 ### Nullary directives
 
-```
+```text
 @@dir
 @@dir(x, y)
 @${jsFunction}
@@ -109,7 +109,7 @@ This is syntactic sugar for directives applied to the empty literal parser: `'' 
 
 ### Non-terminals
 
-```
+```text
 identifier
 identifier('a', 'c' | 'd')
 identifier('a',, 'd')
@@ -125,7 +125,7 @@ Matches the non-terminal. A non-terminal can refer to a *grammar rule* or to a *
 
 ### String literals
 
-```
+```text
 "lit"
 'test'
 ''
@@ -144,7 +144,7 @@ Matches the string literal. When a JS string value is inserted as a tag argument
 
 ### Character classes
 
-```
+```text
 [abc]
 [0-9]
 [a-zA-Z]
@@ -162,7 +162,7 @@ There are two types of character classes: non-negated and negated (`^`). Non-neg
 
 ### Metacharacters
 
-```
+```text
 \n
 \s
 \w
@@ -180,7 +180,7 @@ Matches the escaped metacharacter. The same metacharacters available in `RegExp`
 
 ### Regex literals
 
-```
+```text
 /ab/
 /\w+/
 /(\d+):(\d+)/
@@ -197,7 +197,7 @@ Matches the regex. It can either be a regex literal (same syntax as JS' `RegExp`
 
 ### Repetitions
 
-```
+```text
 a?
 a+
 a*
@@ -226,7 +226,7 @@ Invokes a sub-parser (`a`) **greedily** as many times as specified. Different ki
 
 ### Predicates
 
-```
+```text
 &a
 !a
 ```
@@ -241,7 +241,7 @@ In case of a positive predicate (`$`), `a` is matched without consuming any inpu
 
 ### Captures
 
-```
+```text
 <id>a
 <>id
 <...id>a
@@ -260,7 +260,7 @@ Captures are accumulated in *scopes*, can be overwritten and be read in semantic
 
 ### Synchronizations
 
-```
+```text
 ...a
 ```
 
@@ -274,7 +274,7 @@ Skips input character by character until `a` is matched. This can be used to imp
 
 ### Repetitions with separators
 
-```
+```text
 a % b
 a %? b
 a %{3} b
@@ -292,7 +292,7 @@ Matches a sequence of `a` separated by `b`. The `%` operator can be quantified e
 
 ### Subtractions
 
-```
+```text
 a - b
 ```
 
@@ -306,7 +306,7 @@ Matches `a` but not `b` (fails if `b` succeeds). Strictly equivalent to `!b a`.
 
 ### Sequences
 
-```
+```text
 a b
 a b c
 ```
@@ -321,7 +321,7 @@ Matches `a` followed by `b`.
 
 ### Directives (includes semantic actions)
 
-```
+```text
 a @dir
 a @dir(x, y)
 a @dir(x, ${y})
@@ -347,7 +347,7 @@ Directives are a powerful and central tool within Pegase. Read more about it in 
 
 ### Ordered choices
 
-```
+```text
 a | b
 | a | b | c
 ```
@@ -362,7 +362,7 @@ Ordered choices (or *alternatives*) try their subexpression one by one in order 
 
 ### Rules and grammars
 
-```
+```text
 id: a
 $id: a
 id @directive: a
@@ -380,7 +380,7 @@ Adding `$` at the beginning of a rule name acts as syntactic sugar. It applies a
 
 Grammars can be nested by using [parentheses](#sub-parsers):
 
-```
+```text
 r1: 'a' (
   nested1: 'u' nested2
   nested2: 'v'

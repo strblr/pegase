@@ -21,7 +21,7 @@ g.parse("[12, true]", { trace: true });
 
 This will produce the following `console.log` output:
 
-```
+```text
 Entered "array" at (1:1)
 Entered "number" at (1:2)
 Matched "number" from (1:2) to (1:4)

@@ -61,7 +61,7 @@ false
 
 **`expr.parse("2* (4 + )/32").logger.toString()`**
 
-```
+```text
 (1:9) Failure: Expected integer or "("
 
 > 1 | 2* (4 + )/32
@@ -118,7 +118,7 @@ const g = peg`
 
 **`g.parse("class test {").logger.toString()`**
 
-```
+```text
 (1:7) Warning: Class names should be capitalized
 
 > 1 | class test {
@@ -162,7 +162,7 @@ const g = peg`
 
 **`g.parse("[0, 4, 1, 2, 0, 1]").logger.toString()`**
 
-```
+```text
 (1:5) Failure: Expected "0" or "1"
 
 > 1 | [0, 4, 1, 2, 0, 1]

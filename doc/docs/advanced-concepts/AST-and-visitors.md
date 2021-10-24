@@ -178,7 +178,7 @@ const sumVisitor = {
 
 **`prefix.parse("+ 12 + 42 3", { visit: sumVisitor }).logger.toString()`**
 
-```
+```text
 (1:8) Warning: 42 is too powerful
 
 > 1 | + 12 + 42 3

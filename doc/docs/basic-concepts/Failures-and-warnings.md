@@ -22,7 +22,7 @@ const g = peg`'a' ('b' | 'c' | 'd' @token("the awesome letter d") | ![b-e] .)`;
 
 **`g.parse('ae').logger.toString()`**
 
-```
+```text
 (1:2) Failure: Expected "b", "c", the awesome letter d or mismatch of "e"
 
 > 1 | ae
@@ -39,7 +39,7 @@ const g = peg`'a' ('b' | . ${() => {
 
 **`g.parse("ae").logger.toString()`**
 
-```
+```text
 (1:2) Failure: Expected "b", "c" or "d"
 
 > 1 | ae
@@ -68,7 +68,7 @@ const context = new Map([["foo", 42], ["bar", 18]]);
 
 **`g.parse("baz", { context }).logger.toString()`**
 
-```
+```text
 (1:1) Failure: Undeclared identifier "baz"
 
 > 1 | baz
@@ -100,7 +100,7 @@ const p = peg`
 
 **`p.parse("class test {").logger.toString()`**
 
-```
+```text
 (1:7) Warning: Class names should be capitalized
 
 > 1 | class test {

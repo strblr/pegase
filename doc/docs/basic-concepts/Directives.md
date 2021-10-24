@@ -67,7 +67,7 @@ a ('' @commit) b
 
 But instead of writing it explicitly, there is syntactic sugar too: adding another `@` in front of the directive. The following expression is thus equivalent to the previous one:
 
-```
+```text
 a @@commit b
 ```
 

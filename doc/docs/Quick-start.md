@@ -77,7 +77,7 @@ if(!result.success)
 
 This will output:
 
-```
+```text
 (1:5) Failure: Expected "," or "]"
 
 > 1 | [[0]

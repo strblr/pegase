@@ -26,7 +26,7 @@ But this doesn't work either, because now you don't allow for whitespaces *befor
 
 **`intList.parse("1 , 1").logger.toString()`**
 
-```
+```text
 (1:4) Failure: Expected /\d/
 
 > 1 | 1 , 1
@@ -48,7 +48,7 @@ const intList = peg`
 
 **`intList.parse("23 4, 45").logger.toString()`**
 
-```
+```text
 (1:4) Failure: Expected "," or end of input
 
 > 1 | 23 4, 45
@@ -68,7 +68,7 @@ const intList = peg`
 
 **`intList.parse("12, ").logger.toString()`**
 
-```
+```text
 (1:5) Failure: Expected fancy integer
 
 > 1 | 12, 

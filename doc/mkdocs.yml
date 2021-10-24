@@ -1,5 +1,5 @@
 site_name: Pegase
-site_description: An inline, fast, powerful and lightweight PEG parser generator for JavaScript and TypeScript, with semantic actions, support for native regexps, error recovery, warnings, AST generation, AST visitors, cut operator, and a lot more.
+site_description: An inline, fast, powerful and lightweight PEG parser generator for JavaScript and TypeScript, with semantic actions, parametrized rules, support for native regexps, error recovery, warnings, integrated AST generation and visitors, cut operator, back references, grammar merging, and a lot more.
 repo_url: https://github.com/ostrebler/pegase
 repo_name: pegase
 edit_uri: ""
@@ -42,9 +42,11 @@ theme:
   name: material
   logo: assets/images/logo.png
   custom_dir: overrides
+  font:
+    text: Inter
   palette:
     scheme: default
-    primary: red
+    primary: black
   features:
     - navigation.expand
   icon:
@@ -58,4 +60,6 @@ extra_javascript:
   - https://unpkg.com/pegase@0.5.3/umd/index.js
   - javascript/config.js
 extra_css:
-  - https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/atom-one-dark.min.css
+  - https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/nord.min.css
+  - https://fonts.googleapis.com/css?family=Inter
+  - css/style.css

@@ -1,6 +1,6 @@
 This is the peg expression of peg expressions.
 
-```
+```text
 # Main rules:
 
 parser:
