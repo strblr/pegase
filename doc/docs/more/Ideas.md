@@ -4,3 +4,4 @@ Here are some features that I strongly consider adding in future releases of Peg
 - **Cuts for repetitions**. The idea would be to have a cut operator, similar to `^`, but to break repetitions (like `a+`, `a*`, etc.). A sort of `break` statement for peg expressions. Peg repetitions are greedy by nature, but this might not always be what you want.
 - **Default values for captures**. The syntax would be something like `<id = 0>a`, `<id = ${expr}>a` (where `expr` is a JS expression), etc. The default value would be captured as `id` if `a`'s value is `undefined`.
 - [**Semantic predicates**](https://github.com/ostrebler/pegase/issues/9).
+

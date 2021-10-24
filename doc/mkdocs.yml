@@ -7,7 +7,6 @@ site_url: https://ostrebler.github.io/pegase/
 copyright: © ostrebler
 nav:
   - Home: index.md
-  - Quick-start.md
   - Basic concepts:
       - basic-concepts/Building-parsers.md
       - basic-concepts/Semantic-action-and-dataflow.md
