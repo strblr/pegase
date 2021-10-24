@@ -44,7 +44,7 @@
     
     
     
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/stackoverflow-dark.min.css">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/nord.min.css">
     
       <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter">
     
@@ -701,7 +701,7 @@
 <pre><code class="language-js">const g = peg`'a' ('b' | 'c' | 'd' @token(&quot;the awesome letter d&quot;) | ![b-e] .)`;
 </code></pre>
 <p><strong><code>g.parse('ae').logger.toString()</code></strong></p>
-<pre><code>(1:2) Failure: Expected &quot;b&quot;, &quot;c&quot;, the awesome letter d or mismatch of &quot;e&quot;
+<pre><code class="language-text">(1:2) Failure: Expected &quot;b&quot;, &quot;c&quot;, the awesome letter d or mismatch of &quot;e&quot;
 
 &gt; 1 | ae
     |  ^
@@ -712,7 +712,7 @@
 }})`;
 </code></pre>
 <p><strong><code>g.parse("ae").logger.toString()</code></strong></p>
-<pre><code>(1:2) Failure: Expected &quot;b&quot;, &quot;c&quot; or &quot;d&quot;
+<pre><code class="language-text">(1:2) Failure: Expected &quot;b&quot;, &quot;c&quot; or &quot;d&quot;
 
 &gt; 1 | ae
     |  ^
@@ -733,7 +733,7 @@ const context = new Map([[&quot;foo&quot;, 42], [&quot;bar&quot;, 18]]);
 <pre><code class="language-js">42
 </code></pre>
 <p><strong><code>g.parse("baz", { context }).logger.toString()</code></strong></p>
-<pre><code>(1:1) Failure: Undeclared identifier &quot;baz&quot;
+<pre><code class="language-text">(1:1) Failure: Undeclared identifier &quot;baz&quot;
 
 &gt; 1 | baz
     | ^
@@ -758,7 +758,7 @@ const context = new Map([[&quot;foo&quot;, 42], [&quot;bar&quot;, 18]]);
 `;
 </code></pre>
 <p><strong><code>p.parse("class test {").logger.toString()</code></strong></p>
-<pre><code>(1:7) Warning: Class names should be capitalized
+<pre><code class="language-text">(1:7) Warning: Class names should be capitalized
 
 &gt; 1 | class test {
     |       ^

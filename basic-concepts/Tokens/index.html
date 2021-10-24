@@ -44,7 +44,7 @@
     
     
     
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/stackoverflow-dark.min.css">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/nord.min.css">
     
       <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter">
     
@@ -704,7 +704,7 @@
 </code></pre>
 <p>But this doesn't work either, because now you don't allow for whitespaces <em>before</em> integers. So a simple <code>"1 , 1"</code> would fail when it should not:</p>
 <p><strong><code>intList.parse("1 , 1").logger.toString()</code></strong></p>
-<pre><code>(1:4) Failure: Expected /\d/
+<pre><code class="language-text">(1:4) Failure: Expected /\d/
 
 &gt; 1 | 1 , 1
     |    ^
@@ -718,7 +718,7 @@
 `;
 </code></pre>
 <p><strong><code>intList.parse("23 4, 45").logger.toString()</code></strong></p>
-<pre><code>(1:4) Failure: Expected &quot;,&quot; or end of input
+<pre><code class="language-text">(1:4) Failure: Expected &quot;,&quot; or end of input
 
 &gt; 1 | 23 4, 45
     |    ^
@@ -731,7 +731,7 @@
 `;
 </code></pre>
 <p><strong><code>intList.parse("12, ").logger.toString()</code></strong></p>
-<pre><code>(1:5) Failure: Expected fancy integer
+<pre><code class="language-text">(1:5) Failure: Expected fancy integer
 
 &gt; 1 | 12, 
     |     ^

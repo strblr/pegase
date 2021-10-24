@@ -44,7 +44,7 @@
     
     
     
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/stackoverflow-dark.min.css">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/nord.min.css">
     
       <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter">
     
@@ -1048,35 +1048,35 @@
 <p>Pegase parsers follow the <em>combinator</em> paradigm: simple parsers are combined to form more complex parsers. You can read more about it in the <a href="/pegase/api/Parser/"><code>Parser</code></a> section. In the following sections are the different expressions you can use as building blocks. To see the exact grammar of pegs (called metagrammar), please refer to the <a href="/pegase/api/Metagrammar/">Metagrammar</a> page.</p>
 <hr />
 <h3 id="any-character">Any character</h3>
-<pre><code>.
+<pre><code class="language-text">.
 </code></pre>
 <p>Matches any character.</p>
 <p><strong>Children</strong>: <code>[]</code></p>
 <p><strong>Precedence</strong>: 0</p>
 <hr />
 <h3 id="end-of-input">End of input</h3>
-<pre><code>$
+<pre><code class="language-text">$
 </code></pre>
 <p>Matches the end of the input. This expression is syntactic sugar for <code>!. @token("end of input")</code>. Indeed, the end of the input has been reached when there's no character left, thus when "not any character" (<code>!.</code>) can be evaluated as true.</p>
 <p><strong>Children</strong>: <code>[]</code></p>
 <p><strong>Precedence</strong>: 0</p>
 <hr />
 <h3 id="epsilon">Epsilon</h3>
-<pre><code>ε
+<pre><code class="language-text">ε
 </code></pre>
 <p>Matches the empty string. Strictly equivalent to <code>''</code> and always a success.</p>
 <p><strong>Children</strong>: <code>[]</code></p>
 <p><strong>Precedence</strong>: 0</p>
 <hr />
 <h3 id="cut-operator">Cut operator</h3>
-<pre><code>^
+<pre><code class="language-text">^
 </code></pre>
 <p>In an ordered choice expression, the cut operator commits to the current alternative to prevent exploring any further in case it fails. Example : <code>'x' ^ a | b</code> will <strong>not</strong> try <code>b</code> if <code>'x'</code> was found but <code>a</code> failed. Although it's called an <em>operator</em>, it's really a <code>Parser</code> on its own. Used outside an ordered choice expression, it's a no-op. Read more in <a href="https://ostrebler.github.io/pegase/advanced-concepts/Cut-operator/">Cut operator</a>.</p>
 <p><strong>Children</strong>: <code>[]</code></p>
 <p><strong>Precedence</strong>: 0</p>
 <hr />
 <h3 id="sub-parsers">Sub-parsers</h3>
-<pre><code>(expr)
+<pre><code class="language-text">(expr)
 ('a' 'b' 'c')
 ${jsParser}
 </code></pre>
@@ -1085,14 +1085,14 @@ ${jsParser}
 <p><strong>Precedence</strong>: 0</p>
 <hr />
 <h3 id="back-references">Back references</h3>
-<pre><code>&gt;id&lt;
+<pre><code class="language-text">&gt;id&lt;
 </code></pre>
 <p>Back reference to an earlier string capture. This will matches the string literal captured as <code>id</code>. Read more in <a href="https://ostrebler.github.io/pegase/basic-concepts/Semantic-action-and-dataflow/">Semantic action and dataflow</a>.</p>
 <p><strong>Children</strong>: <code>[]</code></p>
 <p><strong>Precedence</strong>: 0</p>
 <hr />
 <h3 id="nullary-directives">Nullary directives</h3>
-<pre><code>@@dir
+<pre><code class="language-text">@@dir
 @@dir(x, y)
 @${jsFunction}
 @ =&gt; 'label'
@@ -1102,7 +1102,7 @@ ${jsParser}
 <p><strong>Precedence</strong>: 0</p>
 <hr />
 <h3 id="non-terminals">Non-terminals</h3>
-<pre><code>identifier
+<pre><code class="language-text">identifier
 identifier('a', 'c' | 'd')
 identifier('a',, 'd')
 </code></pre>
@@ -1111,7 +1111,7 @@ identifier('a',, 'd')
 <p><strong>Precedence</strong>: 0</p>
 <hr />
 <h3 id="string-literals">String literals</h3>
-<pre><code>&quot;lit&quot;
+<pre><code class="language-text">&quot;lit&quot;
 'test'
 ''
 ${jsString}
@@ -1123,7 +1123,7 @@ ${jsNumber}
 <p><strong>Precedence</strong>: 0</p>
 <hr />
 <h3 id="character-classes">Character classes</h3>
-<pre><code>[abc]
+<pre><code class="language-text">[abc]
 [0-9]
 [a-zA-Z]
 [^u]
@@ -1134,7 +1134,7 @@ ${jsNumber}
 <p><strong>Precedence</strong>: 0</p>
 <hr />
 <h3 id="metacharacters">Metacharacters</h3>
-<pre><code>\n
+<pre><code class="language-text">\n
 \s
 \w
 \xAF
@@ -1145,7 +1145,7 @@ ${jsNumber}
 <p><strong>Precedence</strong>: 0</p>
 <hr />
 <h3 id="regex-literals">Regex literals</h3>
-<pre><code>/ab/
+<pre><code class="language-text">/ab/
 /\w+/
 /(\d+):(\d+)/
 ${jsRegExp}
@@ -1155,7 +1155,7 @@ ${jsRegExp}
 <p><strong>Precedence</strong>: 0</p>
 <hr />
 <h3 id="repetitions">Repetitions</h3>
-<pre><code>a?
+<pre><code class="language-text">a?
 a+
 a*
 a{4}
@@ -1202,7 +1202,7 @@ a{${jsNumber}, 15}
 <p><strong>Precedence</strong>: 1</p>
 <hr />
 <h3 id="predicates">Predicates</h3>
-<pre><code>&amp;a
+<pre><code class="language-text">&amp;a
 !a
 </code></pre>
 <p>In case of a positive predicate (<code>$</code>), <code>a</code> is matched without consuming any input. For negative predicates (<code>!</code>), the expression fails if <code>a</code> succeeds and vice-versa.</p>
@@ -1210,7 +1210,7 @@ a{${jsNumber}, 15}
 <p><strong>Precedence</strong>: 2</p>
 <hr />
 <h3 id="captures">Captures</h3>
-<pre><code>&lt;id&gt;a
+<pre><code class="language-text">&lt;id&gt;a
 &lt;&gt;id
 &lt;...id&gt;a
 &lt;...&gt;id
@@ -1221,14 +1221,14 @@ a{${jsNumber}, 15}
 <p><strong>Precedence</strong>: 3</p>
 <hr />
 <h3 id="synchronizations">Synchronizations</h3>
-<pre><code>...a
+<pre><code class="language-text">...a
 </code></pre>
 <p>Skips input character by character until <code>a</code> is matched. This can be used to implement <em>synchronization</em> to recover from errors and is equivalent to <code>(!a .)* a</code>. Write <code>...&amp;a</code> if you want to sync to <code>a</code> without consuming <code>a</code>. See <a href="https://ostrebler.github.io/pegase/basic-concepts/Building-parsers/#failure-recovery">Failure recovery</a>.</p>
 <p><strong>Children</strong>: Forwarded from the wrapped expression</p>
 <p><strong>Precedence</strong>: 4</p>
 <hr />
 <h3 id="repetitions-with-separators">Repetitions with separators</h3>
-<pre><code>a % b
+<pre><code class="language-text">a % b
 a %? b
 a %{3} b
 a %{3,} b
@@ -1239,14 +1239,14 @@ a %{3, ${jsNumber}} b
 <p><strong>Precedence</strong>: 5</p>
 <hr />
 <h3 id="subtractions">Subtractions</h3>
-<pre><code>a - b
+<pre><code class="language-text">a - b
 </code></pre>
 <p>Matches <code>a</code> but not <code>b</code> (fails if <code>b</code> succeeds). Strictly equivalent to <code>!b a</code>.</p>
 <p><strong>Children</strong>: Forwarded from expression <code>a</code></p>
 <p><strong>Precedence</strong>: 6</p>
 <hr />
 <h3 id="sequences">Sequences</h3>
-<pre><code>a b
+<pre><code class="language-text">a b
 a b c
 </code></pre>
 <p>Matches <code>a</code> followed by <code>b</code>.</p>
@@ -1254,7 +1254,7 @@ a b c
 <p><strong>Precedence</strong>: 7</p>
 <hr />
 <h3 id="directives-includes-semantic-actions">Directives (includes semantic actions)</h3>
-<pre><code>a @dir
+<pre><code class="language-text">a @dir
 a @dir(x, y)
 a @dir(x, ${y})
 a @dir @other
@@ -1270,7 +1270,7 @@ a =&gt; 'label'
 <p><strong>Precedence</strong>: 8</p>
 <hr />
 <h3 id="ordered-choices">Ordered choices</h3>
-<pre><code>a | b
+<pre><code class="language-text">a | b
 | a | b | c
 </code></pre>
 <p>Ordered choices (or <em>alternatives</em>) try their subexpression one by one in order and succeed if a subexpression succeeds. Fails otherwise. Please note that you can add a leading bar for aesthetic purposes.</p>
@@ -1278,7 +1278,7 @@ a =&gt; 'label'
 <p><strong>Precedence</strong>: 9</p>
 <hr />
 <h3 id="rules-and-grammars">Rules and grammars</h3>
-<pre><code>id: a
+<pre><code class="language-text">id: a
 $id: a
 id @directive: a
 id(p1, p2): a
@@ -1290,7 +1290,7 @@ id(p1, p2 = 'a', p3): a
 <p>If directives are specified just before <code>:</code>, they are applied to the whole right-side expression.</p>
 <p>Adding <code>$</code> at the beginning of a rule name acts as syntactic sugar. It applies an implicit <code>@token</code> directive whose display name in failure reports will be the rule name transformed to space case. Example: <code>$myToken: a</code> is equivalent to <code>$myToken @token("my token"): a</code>.</p>
 <p>Grammars can be nested by using <a href="#sub-parsers">parentheses</a>:</p>
-<pre><code>r1: 'a' (
+<pre><code class="language-text">r1: 'a' (
   nested1: 'u' nested2
   nested2: 'v'
 ) r2
