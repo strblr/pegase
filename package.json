@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ostrebler/pegase.git"
+    "url": "git+https://github.com/strblr/pegase.git"
   },
   "keywords": [
     "parser",
@@ -31,12 +31,12 @@
     "visitor",
     "semantic"
   ],
-  "author": "ostrebler",
+  "author": "strblr",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/ostrebler/pegase/issues"
+    "url": "https://github.com/strblr/pegase/issues"
   },
-  "homepage": "https://ostrebler.github.io/pegase/",
+  "homepage": "https://strblr.github.io/pegase/",
   "devDependencies": {
     "@types/jest": "^27.0.2",
     "browserify": "^17.0.0",
