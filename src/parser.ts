@@ -2,7 +2,6 @@ import {
   $from,
   $to,
   applyVisitor,
-  as,
   assign,
   buildOptions,
   castArray,
@@ -13,13 +12,10 @@ import {
   hooks,
   idGenerator,
   Links,
-  LiteralExpectation,
   Options,
-  RegexExpectation,
   Result,
   SemanticAction,
   skip,
-  TokenExpectation,
   trace,
   TraceEventType,
   Tracer,
@@ -154,10 +150,10 @@ export class LiteralParser extends Parser {
     literalNocase &&
       (options.links[literalNocase] = this.literal.toLowerCase());
     children && (options.links[children] = [this.literal]);
-    options.links[expectation] = as<LiteralExpectation>({
+    options.links[expectation] = {
       type: ExpectationType.Literal,
       literal: this.literal
-    });
+    };
     return `
       if(!skip(options))
         ${options.children} = null;
@@ -197,10 +193,10 @@ export class RegexParser extends Parser {
     const result = options.id();
     options.links[regex] = extendFlags(this.regex, "y");
     options.links[regexNocase] = extendFlags(this.regex, "iy");
-    options.links[expectation] = as<RegexExpectation>({
+    options.links[expectation] = {
       type: ExpectationType.RegExp,
       regex: this.regex
-    });
+    };
     return `
       if(!skip(options))
         ${options.children} = null;
@@ -242,10 +238,10 @@ export class TokenParser extends Parser {
     const log = options.id();
     const expectation = this.displayName && options.id();
     expectation &&
-      (options.links[expectation] = as<TokenExpectation>({
+      (options.links[expectation] = {
         type: ExpectationType.Token,
         displayName: this.displayName!
-      }));
+      });
     if (!this.parser.generate) {
       console.log({ this: this });
       return "";

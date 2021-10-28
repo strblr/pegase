@@ -31,12 +31,6 @@ import {
   WarningType
 } from ".";
 
-// as
-
-export function as<T>(value: T) {
-  return value;
-}
-
 // has
 
 export function has(object: object, key: string) {
