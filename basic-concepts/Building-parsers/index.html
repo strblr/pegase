@@ -881,7 +881,7 @@
 <h3 id="cut-operator">Cut operator</h3>
 <pre><code class="language-text">^
 </code></pre>
-<p>In an ordered choice expression, the cut operator commits to the current alternative to prevent exploring any further in case it fails. Example : <code>'x' ^ a | b</code> will <strong>not</strong> try <code>b</code> if <code>'x'</code> was found but <code>a</code> failed. Although it's called an <em>operator</em>, it's really a <code>Parser</code> on its own. Used outside an ordered choice expression, it's a no-op. Read more in <a href="https://ostrebler.github.io/pegase/advanced-concepts/Cut-operator/">Cut operator</a>.</p>
+<p>In an ordered choice expression, the cut operator commits to the current alternative to prevent exploring any further in case it fails. Example : <code>'x' ^ a | b</code> will <strong>not</strong> try <code>b</code> if <code>'x'</code> was found but <code>a</code> failed. Although it's called an <em>operator</em>, it's really a <code>Parser</code> on its own. Used outside an ordered choice expression, it's a no-op. Read more in <a href="https://strblr.github.io/pegase/advanced-concepts/Cut-operator/">Cut operator</a>.</p>
 <p><strong>Children</strong>: <code>[]</code></p>
 <p><strong>Precedence</strong>: 0</p>
 <hr />
@@ -897,7 +897,7 @@ ${jsParser}
 <h3 id="back-references">Back references</h3>
 <pre><code class="language-text">&gt;id&lt;
 </code></pre>
-<p>Back reference to an earlier string capture. This will matches the string literal captured as <code>id</code>. Read more in <a href="https://ostrebler.github.io/pegase/basic-concepts/Semantic-action-and-dataflow/">Semantic action and dataflow</a>.</p>
+<p>Back reference to an earlier string capture. This will matches the string literal captured as <code>id</code>. Read more in <a href="https://strblr.github.io/pegase/basic-concepts/Semantic-action-and-dataflow/">Semantic action and dataflow</a>.</p>
 <p><strong>Children</strong>: <code>[]</code></p>
 <p><strong>Precedence</strong>: 0</p>
 <hr />
@@ -907,7 +907,7 @@ ${jsParser}
 @${jsFunction}
 @ =&gt; 'label'
 </code></pre>
-<p>This is syntactic sugar for directives applied to the empty literal parser: <code>'' @dir</code>, <code>'' ${jsFunction}</code>, etc. Handy if the directive you want to invoke doesn't care about a wrapped parser. Read more in <a href="https://ostrebler.github.io/pegase/basic-concepts/Directives/">Directives</a>.</p>
+<p>This is syntactic sugar for directives applied to the empty literal parser: <code>'' @dir</code>, <code>'' ${jsFunction}</code>, etc. Handy if the directive you want to invoke doesn't care about a wrapped parser. Read more in <a href="https://strblr.github.io/pegase/basic-concepts/Directives/">Directives</a>.</p>
 <p><strong>Children</strong>: Directives generate new parsers. So <code>children</code> depends on whatever parser is generated.</p>
 <p><strong>Precedence</strong>: 0</p>
 <hr />
@@ -960,7 +960,7 @@ ${jsNumber}
 /(\d+):(\d+)/
 ${jsRegExp}
 </code></pre>
-<p>Matches the regex. It can either be a regex literal (same syntax as JS' <code>RegExp</code>), or an actual <code>RegExp</code> instance injected as tag argument. <em>Named</em> capturing groups are transformed into Pegase captures. Read more in <a href="https://ostrebler.github.io/pegase/advanced-concepts/Working-with-RegExp/">Working with RegExp</a>.</p>
+<p>Matches the regex. It can either be a regex literal (same syntax as JS' <code>RegExp</code>), or an actual <code>RegExp</code> instance injected as tag argument. <em>Named</em> capturing groups are transformed into Pegase captures. Read more in <a href="https://strblr.github.io/pegase/advanced-concepts/Working-with-RegExp/">Working with RegExp</a>.</p>
 <p><strong>Children</strong>: The regex's capturing groups</p>
 <p><strong>Precedence</strong>: 0</p>
 <hr />
@@ -1026,14 +1026,14 @@ a{${jsNumber}, 15}
 &lt;...&gt;id
 </code></pre>
 <p>Captures associate a parser's <code>value</code> or <code>children</code> to an identifier (<code>id</code> in the example). To captures the <code>children</code> array, use <code>...</code>. When the wrapped expression is a non-terminal of the same name than the capture, the capture's name can be omitted.</p>
-<p>Captures are accumulated in <em>scopes</em>, can be overwritten and be read in semantic actions and custom parsers. Rule definitions and ordered choice alternatives create new capture scopes. Read more in <a href="https://ostrebler.github.io/pegase/basic-concepts/Semantic-action-and-dataflow/">Semantic action and dataflow</a>.</p>
+<p>Captures are accumulated in <em>scopes</em>, can be overwritten and be read in semantic actions and custom parsers. Rule definitions and ordered choice alternatives create new capture scopes. Read more in <a href="https://strblr.github.io/pegase/basic-concepts/Semantic-action-and-dataflow/">Semantic action and dataflow</a>.</p>
 <p><strong>Children</strong>: Forwarded from the wrapped expression</p>
 <p><strong>Precedence</strong>: 3</p>
 <hr />
 <h3 id="synchronizations">Synchronizations</h3>
 <pre><code class="language-text">...a
 </code></pre>
-<p>Skips input character by character until <code>a</code> is matched. This can be used to implement <em>synchronization</em> to recover from errors and is equivalent to <code>(!a .)* a</code>. Write <code>...&amp;a</code> if you want to sync to <code>a</code> without consuming <code>a</code>. See <a href="https://ostrebler.github.io/pegase/basic-concepts/Building-parsers/#failure-recovery">Failure recovery</a>.</p>
+<p>Skips input character by character until <code>a</code> is matched. This can be used to implement <em>synchronization</em> to recover from errors and is equivalent to <code>(!a .)* a</code>. Write <code>...&amp;a</code> if you want to sync to <code>a</code> without consuming <code>a</code>. See <a href="https://strblr.github.io/pegase/basic-concepts/Building-parsers/#failure-recovery">Failure recovery</a>.</p>
 <p><strong>Children</strong>: Forwarded from the wrapped expression</p>
 <p><strong>Precedence</strong>: 4</p>
 <hr />
