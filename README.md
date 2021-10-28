@@ -3,12 +3,12 @@
 ![NPM](https://img.shields.io/npm/l/pegase) ![npm](https://img.shields.io/npm/v/pegase) ![npm bundle size](https://img.shields.io/bundlephobia/minzip/pegase?label=gzip)
 
 <p align="center">  
-  <img alt="pegase" src="https://ostrebler.github.io/pegase/assets/images/pegase.png">  
+  <img alt="pegase" src="https://strblr.github.io/pegase/assets/images/pegase.png">  
 </p>
 
 > ⚠️ This library is still under development. This is a pre-release but some functionalities might still change.
 
-[Pegase](https://ostrebler.github.io/pegase/) is a PEG parser generator for JavaScript and TypeScript. It's:
+[Pegase](https://strblr.github.io/pegase/) is a PEG parser generator for JavaScript and TypeScript. It's:
 
 - **_Inline_**, meaning grammars are directly expressed as [tagged template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates). No generation step, no CLI. Pegase works in symbiosis with JS.
 - **_Fast_**. Pegase is heavily optimized to be extremely fast while providing an extensive range of features.
@@ -17,7 +17,7 @@
 - **_Intuitive_**, in that it lets you express complex processes in very simple ways. You will never feel lost.
 - **_Extensible_**: You can define your own `Parser` subclasses, add plugins, write custom directives, etc.
 
-# [🔗 Go to the official website](https://ostrebler.github.io/pegase/)
+# [🔗 Go to the official website](https://strblr.github.io/pegase/)
 
 
 
@@ -68,7 +68,7 @@ false
     |         ^
 ```
 
-Read more in [Building parsers](https://ostrebler.github.io/pegase/basic-concepts/Building-parsers/) and [Semantic action and dataflow](https://ostrebler.github.io/pegase/basic-concepts/Semantic-action-and-dataflow/).
+Read more in [Building parsers](https://strblr.github.io/pegase/basic-concepts/Building-parsers/) and [Semantic action and dataflow](https://strblr.github.io/pegase/basic-concepts/Semantic-action-and-dataflow/).
 
 ### Automatic whitespace skipping
 
@@ -93,7 +93,7 @@ g.test("[  1,1,1  ]");  // true
 g.test("[  1, 1,1  ]"); // false
 ```
 
-Read more in [Handling whitespaces](https://ostrebler.github.io/pegase/basic-concepts/Handling-whitespaces/).
+Read more in [Handling whitespaces](https://strblr.github.io/pegase/basic-concepts/Handling-whitespaces/).
 
 ### Great warning and failure reports
 
@@ -130,7 +130,7 @@ const g = peg`
     |             ^
 ```
 
-Read more in [Failures and warnings](https://ostrebler.github.io/pegase/basic-concepts/Failures-and-warnings/).
+Read more in [Failures and warnings](https://strblr.github.io/pegase/basic-concepts/Failures-and-warnings/).
 
 ### Parametrized rules
 
@@ -174,7 +174,7 @@ const g = peg`
     |           ^
 ```
 
-Read more in [Error recovery](https://ostrebler.github.io/pegase/advanced-concepts/Error-recovery/).
+Read more in [Error recovery](https://strblr.github.io/pegase/advanced-concepts/Error-recovery/).
 
 ### Support for native `RegExp`
 
@@ -213,7 +213,7 @@ const yearIs = peg`
 yearIs.value("2021-08-19"); // "The year is 2021"
 ```
 
-Read more in [Working with RegExp](https://ostrebler.github.io/pegase/advanced-concepts/Working-with-RegExp/).
+Read more in [Working with RegExp](https://strblr.github.io/pegase/advanced-concepts/Working-with-RegExp/).
 
 ### Painless AST and visitors
 
@@ -235,7 +235,7 @@ prefix.value("182", { visit: sumVisitor });         // 182
 prefix.value("+ 12 + 42 3", { visit: sumVisitor }); // 57
 ```
 
-Read more in [AST and visitors](https://ostrebler.github.io/pegase/advanced-concepts/AST-and-visitors/).
+Read more in [AST and visitors](https://strblr.github.io/pegase/advanced-concepts/AST-and-visitors/).
 
 ### Extensible functionalities
 
@@ -258,9 +258,9 @@ const max = peg`
 max.value("36 12 42 3"); // 42
 ```
 
-Read more in [Writing a plugin](https://ostrebler.github.io/pegase/advanced-concepts/Writing-a-plugin/).
+Read more in [Writing a plugin](https://strblr.github.io/pegase/advanced-concepts/Writing-a-plugin/).
 
 ## And a lot more
 
-There is so much more to see. To learn more about Pegase, [please go to the official website](https://ostrebler.github.io/pegase/).
+There is so much more to see. To learn more about Pegase, [please go to the official website](https://strblr.github.io/pegase/).
 

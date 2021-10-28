@@ -52,7 +52,7 @@ Matches the empty string. Strictly equivalent to `''` and always a success.
 ^
 ```
 
-In an ordered choice expression, the cut operator commits to the current alternative to prevent exploring any further in case it fails. Example : `'x' ^ a | b` will **not** try `b` if `'x'` was found but `a` failed. Although it's called an *operator*, it's really a `Parser` on its own. Used outside an ordered choice expression, it's a no-op. Read more in [Cut operator](https://ostrebler.github.io/pegase/advanced-concepts/Cut-operator/).
+In an ordered choice expression, the cut operator commits to the current alternative to prevent exploring any further in case it fails. Example : `'x' ^ a | b` will **not** try `b` if `'x'` was found but `a` failed. Although it's called an *operator*, it's really a `Parser` on its own. Used outside an ordered choice expression, it's a no-op. Read more in [Cut operator](https://strblr.github.io/pegase/advanced-concepts/Cut-operator/).
 
 **Children**: `[]`
 
@@ -82,7 +82,7 @@ Delegates the parsing to a sub-parser. This happens when wrapping a peg expressi
 >id<
 ```
 
-Back reference to an earlier string capture. This will matches the string literal captured as `id`. Read more in [Semantic action and dataflow](https://ostrebler.github.io/pegase/basic-concepts/Semantic-action-and-dataflow/).
+Back reference to an earlier string capture. This will matches the string literal captured as `id`. Read more in [Semantic action and dataflow](https://strblr.github.io/pegase/basic-concepts/Semantic-action-and-dataflow/).
 
 **Children**: `[]`
 
@@ -99,7 +99,7 @@ Back reference to an earlier string capture. This will matches the string litera
 @ => 'label'
 ```
 
-This is syntactic sugar for directives applied to the empty literal parser: `'' @dir`, `'' ${jsFunction}`, etc. Handy if the directive you want to invoke doesn't care about a wrapped parser. Read more in [Directives](https://ostrebler.github.io/pegase/basic-concepts/Directives/).
+This is syntactic sugar for directives applied to the empty literal parser: `'' @dir`, `'' ${jsFunction}`, etc. Handy if the directive you want to invoke doesn't care about a wrapped parser. Read more in [Directives](https://strblr.github.io/pegase/basic-concepts/Directives/).
 
 **Children**: Directives generate new parsers. So `children` depends on whatever parser is generated.
 
@@ -187,7 +187,7 @@ Matches the escaped metacharacter. The same metacharacters available in `RegExp`
 ${jsRegExp}
 ```
 
-Matches the regex. It can either be a regex literal (same syntax as JS' `RegExp`), or an actual `RegExp` instance injected as tag argument. *Named* capturing groups are transformed into Pegase captures. Read more in [Working with RegExp](https://ostrebler.github.io/pegase/advanced-concepts/Working-with-RegExp/).
+Matches the regex. It can either be a regex literal (same syntax as JS' `RegExp`), or an actual `RegExp` instance injected as tag argument. *Named* capturing groups are transformed into Pegase captures. Read more in [Working with RegExp](https://strblr.github.io/pegase/advanced-concepts/Working-with-RegExp/).
 
 **Children**: The regex's capturing groups
 
@@ -250,7 +250,7 @@ In case of a positive predicate (`$`), `a` is matched without consuming any inpu
 
 Captures associate a parser's `value` or `children` to an identifier (`id` in the example). To captures the `children` array, use `...`. When the wrapped expression is a non-terminal of the same name than the capture, the capture's name can be omitted.
 
-Captures are accumulated in *scopes*, can be overwritten and be read in semantic actions and custom parsers. Rule definitions and ordered choice alternatives create new capture scopes. Read more in [Semantic action and dataflow](https://ostrebler.github.io/pegase/basic-concepts/Semantic-action-and-dataflow/).
+Captures are accumulated in *scopes*, can be overwritten and be read in semantic actions and custom parsers. Rule definitions and ordered choice alternatives create new capture scopes. Read more in [Semantic action and dataflow](https://strblr.github.io/pegase/basic-concepts/Semantic-action-and-dataflow/).
 
 **Children**: Forwarded from the wrapped expression
 
@@ -264,7 +264,7 @@ Captures are accumulated in *scopes*, can be overwritten and be read in semantic
 ...a
 ```
 
-Skips input character by character until `a` is matched. This can be used to implement *synchronization* to recover from errors and is equivalent to `(!a .)* a`. Write `...&a` if you want to sync to `a` without consuming `a`. See [Failure recovery](https://ostrebler.github.io/pegase/basic-concepts/Building-parsers/#failure-recovery).
+Skips input character by character until `a` is matched. This can be used to implement *synchronization* to recover from errors and is equivalent to `(!a .)* a`. Write `...&a` if you want to sync to `a` without consuming `a`. See [Failure recovery](https://strblr.github.io/pegase/basic-concepts/Building-parsers/#failure-recovery).
 
 **Children**: Forwarded from the wrapped expression
 
