@@ -88,7 +88,7 @@ If you want to identify multiple input errors at once, you have to do *error rec
 const p = peg`
   declaration:
     'class'
-    (identifier ${() => {
+    ($identifier ${() => {
       if (!/^[A-Z]/.test($raw()))
         $warn("Class names should be capitalized");
     }})

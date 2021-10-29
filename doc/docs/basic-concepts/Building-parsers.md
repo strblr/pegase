@@ -123,7 +123,7 @@ Matches the non-terminal. A non-terminal can refer to a *grammar rule* or to a *
 
 ---
 
-### String literals
+### String parsers
 
 ```text
 "lit"
@@ -178,7 +178,7 @@ Matches the escaped metacharacter. The same metacharacters available in `RegExp`
 
 ---
 
-### Regex literals
+### Regex parsers
 
 ```text
 /ab/
@@ -248,7 +248,7 @@ In case of a positive predicate (`$`), `a` is matched without consuming any inpu
 <...>id
 ```
 
-Captures associate a parser's `value` or `children` to an identifier (`id` in the example). To captures the `children` array, use `...`. When the wrapped expression is a non-terminal of the same name than the capture, the capture's name can be omitted.
+Captures associate a parser's `value` or `children` to an identifier (`id` in the example). The `value` of a parser is its single child. If there is no child, or multiple ones, `value` is `undefined`. To captures the whole `children` array, use `...`. When the wrapped expression is a non-terminal of the same name than the capture, the capture's name can be omitted.
 
 Captures are accumulated in *scopes*, can be overwritten and be read in semantic actions and custom parsers. Rule definitions and ordered choice alternatives create new capture scopes. Read more in [Semantic action and dataflow](https://strblr.github.io/pegase/basic-concepts/Semantic-action-and-dataflow/).
 
@@ -325,7 +325,7 @@ Matches `a` followed by `b`.
 a @dir
 a @dir(x, y)
 a @dir(x, ${y})
-a @dir @other
+a @dir1 @dir2 @dir3
 
 a ${jsFunction}
 a => 'label'
@@ -339,7 +339,7 @@ The `a => 'label'` syntax is syntactic sugar for the `@node` directive and is eq
 
 Directives are a powerful and central tool within Pegase. Read more about it in [Directives](/pegase/basic-concepts/Directives/).
 
-**Children**: Directives generate new parsers. So `children` depends on whatever parser is generated. When using the `@action` shorthand (`a ${jsFunction}`), one can emit a single child by returning a non-`undefined` value from the function, or emit multiple children by calling [the `$emit` hook](/pegase/api/Hooks/) inside the function. Not returning anything and not calling `$emit` will forward the wrapped expression's `children`. When using the `@node` shorthand (`a => 'label'`), the generated `Node` is emitted as a single child (see [AST and visitors](/pegase/advanced-concepts/AST-and-visitors/)).
+**Children**: Directives generate new parsers. So `children` depends on whatever parser is generated. For example: when using the `@action` directive (or shorthand), one can emit a single child by returning a non-`undefined` value from the function, or emit multiple children by calling [the `$emit` hook](/pegase/api/Hooks/) inside the function. Not returning anything and not calling `$emit` will forward the wrapped expression's `children`. When using the `@node` directive (or shorthand), the generated `Node` is emitted as a single child (see [AST and visitors](/pegase/advanced-concepts/AST-and-visitors/)).
 
 **Precedence**: 8
 
