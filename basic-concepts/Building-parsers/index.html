@@ -338,8 +338,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#string-literals" class="md-nav__link">
-    String literals
+  <a href="#string-parsers" class="md-nav__link">
+    String parsers
   </a>
   
 </li>
@@ -359,8 +359,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#regex-literals" class="md-nav__link">
-    Regex literals
+  <a href="#regex-parsers" class="md-nav__link">
+    Regex parsers
   </a>
   
 </li>
@@ -920,7 +920,7 @@ identifier('a',, 'd')
 <p><strong>Children</strong>: Forwarded from the non-terminal (<code>identifier</code> in the example)</p>
 <p><strong>Precedence</strong>: 0</p>
 <hr />
-<h3 id="string-literals">String literals</h3>
+<h3 id="string-parsers">String parsers</h3>
 <pre><code class="language-text">&quot;lit&quot;
 'test'
 ''
@@ -954,7 +954,7 @@ ${jsNumber}
 <p><strong>Children</strong>: <code>[]</code></p>
 <p><strong>Precedence</strong>: 0</p>
 <hr />
-<h3 id="regex-literals">Regex literals</h3>
+<h3 id="regex-parsers">Regex parsers</h3>
 <pre><code class="language-text">/ab/
 /\w+/
 /(\d+):(\d+)/
@@ -1025,7 +1025,7 @@ a{${jsNumber}, 15}
 &lt;...id&gt;a
 &lt;...&gt;id
 </code></pre>
-<p>Captures associate a parser's <code>value</code> or <code>children</code> to an identifier (<code>id</code> in the example). To captures the <code>children</code> array, use <code>...</code>. When the wrapped expression is a non-terminal of the same name than the capture, the capture's name can be omitted.</p>
+<p>Captures associate a parser's <code>value</code> or <code>children</code> to an identifier (<code>id</code> in the example). The <code>value</code> of a parser is its single child. If there is no child, or multiple ones, <code>value</code> is <code>undefined</code>. To captures the whole <code>children</code> array, use <code>...</code>. When the wrapped expression is a non-terminal of the same name than the capture, the capture's name can be omitted.</p>
 <p>Captures are accumulated in <em>scopes</em>, can be overwritten and be read in semantic actions and custom parsers. Rule definitions and ordered choice alternatives create new capture scopes. Read more in <a href="https://strblr.github.io/pegase/basic-concepts/Semantic-action-and-dataflow/">Semantic action and dataflow</a>.</p>
 <p><strong>Children</strong>: Forwarded from the wrapped expression</p>
 <p><strong>Precedence</strong>: 3</p>
@@ -1067,7 +1067,7 @@ a b c
 <pre><code class="language-text">a @dir
 a @dir(x, y)
 a @dir(x, ${y})
-a @dir @other
+a @dir1 @dir2 @dir3
 
 a ${jsFunction}
 a =&gt; 'label'
@@ -1076,7 +1076,7 @@ a =&gt; 'label'
 <p>Injecting a JS function right after a peg expression is syntactic sugar for the <code>@action</code> directive, which builds an action parser (a parser that calls a custom function on success). So <code>a ${jsFunction}</code> and <code>a @action(${jsFunction})</code> are strictly equivalent.</p>
 <p>The <code>a =&gt; 'label'</code> syntax is syntactic sugar for the <code>@node</code> directive and is equivalent to <code>a @node('label')</code>. The label can be specified via a string tag argument if necessary.</p>
 <p>Directives are a powerful and central tool within Pegase. Read more about it in <a href="/pegase/basic-concepts/Directives/">Directives</a>.</p>
-<p><strong>Children</strong>: Directives generate new parsers. So <code>children</code> depends on whatever parser is generated. When using the <code>@action</code> shorthand (<code>a ${jsFunction}</code>), one can emit a single child by returning a non-<code>undefined</code> value from the function, or emit multiple children by calling <a href="/pegase/api/Hooks/">the <code>$emit</code> hook</a> inside the function. Not returning anything and not calling <code>$emit</code> will forward the wrapped expression's <code>children</code>. When using the <code>@node</code> shorthand (<code>a =&gt; 'label'</code>), the generated <code>Node</code> is emitted as a single child (see <a href="/pegase/advanced-concepts/AST-and-visitors/">AST and visitors</a>).</p>
+<p><strong>Children</strong>: Directives generate new parsers. So <code>children</code> depends on whatever parser is generated. For example: when using the <code>@action</code> directive (or shorthand), one can emit a single child by returning a non-<code>undefined</code> value from the function, or emit multiple children by calling <a href="/pegase/api/Hooks/">the <code>$emit</code> hook</a> inside the function. Not returning anything and not calling <code>$emit</code> will forward the wrapped expression's <code>children</code>. When using the <code>@node</code> directive (or shorthand), the generated <code>Node</code> is emitted as a single child (see <a href="/pegase/advanced-concepts/AST-and-visitors/">AST and visitors</a>).</p>
 <p><strong>Precedence</strong>: 8</p>
 <hr />
 <h3 id="ordered-choices">Ordered choices</h3>

@@ -735,7 +735,7 @@ const context = new Map([[&quot;foo&quot;, 42], [&quot;bar&quot;, 18]]);
 <pre><code class="language-js">const p = peg`
   declaration:
     'class'
-    (identifier ${() =&gt; {
+    ($identifier ${() =&gt; {
       if (!/^[A-Z]/.test($raw()))
         $warn(&quot;Class names should be capitalized&quot;);
     }})
