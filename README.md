@@ -1,6 +1,6 @@
 # Pegase
 
-![NPM](https://img.shields.io/npm/l/pegase) ![npm](https://img.shields.io/npm/v/pegase) ![npm bundle size](https://img.shields.io/bundlephobia/minzip/pegase?label=gzip)
+![NPM](https://img.shields.io/npm/l/pegase?color=black&style=flat-square) ![npm](https://img.shields.io/npm/v/pegase?color=black&style=flat-square) ![npm bundle size](https://img.shields.io/bundlephobia/minzip/pegase?color=black&label=gzip&logoColor=black&style=flat-square) ![npm](https://img.shields.io/npm/dw/pegase?color=black&style=flat-square)
 
 <p align="center">  
   <img alt="pegase" src="https://strblr.github.io/pegase/assets/images/pegase.png">  
