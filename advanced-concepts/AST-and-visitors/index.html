@@ -804,7 +804,7 @@ prefix.value(&quot;+ 12 + 42 3&quot;, { visit: [doubleVisitor, sumVisitor] }); /
   PLUS: node =&gt; $visit(node.a) + $visit(node.b)
 };
 </code></pre>
-<p><strong><code>prefix.parse("+ 12 + 42 3", { visit: sumVisitor }).logger.toString()</code></strong></p>
+<p><strong><code>prefix.parse("+ 12 + 42 3", { visit: sumVisitor }).log()</code></strong></p>
 <pre><code class="language-text">(1:8) Warning: 42 is too powerful
 
 &gt; 1 | + 12 + 42 3
@@ -919,7 +919,7 @@ if(result.success) {
       
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/highlight.min.js"></script>
       
-        <script src="https://unpkg.com/pegase@0.5.3/umd/index.js"></script>
+        <script src="https://unpkg.com/pegase@0.6.0/umd/index.js"></script>
       
         <script src="../../javascript/config.js"></script>
       

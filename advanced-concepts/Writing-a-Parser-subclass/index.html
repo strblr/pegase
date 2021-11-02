@@ -706,7 +706,7 @@
 }
 </code></pre>
 <p>The state of the parsing process at the time of invocation is expressed by the <code>options</code> argument with info like the current position, the input string, the skipping state (on or off), the expected case sensitivity, etc. The exhaustive list is described in <a href="/pegase/api/Types/">API &gt; Types</a>. <strong>Important</strong>: For performance reasons, this object is never recreated and always directly mutated.</p>
-<p>Log events (warning and failures) must be emitted as side-effects using the methods provided by <code>options</code> and <code>options.logger</code>. Please refer to <a href="/pegase/api/Parser/">API &gt; <code>Parser</code></a>.</p>
+<p>Warning and failures must be emitted as side-effects by pushing items to <code>options.warnings</code> and <code>options.failures</code>. Please refer to <a href="/pegase/api/Parser/">API &gt; <code>Parser</code></a>.</p>
 <p>Great. Once you wrote a custom <code>Parser</code> subclass, there are basically four options for using it, depending on your needs:</p>
 <ul>
 <li>You can create an <strong>explicit instance</strong> and inject it into a peg expression as a tag argument:</li>
@@ -859,7 +859,7 @@ const g = peg`42 | myparser`;
       
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/highlight.min.js"></script>
       
-        <script src="https://unpkg.com/pegase@0.5.3/umd/index.js"></script>
+        <script src="https://unpkg.com/pegase@0.6.0/umd/index.js"></script>
       
         <script src="../../javascript/config.js"></script>
       

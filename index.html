@@ -770,7 +770,7 @@ const nestedBitArray = peg`
 <p>Okay, the <code>test</code> method is fun but what if you want to do something more elaborated like collecting values, reading warnings or parse failures? The <code>parse</code> method is what you're asking for. It returns a result object containing all the info you might be interested in after a parsing. In fact, all other <code>Parser</code> methods (<code>test</code>, <code>value</code> and <code>children</code>) are <em>wrappers</em> around <code>parse</code>.</p>
 <pre><code class="language-js">const result = nestedBitArray.parse(&quot;[[0]&quot;);
 if(!result.success)
-  console.log(result.logger.toString());
+  console.log(result.log());
 </code></pre>
 <p>This will output:</p>
 <pre><code class="language-text">(1:5) Failure: Expected &quot;,&quot; or &quot;]&quot;
@@ -825,7 +825,7 @@ bitArray.children(&quot;[0, 1, 1, 0, 1]&quot;); // [&quot;1&quot;, &quot;0&quot;
 <p>Let's try it out:</p>
 <pre><code class="language-ts">const result = bitArray.parse(&quot;[1, 0, 1]&quot;);
 if(!result.success)
-  console.log(result.logger.toString());
+  console.log(result.log());
 </code></pre>
 <pre><code class="language-text">(1:5) Failure: Expected &quot;1&quot;
 
@@ -925,7 +925,7 @@ if(!result.success)
       
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/highlight.min.js"></script>
       
-        <script src="https://unpkg.com/pegase@0.5.3/umd/index.js"></script>
+        <script src="https://unpkg.com/pegase@0.6.0/umd/index.js"></script>
       
         <script src="javascript/config.js"></script>
       

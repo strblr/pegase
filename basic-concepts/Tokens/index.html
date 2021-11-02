@@ -690,7 +690,7 @@
 `;
 </code></pre>
 <p>But this doesn't work either, because now you don't allow for whitespaces <em>before</em> integers. So a simple <code>"1 , 1"</code> would fail when it should not:</p>
-<p><strong><code>intList.parse("1 , 1").logger.toString()</code></strong></p>
+<p><strong><code>intList.parse("1 , 1").log()</code></strong></p>
 <pre><code class="language-text">(1:4) Failure: Expected /\d/
 
 &gt; 1 | 1 , 1
@@ -704,7 +704,7 @@
   integer @raw @token: \d+
 `;
 </code></pre>
-<p><strong><code>intList.parse("23 4, 45").logger.toString()</code></strong></p>
+<p><strong><code>intList.parse("23 4, 45").log()</code></strong></p>
 <pre><code class="language-text">(1:4) Failure: Expected &quot;,&quot; or end of input
 
 &gt; 1 | 23 4, 45
@@ -717,7 +717,7 @@
   integer @raw @token(&quot;fancy integer&quot;): \d+
 `;
 </code></pre>
-<p><strong><code>intList.parse("12, ").logger.toString()</code></strong></p>
+<p><strong><code>intList.parse("12, ").log()</code></strong></p>
 <pre><code class="language-text">(1:5) Failure: Expected fancy integer
 
 &gt; 1 | 12, 
@@ -831,7 +831,7 @@ peg`$two_digit_integer @token(&quot;two digit integer&quot;): \d{2}`;
       
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/highlight.min.js"></script>
       
-        <script src="https://unpkg.com/pegase@0.5.3/umd/index.js"></script>
+        <script src="https://unpkg.com/pegase@0.6.0/umd/index.js"></script>
       
         <script src="../../javascript/config.js"></script>
       
