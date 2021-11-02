@@ -86,9 +86,9 @@ const g = peg`
   _: \s+
 `;
 
-g.test("[1,1,1]", { skip: false }); // Opt-out as a one-off...
+g.test("[1,1,1]", { skip: false }); // Opt-out as a one-off
 
-// ...or for all following executions by default:
+// Or for all executions by default:
 
 g.defaultOptions.skip = false;
 
