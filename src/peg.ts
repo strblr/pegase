@@ -32,42 +32,30 @@ import {
 // createTag
 
 export function createTag() {
-  function metaparse<Value, Context>(
-    chunks: TemplateStringsArray | string,
-    args: any[]
-  ): Parser<Value, Context> {
-    return metaparser.value(
-      typeof chunks === "string"
-        ? chunks
-        : chunks.raw.reduce(
-            (acc, chunk, index) => acc + `~${index - 1}` + chunk
-          ),
-      {
-        skipper: pegSkipper,
-        trace: peg.trace,
-        context: { plugins: peg.plugins, args }
-      }
-    );
-  }
-
   function peg<Value = any, Context = any>(
     chunks: TemplateStringsArray | string,
     ...args: Any[]
-  ) {
-    return metaparse<Value, Context>(chunks, args).compile();
+  ): Parser<Value, Context> {
+    return metaparser
+      .value(
+        typeof chunks === "string"
+          ? chunks
+          : chunks.raw.reduce(
+              (acc, chunk, index) => acc + `~${index - 1}` + chunk
+            ),
+        {
+          skipper: pegSkipper,
+          trace: peg.trace,
+          context: { plugins: peg.plugins, args }
+        }
+      )
+      .compile();
   }
-
-  peg.lazy = function <Value = any, Context = any>(
-    chunks: TemplateStringsArray | string,
-    ...args: Any[]
-  ) {
-    return metaparse<Value, Context>(chunks, args);
-  };
 
   peg.merge = function <Value, Context>(
     first: Parser<Value, Context>,
     ...rest: Parser[]
-  ) {
+  ): Parser<Value, Context> {
     const rules: GrammarParser["rules"] = new Map();
     for (const source of [first, ...rest])
       if (!(source instanceof GrammarParser))
