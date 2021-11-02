@@ -818,8 +818,8 @@ bitArray.children(&quot;[0, 1, 1, 0, 1]&quot;); // [&quot;1&quot;, &quot;0&quot;
 </code></pre>
 <p>Or you could factor the whole expression by using <em>parametrized</em> rules:</p>
 <pre><code class="language-ts">const bitArray = peg`
-  bitArray: array(0) | array(1)
-  array(item): '[' item % ',' ']'
+  bitArray: '[' seq(0) | seq(1) ']'
+  seq(item): item % ','
 `;
 </code></pre>
 <p>Let's try it out:</p>
