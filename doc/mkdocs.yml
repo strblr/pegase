@@ -56,10 +56,10 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/strblr/pegase
 extra_javascript:
-  - https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/highlight.min.js
+  - https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.3.1/highlight.min.js
   - https://unpkg.com/pegase@0.6.0/umd/index.js
   - javascript/config.js
 extra_css:
-  - https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/nord.min.css
+  - https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.3.1/styles/github-dark.min.css
   - https://fonts.googleapis.com/css?family=Inter
   - css/style.css

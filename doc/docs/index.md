@@ -170,8 +170,8 @@ Or you could factor the whole expression by using *parametrized* rules:
 
 ```ts
 const bitArray = peg`
-  bitArray: array(0) | array(1)
-  array(item): '[' item % ',' ']'
+  bitArray: '[' seq(0) | seq(1) ']'
+  seq(item): item % ','
 `;
 ```
 
