@@ -228,7 +228,7 @@ test("Back references should work correctly", () => {
   expect(g.test("5")).toBe(true);
   expect(g.test("6 6")).toBe(true);
   expect(g.test("7 7 6")).toBe(false);
-  expect(g.parse("7 7 6").logger.toString())
+  expect(g.parse("7 7 6").log())
     .toBe(`(1:5) Failure: Expected "7" or end of input
 
 > 1 | 7 7 6
@@ -308,7 +308,7 @@ test("Warnings should work correctly", () => {
     $identifier @raw: [a-zA-Z]+
   `;
 
-  expect(g.parse("class test {").logger.toString())
+  expect(g.parse("class test {").log())
     .toBe(`(1:7) Warning: Class names should be capitalized
 
 > 1 | class test {
@@ -355,7 +355,7 @@ test("AST and visitors should work", () => {
     expect(g.value("+ 12 + 42 3 ", { visit: [double, double, fold] })).toBe(
       228
     );
-    expect(g.parse("+ 12 + 42 3 ", { visit: logDemo }).logger.toString())
+    expect(g.parse("+ 12 + 42 3 ", { visit: logDemo }).log())
       .toBe(`(1:8) Warning: The number 42 is dangerous
 
 > 1 | + 12 + 42 3 
@@ -395,7 +395,7 @@ test("Failure recovery should work", () => {
   const result = g.parse("[1, 0, 1, 3, 0, 1, 2, 1]");
 
   expect(result.success).toBe(true);
-  expect(result.logger.toString()).toBe(`(1:11) Failure: Expected "0" or "1"
+  expect(result.log()).toBe(`(1:11) Failure: Expected "0" or "1"
 
 > 1 | [1, 0, 1, 3, 0, 1, 2, 1]
     |           ^
@@ -420,7 +420,7 @@ test("Failure heuristic should work correctly", () => {
   ]);
 
   expect(g1.value("foo", { context })).toBe(42);
-  expect(g1.parse("baz", { context }).logger.toString())
+  expect(g1.parse("baz", { context }).log())
     .toBe(`(1:1) Failure: Undeclared identifier "baz"
 
 > 1 | baz
@@ -438,7 +438,7 @@ test("Hooks should work correctly", () => {
 
   const r = b.parse("1") as SuccessResult;
   expect(r.value).toBe("1");
-  expect(r.logger.toString()).toBe(`(1:1) Warning: This is a warning
+  expect(r.log()).toBe(`(1:1) Warning: This is a warning
 
 > 1 | 1
     | ^
@@ -461,7 +461,7 @@ test("Hooks should work correctly", () => {
           }
         }
       })
-      .logger.toString()
+      .log()
   ).toBe(`(1:1) Warning: This is a warning
 
 > 1 | 00

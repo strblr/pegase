@@ -1,4 +1,4 @@
-import { idGenerator, Logger, Parser, skip, trace } from ".";
+import { idGenerator, Parser, skip, trace } from ".";
 
 // Related to parser generation
 
@@ -41,12 +41,74 @@ export type Links = {
   [link: string]: any;
 };
 
+// Related to parsing processing
+
+export type Options<Context = any> = {
+  input: string;
+  from: number;
+  to: number;
+  complete: boolean;
+  skipper: Parser<any, Context>;
+  skip: boolean;
+  ignoreCase: boolean;
+  tracer: Tracer<Context>;
+  trace: boolean;
+  log: boolean;
+  warnings: Warning[];
+  failures: Failure[];
+  context: Context;
+  visit: Visitor | Visitor[];
+  at(index: number): Location;
+  _ffIndex: number;
+  _ffType: FailureType | null;
+  _ffSemantic: string | null;
+  _ffExpectations: Expectation[];
+  _ffExpect(from: number, expected: Expectation): void;
+  _ffFail(from: number, message: string): void;
+  _ffCommit(): void;
+};
+
+export type Result<Value = any, Context = any> =
+  | SuccessResult<Value, Context>
+  | FailResult<Context>;
+
+export type SuccessResult<Value = any, Context = any> = Range &
+  ResultCommon<Context> & {
+    success: true;
+    value: Value;
+    children: any[];
+    raw: string;
+    complete: boolean;
+  };
+
+export type FailResult<Context = any> = ResultCommon<Context> & {
+  success: false;
+};
+
+export type ResultCommon<Context = any> = {
+  options: Options<Context>;
+  warnings: Warning[];
+  failures: Failure[];
+  log(options?: Partial<LogOptions>): string;
+};
+
+export type Node = {
+  $label: string;
+  $from: Location;
+  $to: Location;
+  [field: string]: any;
+};
+
+export type Visitor<Value = any> = Record<string, (node: Node) => Value>;
+
 // Related to logging
 
 export type LogOptions = {
-  warnings: boolean;
-  failures: boolean;
-  codeFrames: boolean;
+  warnings: Warning[];
+  failures: Failure[];
+  showWarnings: boolean;
+  showFailures: boolean;
+  showCodeFrames: boolean;
   linesBefore: number;
   linesAfter: number;
 };
@@ -118,65 +180,6 @@ export enum ExpectationType {
   Custom = "CUSTOM"
 }
 
-// Related to parsing processing
-
-export type Options<Context = any> = {
-  input: string;
-  from: number;
-  to: number;
-  complete: boolean;
-  skipper: Parser<any, Context>;
-  skip: boolean;
-  ignoreCase: boolean;
-  tracer: Tracer<Context>;
-  trace: boolean;
-  logger: Logger;
-  log: boolean;
-  context: Context;
-  visit: Visitor | Visitor[];
-  _ffIndex: number;
-  _ffType: FailureType | null;
-  _ffSemantic: string | null;
-  _ffExpectations: Expectation[];
-  _ffExpect(from: number, expected: Expectation): void;
-  _ffFail(from: number, message: string): void;
-  _ffCommit(): void;
-};
-
-export type Result<Value = any, Context = any> =
-  | SuccessResult<Value, Context>
-  | FailResult<Context>;
-
-export type SuccessResult<Value = any, Context = any> = Range & {
-  success: true;
-  value: Value;
-  children: any[];
-  raw: string;
-  complete: boolean;
-  options: Options<Context>;
-  logger: Logger;
-};
-
-export type FailResult<Context = any> = {
-  success: false;
-  options: Options<Context>;
-  logger: Logger;
-};
-
-export type Node = {
-  $label: string;
-  $from: Location;
-  $to: Location;
-  [field: string]: any;
-};
-
-export type Visitor<Value = any> = Record<string, (node: Node) => Value>;
-
-export type VisitOptions<Context = any> = Pick<
-  Options,
-  "logger" | "log" | "context"
->;
-
 // Related to tracing
 
 export type Tracer<Context = any> = (event: TraceEvent<Context>) => void;
@@ -221,6 +224,7 @@ export type Range = {
 };
 
 export type Location = {
+  source: string;
   index: number;
   line: number;
   column: number;
@@ -242,7 +246,7 @@ export type Hooks = {
   $commit(): void;
   $emit(children: any[]): void;
   $node(label: string, fields: Record<string, any>): Node;
-  $visit(node: Node, visitor?: Visitor, options?: VisitOptions): any;
+  $visit(node: Node, visitor?: Visitor, options?: Options): any;
   $parent(): Node | null;
 };
 

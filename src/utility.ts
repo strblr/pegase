@@ -12,7 +12,8 @@ import {
   FailureType,
   Hooks,
   LiteralParser,
-  Logger,
+  Location,
+  LogOptions,
   Node,
   Options,
   Parser,
@@ -25,7 +26,6 @@ import {
   TraceEventType,
   Tracer,
   TweakParser,
-  VisitOptions,
   Visitor,
   Warning,
   WarningType
@@ -114,7 +114,7 @@ export function trace(
   options: Options,
   exec: () => any[] | null
 ) {
-  const at = options.logger.at(options.from);
+  const at = options.at(options.from);
   options.tracer({
     type: TraceEventType.Enter,
     rule,
@@ -135,8 +135,8 @@ export function trace(
       rule,
       at,
       options,
-      from: options.logger.at(options.from),
-      to: options.logger.at(options.to),
+      from: options.at(options.from),
+      to: options.at(options.to),
       children
     });
   return children;
@@ -262,10 +262,12 @@ export function buildOptions<Context>(
     ignoreCase: false,
     tracer: defaultTracer,
     trace: false,
-    logger: new Logger(input),
     log: true,
+    warnings: [],
+    failures: [],
     context: undefined as any,
     visit: [],
+    at: locationGenerator(input),
     _ffIndex: 0,
     _ffType: null,
     _ffSemantic: null,
@@ -289,16 +291,16 @@ export function buildOptions<Context>(
     },
     _ffCommit() {
       if (this._ffType !== null) {
-        const pos = this.logger.at(this._ffIndex);
+        const pos = this.at(this._ffIndex);
         if (this._ffType === FailureType.Expectation)
-          this.logger.failures.push({
+          this.failures.push({
             from: pos,
             to: pos,
             type: FailureType.Expectation,
             expected: this._ffExpectations
           });
         else
-          this.logger.failures.push({
+          this.failures.push({
             from: pos,
             to: pos,
             type: FailureType.Semantic,
@@ -316,7 +318,7 @@ export function buildOptions<Context>(
 export function applyVisitor<Value, Context>(
   node: Node,
   visitor: Visitor<Value>,
-  options: VisitOptions<Context>,
+  options: Options<Context>,
   parent: Node | null = null
 ) {
   let value,
@@ -325,12 +327,12 @@ export function applyVisitor<Value, Context>(
   hooks.push({
     $from: () => from,
     $to: () => to,
-    $raw: () => options.logger.input.substring(from.index, to.index),
-    $options: () => options as any,
+    $raw: () => node.$from.source.substring(from.index, to.index),
+    $options: () => options,
     $context: () => options.context,
     $warn(message) {
       options.log &&
-        options.logger.warnings.push({
+        options.warnings.push({
           from,
           to,
           type: WarningType.Message,
@@ -339,7 +341,7 @@ export function applyVisitor<Value, Context>(
     },
     $fail(message) {
       options.log &&
-        options.logger.failures.push({
+        options.failures.push({
           from,
           to,
           type: FailureType.Semantic,
@@ -348,7 +350,7 @@ export function applyVisitor<Value, Context>(
     },
     $expected(expected) {
       options.log &&
-        options.logger.failures.push({
+        options.failures.push({
           from,
           to,
           type: FailureType.Expectation,
@@ -379,6 +381,94 @@ export function applyVisitor<Value, Context>(
   }
   hooks.pop();
   return value;
+}
+
+// locationGenerator
+
+function locationGenerator(input: string) {
+  let acc = 0;
+  const indexes = input.split(/[\r\n]/).map(chunk => {
+    const start = acc;
+    acc += chunk.length + 1;
+    return start;
+  });
+  return (index: number): Location => {
+    let line = 0;
+    let n = indexes.length - 1;
+    while (line < n) {
+      const k = line + ((n - line) >> 1);
+      if (index < indexes[k]) n = k - 1;
+      else if (index >= indexes[k + 1]) line = k + 1;
+      else {
+        line = k;
+        break;
+      }
+    }
+    return {
+      source: input,
+      index,
+      line: line + 1,
+      column: index - indexes[line] + 1
+    };
+  };
+}
+
+// log
+
+export function log(options: Partial<LogOptions>) {
+  const opts: LogOptions = {
+    warnings: [],
+    failures: [],
+    showWarnings: true,
+    showFailures: true,
+    showCodeFrames: true,
+    linesBefore: 2,
+    linesAfter: 2,
+    ...options
+  };
+
+  const entries = [
+    ...((opts.showWarnings && opts.warnings) || []),
+    ...((opts.showFailures && opts.failures) || [])
+  ];
+
+  if (entries.length === 0) return "";
+  const lines = entries[0].from.source.split(/[\r\n]/);
+
+  const codeFrame = (options: LogOptions, location: Location) => {
+    const start = Math.max(1, location.line - options.linesBefore);
+    const end = Math.min(lines.length, location.line + options.linesAfter);
+    const maxLineNum = String(end).length;
+    const padding = " ".repeat(maxLineNum);
+    let acc = "";
+    for (let i = start; i !== end + 1; i++) {
+      const lineNum = (padding + i).slice(-maxLineNum);
+      const current = lines[i - 1];
+      const normalized = current.replace(/\t+/, tabs =>
+        "  ".repeat(tabs.length)
+      );
+      if (i !== location.line) acc += `  ${lineNum} | ${normalized}\n`;
+      else {
+        const count = Math.max(
+          0,
+          normalized.length - current.length + location.column - 1
+        );
+        acc += `> ${lineNum} | ${normalized}\n`;
+        acc += `  ${padding} | ${" ".repeat(count)}^\n`;
+      }
+    }
+    return acc;
+  };
+
+  return entries
+    .sort((a, b) => a.from.index - b.from.index)
+    .map(
+      entry =>
+        `(${entry.from.line}:${entry.from.column}) ${entryToString(entry)}${
+          opts.showCodeFrames ? `\n\n${codeFrame(opts, entry.from)}` : ""
+        }`
+    )
+    .join("\n");
 }
 
 // defaultPlugin

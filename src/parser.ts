@@ -12,6 +12,7 @@ import {
   hooks,
   idGenerator,
   Links,
+  log,
   Options,
   Result,
   SemanticAction,
@@ -36,13 +37,13 @@ export abstract class Parser<Value = any, Context = any> {
 
   value(input: string, options?: Partial<Options<Context>>) {
     const result = this.parse(input, options);
-    if (!result.success) throw new Error(result.logger.toString());
+    if (!result.success) throw new Error(result.log());
     return result.value;
   }
 
   children(input: string, options?: Partial<Options<Context>>) {
     const result = this.parse(input, options);
-    if (!result.success) throw new Error(result.logger.toString());
+    if (!result.success) throw new Error(result.log());
     return result.children;
   }
 
@@ -60,7 +61,15 @@ export abstract class Parser<Value = any, Context = any> {
       return {
         success: false,
         options: opts,
-        logger: opts.logger
+        warnings: opts.warnings,
+        failures: opts.failures,
+        log(options) {
+          return log({
+            warnings: opts.warnings,
+            failures: opts.failures,
+            ...options
+          });
+        }
       };
     }
     if (opts.complete) {
@@ -71,7 +80,15 @@ export abstract class Parser<Value = any, Context = any> {
         return {
           success: false,
           options: opts,
-          logger: opts.logger
+          warnings: opts.warnings,
+          failures: opts.failures,
+          log(options) {
+            return log({
+              warnings: opts.warnings,
+              failures: opts.failures,
+              ...options
+            });
+          }
         };
       }
       opts.from = from;
@@ -85,14 +102,22 @@ export abstract class Parser<Value = any, Context = any> {
     );
     return {
       success: true,
-      from: opts.logger.at(opts.from),
-      to: opts.logger.at(opts.to),
+      from: opts.at(opts.from),
+      to: opts.at(opts.to),
       value: children.length === 1 ? children[0] : undefined,
       children,
       raw: opts.input.substring(opts.from, opts.to),
       complete: opts.to === opts.input.length,
       options: opts,
-      logger: opts.logger
+      warnings: opts.warnings,
+      failures: opts.failures,
+      log(options) {
+        return log({
+          warnings: opts.warnings,
+          failures: opts.failures,
+          ...options
+        });
+      }
     };
   }
 
@@ -689,8 +714,8 @@ export class ActionParser extends TweakParser {
         if (children === null) return null;
         let value, emit, failed;
         hooks.push({
-          $from: () => options.logger.at(options.from),
-          $to: () => options.logger.at(options.to),
+          $from: () => options.at(options.from),
+          $to: () => options.at(options.to),
           $children: () => children,
           $value: () => (children.length === 1 ? children[0] : undefined),
           $raw: () => options.input.substring(options.from, options.to),
@@ -698,7 +723,7 @@ export class ActionParser extends TweakParser {
           $context: () => options.context,
           $warn(message) {
             options.log &&
-              options.logger.warnings.push({
+              options.warnings.push({
                 from: $from(),
                 to: $to(),
                 type: WarningType.Message,
