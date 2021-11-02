@@ -91,7 +91,7 @@ Okay, the `test` method is fun but what if you want to do something more elabora
 ```js
 const result = nestedBitArray.parse("[[0]");
 if(!result.success)
-  console.log(result.logger.toString());
+  console.log(result.log());
 ```
 
 This will output:
@@ -180,7 +180,7 @@ Let's try it out:
 ```ts
 const result = bitArray.parse("[1, 0, 1]");
 if(!result.success)
-  console.log(result.logger.toString());
+  console.log(result.log());
 ```
 
 ```text

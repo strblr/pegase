@@ -24,7 +24,7 @@ const g = peg`
 
 Given a erroneous input like `[0, 4, 1, 2, 0, 1]`, the parser won't be able to parse past `4`:
 
-**`g.parse("[0, 4, 1, 2, 0, 1]").logger.toString()`**
+**`g.parse("[0, 4, 1, 2, 0, 1]").log()`**
 
 ```text
 (1:5) Failure: Expected "0" or "1"
@@ -43,7 +43,7 @@ const g = peg`
 `;
 ```
 
-**`g.parse("[0, 4, 1, 2, 0, 1]").logger.toString()`**
+**`g.parse("[0, 4, 1, 2, 0, 1]").log()`**
 
 ```text
 (1:5) Failure: Expected "0" or "1"
@@ -60,5 +60,5 @@ const g = peg`
 **Be aware**: the `success` status of the parsing will be `true`. With error recovery, a successful parsing doesn't necessarily imply "no failure", it just tells you that the parsing was able to finish successfully. This is indeed what *recovery* means. To check if there are any failures, check the size of the `failures` array:
 
 ```ts
-g.parse("[1, 0, 1, 3, 0, 1, 2, 1]").logger.failures.length !== 0 // true
+g.parse("[1, 0, 1, 3, 0, 1, 2, 1]").failures.length !== 0 // true
 ```

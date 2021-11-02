@@ -44,7 +44,7 @@ type Match = {
 
 The state of the parsing process at the time of invocation is expressed by the `options` argument with info like the current position, the input string, the skipping state (on or off), the expected case sensitivity, etc. The exhaustive list is described in [API > Types](/pegase/api/Types/). **Important**: For performance reasons, this object is never recreated and always directly mutated.
 
-Log events (warning and failures) must be emitted as side-effects using the methods provided by `options` and `options.logger`. Please refer to [API > `Parser`](/pegase/api/Parser/).
+Warning and failures must be emitted as side-effects by pushing items to `options.warnings` and `options.failures`. Please refer to [API > `Parser`](/pegase/api/Parser/).
 
 Great. Once you wrote a custom `Parser` subclass, there are basically four options for using it, depending on your needs:
 
