@@ -500,14 +500,6 @@ const metaparser = new GrammarParser([
           new ActionParser(new NonTerminalParser("actionTagArgument"), () => [
             "action",
             $children()
-          ]),
-          new SequenceParser([
-            new LiteralParser("=>"),
-            new ActionParser(new NonTerminalParser("value"), () =>
-              typeof $children()[0] !== "string"
-                ? $fail("A node label can only be a string")
-                : ["node", $children()]
-            )
           ])
         ]),
         () => {

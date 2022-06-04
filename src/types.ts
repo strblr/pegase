@@ -1,4 +1,4 @@
-import { idGenerator, Parser, skip, trace } from ".";
+import { Parser, skip, trace } from ".";
 
 // Related to parser generation
 
@@ -24,7 +24,7 @@ export type SemanticAction<Value = any> = (
 ) => Value;
 
 export type CompileOptions = {
-  id: ReturnType<typeof idGenerator>;
+  id(): string;
   children: string;
   captures: string;
   cut: string | null;
@@ -38,7 +38,7 @@ export type Links = {
   [link: string]: any;
 };
 
-// Related to parsing processing
+// Related to parsing
 
 export type Options<Context = any> = {
   input: string;
@@ -54,7 +54,6 @@ export type Options<Context = any> = {
   warnings: Warning[];
   failures: Failure[];
   context: Context;
-  visit: Visitor | Visitor[];
   at(index: number): Location;
   _ffIndex: number;
   _ffType: FailureType | null;
@@ -89,16 +88,7 @@ export type ResultCommon<Context = any> = {
   log(options?: Partial<LogOptions>): string;
 };
 
-export type Node = {
-  $label: string;
-  $from: Location;
-  $to: Location;
-  [field: string]: any;
-};
-
-export type Visitor<Value = any> = Record<string, (node: Node) => Value>;
-
-// Related to logging
+// Related to feedback
 
 export type LogOptions = {
   warnings: Warning[];
@@ -242,9 +232,6 @@ export type Hooks = {
   $expected(expected: ExpectationInput[]): void;
   $commit(): void;
   $emit(children: any[]): void;
-  $node(label: string, fields: Record<string, any>): Node;
-  $visit(node: Node, visitor?: Visitor, options?: Options): any;
-  $parent(): Node | null;
 };
 
 // Other

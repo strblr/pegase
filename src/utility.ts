@@ -16,7 +16,6 @@ import {
   LiteralParser,
   Location,
   LogOptions,
-  Node,
   Options,
   Parser,
   RegexParser,
@@ -27,7 +26,6 @@ import {
   TraceEventType,
   Tracer,
   TweakParser,
-  Visitor,
   Warning,
   WarningType
 } from ".";
@@ -235,7 +233,7 @@ function hook<K extends keyof Hooks>(key: K): Hooks[K] {
   };
 }
 
-export const hooks: Partial<Hooks>[] = [];
+export const hooks: Hooks[] = [];
 export const $from = hook("$from");
 export const $to = hook("$to");
 export const $children = hook("$children");
@@ -248,9 +246,6 @@ export const $fail = hook("$fail");
 export const $expected = hook("$expected");
 export const $commit = hook("$commit");
 export const $emit = hook("$emit");
-export const $node = hook("$node");
-export const $visit = hook("$visit");
-export const $parent = hook("$parent");
 
 // buildOptions
 
@@ -273,7 +268,6 @@ export function buildOptions<Context>(
     warnings: [],
     failures: [],
     context: undefined as any,
-    visit: [],
     at: locationGenerator(input),
     _ffIndex: 0,
     _ffType: null,
@@ -318,76 +312,6 @@ export function buildOptions<Context>(
     },
     ...partial
   };
-}
-
-// applyVisitor
-
-export function applyVisitor<Value, Context>(
-  node: Node,
-  visitor: Visitor<Value>,
-  options: Options<Context>,
-  parent: Node | null = null
-) {
-  let value,
-    from = node.$from,
-    to = node.$to;
-  hooks.push({
-    $from: () => from,
-    $to: () => to,
-    $raw: () => node.$from.source.substring(from.index, to.index),
-    $options: () => options,
-    $context: () => options.context,
-    $warn(message) {
-      options.log &&
-        options.warnings.push({
-          from,
-          to,
-          type: WarningType.Message,
-          message
-        });
-    },
-    $fail(message) {
-      options.log &&
-        options.failures.push({
-          from,
-          to,
-          type: FailureType.Semantic,
-          message
-        });
-    },
-    $expected(expected) {
-      options.log &&
-        options.failures.push({
-          from,
-          to,
-          type: FailureType.Expectation,
-          expected: castArray(expected).map(castExpectation)
-        });
-    },
-    $node: (label, fields) => ({
-      $label: label,
-      $from: from,
-      $to: to,
-      ...fields
-    }),
-    $visit(nextNode, nextVisitor = visitor, nextOptions = options) {
-      return applyVisitor(nextNode, nextVisitor, nextOptions, node);
-    },
-    $parent: () => parent
-  });
-  try {
-    if (has(visitor, node.$label)) value = visitor[node.$label](node);
-    else if (has(visitor, "$default")) value = visitor.$default(node);
-    else
-      throw new Error(
-        `Missing visitor callback for "${node.$label}" labeled nodes`
-      );
-  } catch (e) {
-    hooks.pop();
-    throw e;
-  }
-  hooks.pop();
-  return value;
 }
 
 // locationGenerator
@@ -600,11 +524,7 @@ export const defaultExtension: Extension = {
     action: (parser, action: SemanticAction) =>
       new ActionParser(parser, action),
     fail: action((_, message) => $fail(message)),
-    visit: action((_, visitor) => $visit($value(), visitor)),
     echo: action((_, message) => console.log(message)),
-    node: action((captures, label, fields = () => ({})) =>
-      $node(label, { ...captures, ...fields(captures) })
-    ),
     token: (parser, displayName?: string) =>
       new TokenParser(parser, displayName),
     commit: action(() => $commit()),

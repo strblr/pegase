@@ -14,10 +14,7 @@ if (typeof window !== "undefined") {
     "$fail",
     "$expected",
     "$commit",
-    "$emit",
-    "$node",
-    "$visit",
-    "$parent"
+    "$emit"
   ];
   for (const key of keys) (window as any)[key] = pegase[key];
 }

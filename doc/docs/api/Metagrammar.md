@@ -76,7 +76,6 @@ directives:
 directive:
 | '@' ^ identifier directiveParameters
 | actionTagArgument
-| '=>' value
 
 directiveParameters:
   ('(' value % ',' ')')?

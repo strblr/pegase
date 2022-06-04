@@ -3,18 +3,15 @@ import peg, {
   $context,
   $emit,
   $fail,
-  $node,
   $raw,
   $value,
-  $visit,
   $warn,
   ActionParser,
   createTag,
   LiteralParser,
   merge,
   RegexParser,
-  SuccessResult,
-  Visitor
+  SuccessResult
 } from ".";
 import * as competitor from "./competitor.test";
 
@@ -321,54 +318,6 @@ test("Warnings should work correctly", () => {
 `);
 });
 
-test("AST and visitors should work", () => {
-  for (let i = 0; i !== 1000; ++i) {
-    const g = peg`
-      expr:
-      | <>$integer ${({ $integer }) => $node("INT", { integer: $integer })}
-      | "+" <a>expr <b>expr ${({ a, b }) => $node("PLUS", { a, b })}
-  
-      $integer @raw: \d+
-    `;
-
-    const double: Visitor = {
-      PLUS: node => ($visit(node.a), $visit(node.b), node),
-      INT: node => ((node.integer *= 2), node)
-    };
-
-    const fold: Visitor = {
-      PLUS: node => $visit(node.a) + $visit(node.b),
-      INT: node => Number(node.integer)
-    };
-
-    const logDemo: Visitor = {
-      PLUS: node => ($visit(node.a), $visit(node.b), node),
-      INT: node => {
-        if (node.integer === "42") $warn("The number 42 is dangerous");
-        if (node.integer === "3") $fail("The number 3 is forbidden");
-        return node;
-      }
-    };
-
-    expect(g.value("+ 12 + 42 3 ", { visit: fold })).toBe(57);
-    expect(g.value("+ 12 + 42 3 ", { visit: [double, fold] })).toBe(114);
-    expect(g.value("+ 12 + 42 3 ", { visit: [double, double, fold] })).toBe(
-      228
-    );
-    expect(g.parse("+ 12 + 42 3 ", { visit: logDemo }).log())
-      .toBe(`(1:8) Warning: The number 42 is dangerous
-
-> 1 | + 12 + 42 3 
-    |        ^
-
-(1:11) Failure: The number 3 is forbidden
-
-> 1 | + 12 + 42 3 
-    |           ^
-`);
-  }
-});
-
 test("Grammar fragmentation should work", () => {
   const fragment1 = peg`
     a: 'a' b
@@ -441,30 +390,6 @@ test("Hooks should work correctly", () => {
   expect(r.log()).toBe(`(1:1) Warning: This is a warning
 
 > 1 | 1
-    | ^
-`);
-
-  const g = peg`
-    node: <a>leaf <b>leaf => 'NODE'
-    leaf: <val>"0" => 'LEAF'
-  `;
-
-  expect(
-    g
-      .parse("00", {
-        visit: {
-          LEAF: () => {},
-          NODE: node => {
-            $visit(node.a);
-            $visit(node.b);
-            $warn("This is a warning");
-          }
-        }
-      })
-      .log()
-  ).toBe(`(1:1) Warning: This is a warning
-
-> 1 | 00
     | ^
 `);
 });

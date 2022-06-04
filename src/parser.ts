@@ -1,7 +1,6 @@
 import {
   $from,
   $to,
-  applyVisitor,
   buildOptions,
   castArray,
   castExpectation,
@@ -93,13 +92,6 @@ export abstract class Parser<Value = any, Context = any> {
       }
       opts.from = from;
     }
-    const visitors = castArray(opts.visit);
-    children = children.map(child =>
-      visitors.reduce(
-        (value, visitor) => applyVisitor(value, visitor, opts as any),
-        child
-      )
-    );
     return {
       success: true,
       from: opts.at(opts.from),
@@ -752,13 +744,7 @@ export class ActionParser extends TweakParser {
           $commit: () => options._ffCommit(),
           $emit(children) {
             emit = children;
-          },
-          $node: (label, fields) => ({
-            $label: label,
-            $from: $from(),
-            $to: $to(),
-            ...fields
-          })
+          }
         });
         try {
           value = action(captures);
