@@ -101,7 +101,7 @@ test("Repetition parsers should work", () => {
   expect(g6.test("a")).toBe(false);
   expect(g6.test("aa")).toBe(true);
   expect(g6.test("aaa")).toBe(true);
-  expect(g6.children("a".repeat(103))).toEqual([..."a".repeat(103)]);
+  expect(g6.children("a".repeat(103))).toEqual(a(103));
 });
 
 test("Captures should work", () => {

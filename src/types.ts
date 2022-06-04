@@ -35,7 +35,6 @@ export type CompileOptions = {
 
 export type Links = {
   nochild: [];
-  assign: Function;
   skip: typeof skip;
   trace: typeof trace;
   [link: string]: any;

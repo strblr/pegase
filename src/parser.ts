@@ -2,7 +2,6 @@ import {
   $from,
   $to,
   applyVisitor,
-  assign,
   buildOptions,
   castArray,
   castExpectation,
@@ -125,7 +124,7 @@ export abstract class Parser<Value = any, Context = any> {
     const id = idGenerator();
     const children = id();
     const captures = id();
-    this.links = { nochild: [], assign, skip, trace };
+    this.links = { nochild: [], skip, trace };
     const code = this.generate({
       id,
       children,
@@ -232,7 +231,7 @@ export class RegexParser extends Parser {
         if(${result} !== null) {
           ${
             this.hasCaptures
-              ? `if (${result}.groups) assign(${options.captures}, ${result}.groups);`
+              ? `if (${result}.groups) Object.assign(${options.captures}, ${result}.groups);`
               : ""
           }
           options.to = options.from + ${result}[0].length;
