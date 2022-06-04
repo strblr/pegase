@@ -11,7 +11,7 @@ import {
   BackReferenceParser,
   CaptureParser,
   CutParser,
-  defaultPlugin,
+  defaultExtension,
   GrammarParser,
   LiteralParser,
   modulo,
@@ -46,30 +46,14 @@ export function createTag() {
         {
           skipper: pegSkipper,
           trace: peg.trace,
-          context: { plugins: peg.plugins, args }
+          context: { extensions: peg.extensions, args }
         }
       )
       .compile();
   }
 
-  peg.merge = function <Value, Context>(
-    first: Parser<Value, Context>,
-    ...rest: Parser[]
-  ): Parser<Value, Context> {
-    const rules: GrammarParser["rules"] = new Map();
-    for (const source of [first, ...rest])
-      if (!(source instanceof GrammarParser))
-        throw new Error("Only GrammarParser can be merged");
-      else
-        for (const [rule, definition] of source.rules)
-          if (rules.has(rule))
-            throw new Error(`Conflicting declaration of rule "${rule}"`);
-          else rules.set(rule, definition);
-    return new GrammarParser([...rules]).compile();
-  };
-
   peg.trace = false;
-  peg.plugins = [defaultPlugin];
+  peg.extensions = [defaultExtension];
   return peg;
 }
 
@@ -104,7 +88,7 @@ const metaparser = new GrammarParser([
             () => {
               let [rule, parameters, directives, parser] = $children();
               if (rule.startsWith("$")) {
-                const token = resolveDirective($context().plugins, "token");
+                const token = resolveDirective($context().extensions, "token");
                 if (!token) return unresolvedDirectiveFail("token");
                 directives = [
                   ...directives,
@@ -440,7 +424,7 @@ const metaparser = new GrammarParser([
       new ActionParser(
         new RepetitionParser(
           new SequenceParser([
-            defaultPlugin.directives!.noskip(new LiteralParser("(")),
+            defaultExtension.directives!.noskip(new LiteralParser("(")),
             modulo(
               new ActionParser(
                 new SequenceParser([
@@ -472,7 +456,7 @@ const metaparser = new GrammarParser([
       new ActionParser(
         new RepetitionParser(
           new SequenceParser([
-            defaultPlugin.directives!.noskip(new LiteralParser("(")),
+            defaultExtension.directives!.noskip(new LiteralParser("(")),
             modulo(
               new AlternativeParser([
                 new NonTerminalParser("optionsParser"),
@@ -528,7 +512,7 @@ const metaparser = new GrammarParser([
         ]),
         () => {
           const [name, args] = $children()[0];
-          const directive = resolveDirective($context().plugins, name);
+          const directive = resolveDirective($context().extensions, name);
           return directive ? [directive, args] : unresolvedDirectiveFail(name);
         }
       )
@@ -541,7 +525,7 @@ const metaparser = new GrammarParser([
       new ActionParser(
         new RepetitionParser(
           new SequenceParser([
-            defaultPlugin.directives!.noskip(new LiteralParser("(")),
+            defaultExtension.directives!.noskip(new LiteralParser("(")),
             modulo(new NonTerminalParser("value"), new LiteralParser(",")),
             new LiteralParser(")")
           ]),
@@ -669,7 +653,7 @@ const metaparser = new GrammarParser([
         new ActionParser(
           new NonTerminalParser("tagArgument"),
           () =>
-            resolveCast($context().plugins, $children()[0]) ??
+            resolveCast($context().extensions, $children()[0]) ??
             $fail(
               "Couldn't cast value to Parser, you can add support for it via peg.extend"
             )

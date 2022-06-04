@@ -3,15 +3,13 @@ import { idGenerator, Parser, skip, trace } from ".";
 // Related to parser generation
 
 export type MetaContext = {
-  plugins: Plugin[];
+  extensions: Extension[];
   args: any[];
 };
 
-export type Plugin = {
-  name?: string;
-  castParser?(arg: any): Parser | undefined;
+export type Extension = {
+  cast?(arg: any): Parser | undefined;
   directives?: Record<string, Directive>;
-  resolve?: Record<string, Parser>;
 };
 
 export type Directive = (parser: Parser, ...args: any[]) => Parser;
@@ -250,6 +248,11 @@ export type Hooks = {
 };
 
 // Other
+
+export type RuleConfig = [
+  parameters: [parameter: string, defaultValue: Parser | null][],
+  definition: Parser
+];
 
 // This is basically a hack to replace "any" but without an "implicit any" error
 // on function parameter destructuration

@@ -11,6 +11,7 @@ import peg, {
   ActionParser,
   createTag,
   LiteralParser,
+  merge,
   RegexParser,
   SuccessResult,
   Visitor
@@ -236,10 +237,9 @@ test("Back references should work correctly", () => {
 `);
 });
 
-test("The plugin system should work", () => {
+test("The extension system should work", () => {
   const tag = createTag();
-  tag.plugins.push({
-    name: "min-max-plugin",
+  tag.extensions.push({
     directives: {
       min: parser => peg`${parser} ${() => Math.min(...$children())}`,
       max: parser => new ActionParser(parser, () => Math.max(...$children()))
@@ -378,7 +378,7 @@ test("Grammar fragmentation should work", () => {
     c: 'c' d
     d: 'd' a?
   `;
-  const p = peg.merge(fragment1, fragment2);
+  const p = merge(fragment1, fragment2);
   expect(p.test("abc")).toBe(false);
   expect(p.test("abcd")).toBe(true);
   expect(p.test("abcdabcc")).toBe(false);

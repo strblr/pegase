@@ -14,6 +14,7 @@ import {
   log,
   Options,
   Result,
+  RuleConfig,
   SemanticAction,
   skip,
   trace,
@@ -506,10 +507,10 @@ export class RepetitionParser extends Parser {
 // GrammarParser
 
 export class GrammarParser extends Parser {
-  readonly rules: Map<string, [[string, Parser | null][], Parser]>;
+  readonly rules: Map<string, RuleConfig>;
   private readonly start: NonTerminalParser;
 
-  constructor(rules: [string, [[string, Parser | null][], Parser]][]) {
+  constructor(rules: [string, RuleConfig][]) {
     super();
     this.rules = new Map(rules);
     this.start = new NonTerminalParser(rules[0][0]);

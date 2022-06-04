@@ -8,8 +8,10 @@ import {
   Expectation,
   ExpectationInput,
   ExpectationType,
+  Extension,
   Failure,
   FailureType,
+  GrammarParser,
   Hooks,
   LiteralParser,
   Location,
@@ -17,7 +19,6 @@ import {
   Node,
   Options,
   Parser,
-  Plugin,
   RegexParser,
   RepetitionParser,
   SemanticAction,
@@ -96,6 +97,23 @@ export function skip(options: Options) {
   return true;
 }
 
+// merge
+
+export function merge<Value = any, Context = any>(
+  ...grammars: Parser[]
+): Parser<Value, Context> {
+  const rules: GrammarParser["rules"] = new Map();
+  for (const grammar of grammars)
+    if (!(grammar instanceof GrammarParser))
+      throw new Error("Only GrammarParser can be merged");
+    else
+      for (const [rule, definition] of grammar.rules)
+        if (rules.has(rule))
+          throw new Error(`Conflicting declaration of rule "${rule}"`);
+        else rules.set(rule, definition);
+  return new GrammarParser([...rules]).compile();
+}
+
 // trace
 
 export function trace(
@@ -133,19 +151,19 @@ export function trace(
 
 // resolveCast
 
-export function resolveCast(plugins: Plugin[], value: any) {
+export function resolveCast(extensions: Extension[], value: any) {
   let parser: Parser | undefined;
-  plugins.some(plugin => (parser = plugin.castParser?.(value)));
+  extensions.some(extension => (parser = extension.cast?.(value)));
   return parser;
 }
 
 // resolveDirective
 
-export function resolveDirective(plugins: Plugin[], directive: string) {
-  const plugin = plugins.find(
-    plugin => plugin.directives && has(plugin.directives, directive)
+export function resolveDirective(extensions: Extension[], directive: string) {
+  const extension = extensions.find(
+    extension => extension.directives && has(extension.directives, directive)
   );
-  return plugin?.directives![directive];
+  return extension?.directives![directive];
 }
 
 // pipeDirectives
@@ -460,7 +478,7 @@ export function log(options: Partial<LogOptions>) {
     .join("\n");
 }
 
-// defaultPlugin
+// defaultExtension
 
 function action(
   callback: (captures: Record<string, any>, ...args: any[]) => any
@@ -469,9 +487,8 @@ function action(
     new ActionParser(parser, captures => callback(captures, ...args));
 }
 
-export const defaultPlugin: Plugin = {
-  name: "default",
-  castParser(arg) {
+export const defaultExtension: Extension = {
+  cast(arg) {
     if (typeof arg === "number") return new LiteralParser(String(arg));
     if (typeof arg === "string") return new LiteralParser(arg);
     if (arg instanceof RegExp) return new RegexParser(arg);
