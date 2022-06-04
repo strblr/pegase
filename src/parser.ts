@@ -2,7 +2,6 @@ import {
   $from,
   $to,
   buildOptions,
-  castArray,
   castExpectation,
   CompileOptions,
   ExpectationType,
@@ -63,7 +62,7 @@ export abstract class Parser<Value = any, Context = any> {
         warnings: opts.warnings,
         failures: opts.failures,
         log(options) {
-          return log({
+          return log(input, {
             warnings: opts.warnings,
             failures: opts.failures,
             ...options
@@ -82,7 +81,7 @@ export abstract class Parser<Value = any, Context = any> {
           warnings: opts.warnings,
           failures: opts.failures,
           log(options) {
-            return log({
+            return log(input, {
               warnings: opts.warnings,
               failures: opts.failures,
               ...options
@@ -104,7 +103,7 @@ export abstract class Parser<Value = any, Context = any> {
       warnings: opts.warnings,
       failures: opts.failures,
       log(options) {
-        return log({
+        return log(input, {
           warnings: opts.warnings,
           failures: opts.failures,
           ...options
@@ -561,13 +560,12 @@ export class NonTerminalParser extends Parser {
 
   generate(options: CompileOptions): string {
     const children = options.id();
-    const parameters = this.parameters.map(
-      (parameter): [string, Parser] | null =>
-        parameter ? [options.id(), parameter] : null
+    const parameters = this.parameters.map(parameter =>
+      parameter ? ([options.id(), parameter] as const) : null
     );
     const call = `
       r_${this.rule}(${parameters
-      .map(parameter => (parameter ? parameter[0] : "void 0"))
+      .map(parameter => parameter?.[0] ?? "void 0")
       .join(",")})
     `;
     return `
@@ -737,7 +735,7 @@ export class ActionParser extends TweakParser {
             options._ffSemantic = ffSemantic;
             options._ffExpectations = ffExpectations;
             options.log &&
-              castArray(expected)
+              expected
                 .map(castExpectation)
                 .forEach(expected => options._ffExpect(options.from, expected));
           },

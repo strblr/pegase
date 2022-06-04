@@ -30,12 +30,6 @@ import {
   WarningType
 } from ".";
 
-// has
-
-export function has(object: object, key: string) {
-  return Object.prototype.hasOwnProperty.call(object, key);
-}
-
 // unique
 
 export function unique<T>(items: Iterable<T>) {
@@ -55,12 +49,6 @@ export function spaceCase(input: string) {
     .replace("_", " ")
     .replace(/([a-z])([A-Z])/g, "$1 $2")
     .toLowerCase();
-}
-
-// castArray
-
-export function castArray<T>(value: T | T[]) {
-  return Array.isArray(value) ? value : [value];
 }
 
 // castExpectation
@@ -151,17 +139,19 @@ export function trace(
 
 export function resolveCast(extensions: Extension[], value: any) {
   let parser: Parser | undefined;
-  extensions.some(extension => (parser = extension.cast?.(value)));
+  for (const extension of extensions)
+    if ((parser = extension.cast?.(value))) break;
   return parser;
 }
 
 // resolveDirective
 
 export function resolveDirective(extensions: Extension[], directive: string) {
-  const extension = extensions.find(
-    extension => extension.directives && has(extension.directives, directive)
-  );
-  return extension?.directives![directive];
+  return extensions.find(
+    extension =>
+      extension.directives &&
+      Object.prototype.hasOwnProperty.call(extension.directives, directive)
+  )?.directives![directive];
 }
 
 // pipeDirectives
@@ -336,7 +326,6 @@ function locationGenerator(input: string) {
       }
     }
     return {
-      source: input,
       index,
       line: line + 1,
       column: index - indexes[line] + 1
@@ -346,7 +335,7 @@ function locationGenerator(input: string) {
 
 // log
 
-export function log(options: Partial<LogOptions>) {
+export function log(input: string, options: Partial<LogOptions>) {
   const opts: LogOptions = {
     warnings: [],
     failures: [],
@@ -364,7 +353,7 @@ export function log(options: Partial<LogOptions>) {
   ];
 
   if (entries.length === 0) return "";
-  const lines = entries[0].from.source.split(/[\r\n]/);
+  const lines = input.split(/[\r\n]/);
 
   const codeFrame = (options: LogOptions, location: Location) => {
     const start = Math.max(1, location.line - options.linesBefore);

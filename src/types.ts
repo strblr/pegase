@@ -2,15 +2,15 @@ import { Parser, skip, trace } from ".";
 
 // Related to parser generation
 
-export type MetaContext = {
+export interface MetaContext {
   extensions: Extension[];
   args: any[];
-};
+}
 
-export type Extension = {
+export interface Extension {
   cast?(arg: any): Parser | undefined;
   directives?: Record<string, Directive>;
-};
+}
 
 export type Directive = (parser: Parser, ...args: any[]) => Parser;
 
@@ -23,24 +23,24 @@ export type SemanticAction<Value = any> = (
   captures: Record<string, any>
 ) => Value;
 
-export type CompileOptions = {
+export interface CompileOptions {
   id(): string;
   children: string;
   captures: string;
   cut: string | null;
   links: Links;
-};
+}
 
-export type Links = {
+export interface Links {
   nochild: [];
   skip: typeof skip;
   trace: typeof trace;
   [link: string]: any;
-};
+}
 
 // Related to parsing
 
-export type Options<Context = any> = {
+export interface Options<Context = any> {
   input: string;
   from: number;
   to: number;
@@ -62,35 +62,36 @@ export type Options<Context = any> = {
   _ffExpect(from: number, expected: Expectation): void;
   _ffFail(from: number, message: string): void;
   _ffCommit(): void;
-};
+}
 
 export type Result<Value = any, Context = any> =
   | SuccessResult<Value, Context>
   | FailResult<Context>;
 
-export type SuccessResult<Value = any, Context = any> = Range &
-  ResultCommon<Context> & {
-    success: true;
-    value: Value;
-    children: any[];
-    raw: string;
-    complete: boolean;
-  };
+export interface SuccessResult<Value = any, Context = any>
+  extends Range,
+    ResultCommon<Context> {
+  success: true;
+  value: Value;
+  children: any[];
+  raw: string;
+  complete: boolean;
+}
 
-export type FailResult<Context = any> = ResultCommon<Context> & {
+export interface FailResult<Context = any> extends ResultCommon<Context> {
   success: false;
-};
+}
 
-export type ResultCommon<Context = any> = {
+export interface ResultCommon<Context = any> {
   options: Options<Context>;
   warnings: Warning[];
   failures: Failure[];
   log(options?: Partial<LogOptions>): string;
-};
+}
 
 // Related to feedback
 
-export type LogOptions = {
+export interface LogOptions {
   warnings: Warning[];
   failures: Failure[];
   showWarnings: boolean;
@@ -98,12 +99,12 @@ export type LogOptions = {
   showCodeFrames: boolean;
   linesBefore: number;
   linesAfter: number;
-};
+}
 
-export type Warning = Range & {
+export interface Warning extends Range {
   type: WarningType.Message;
   message: string;
-};
+}
 
 export enum WarningType {
   Message = "MESSAGE"
@@ -111,15 +112,15 @@ export enum WarningType {
 
 export type Failure = ExpectationFailure | SemanticFailure;
 
-export type ExpectationFailure = Range & {
+export interface ExpectationFailure extends Range {
   type: FailureType.Expectation;
   expected: Expectation[];
-};
+}
 
-export type SemanticFailure = Range & {
+export interface SemanticFailure extends Range {
   type: FailureType.Semantic;
   message: string;
-};
+}
 
 export enum FailureType {
   Expectation = "EXPECTATION",
@@ -133,31 +134,31 @@ export type Expectation =
   | MismatchExpectation
   | CustomExpectation;
 
-export type LiteralExpectation = {
+export interface LiteralExpectation {
   type: ExpectationType.Literal;
   literal: string;
-};
+}
 
-export type RegexExpectation = {
+export interface RegexExpectation {
   type: ExpectationType.RegExp;
   regex: RegExp;
-};
+}
 
-export type TokenExpectation = {
+export interface TokenExpectation {
   type: ExpectationType.Token;
   displayName: string;
-};
+}
 
-export type MismatchExpectation = {
+export interface MismatchExpectation {
   type: ExpectationType.Mismatch;
   match: string;
-};
+}
 
-export type CustomExpectation = {
+export interface CustomExpectation {
   type: ExpectationType.Custom;
   display: string;
   [field: string]: any;
-};
+}
 
 export enum ExpectationType {
   Literal = "LITERAL",
@@ -182,44 +183,43 @@ export enum TraceEventType {
   Fail = "FAIL"
 }
 
-export type EnterEvent<Context = any> = TraceCommon<Context> & {
+export interface EnterEvent<Context = any> extends TraceCommon<Context> {
   type: TraceEventType.Enter;
-};
+}
 
-export type MatchEvent<Context = any> = TraceCommon<Context> & {
+export interface MatchEvent<Context = any> extends TraceCommon<Context> {
   type: TraceEventType.Match;
   from: Location;
   to: Location;
   children: any[];
-};
+}
 
-export type FailEvent<Context = any> = TraceCommon<Context> & {
+export interface FailEvent<Context = any> extends TraceCommon<Context> {
   type: TraceEventType.Fail;
-};
+}
 
-export type TraceCommon<Context = any> = {
+export interface TraceCommon<Context = any> {
   rule: string;
   at: Location;
   options: Options<Context>;
-};
+}
 
 // Shared
 
-export type Range = {
+export interface Range {
   from: Location;
   to: Location;
-};
+}
 
-export type Location = {
-  source: string;
+export interface Location {
   index: number;
   line: number;
   column: number;
-};
+}
 
 export type ExpectationInput = string | RegExp | Expectation;
 
-export type Hooks = {
+export interface Hooks {
   $from(): Location;
   $to(): Location;
   $children(): any[];
@@ -232,7 +232,7 @@ export type Hooks = {
   $expected(expected: ExpectationInput[]): void;
   $commit(): void;
   $emit(children: any[]): void;
-};
+}
 
 // Other
 
