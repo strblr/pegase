@@ -4,7 +4,6 @@ import {
   $emit,
   $fail,
   $raw,
-  $value,
   ActionParser,
   AlternativeParser,
   Any,
@@ -32,24 +31,26 @@ import {
 // createTag
 
 export function createTag() {
-  function peg<Value = any, Context = any>(
+  function peg<Context = any>(
     chunks: TemplateStringsArray | string,
     ...args: Any[]
-  ): Parser<Value, Context> {
-    return metaparser
-      .value(
-        typeof chunks === "string"
-          ? chunks
-          : chunks.raw.reduce(
-              (acc, chunk, index) => acc + `~${index - 1}` + chunk
-            ),
-        {
-          skipper: pegSkipper,
-          trace: peg.trace,
-          context: { extensions: peg.extensions, args }
-        }
-      )
-      .compile();
+  ): Parser<Context> {
+    const result = metaparser.parse(
+      typeof chunks === "string"
+        ? chunks
+        : chunks.raw.reduce(
+            (acc, chunk, index) => acc + `~${index - 1}` + chunk
+          ),
+      {
+        skipper: pegSkipper,
+        trace: peg.trace,
+        context: { extensions: peg.extensions, args }
+      }
+    );
+    if (!result.success) {
+      throw new Error(result.log());
+    }
+    return result.children[0].compile();
   }
 
   peg.trace = false;
@@ -574,7 +575,7 @@ const metaparser = new GrammarParser([
       new TokenParser(
         new AlternativeParser([
           new ActionParser(new RegexParser(/'((?:[^\\']|\\.)*)'/), () => [
-            JSON.parse(`"${$value()}"`),
+            JSON.parse(`"${$children()[0]}"`),
             false
           ]),
           new ActionParser(new RegexParser(/"(?:[^\\"]|\\.)*"/), () => [

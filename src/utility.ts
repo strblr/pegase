@@ -85,9 +85,7 @@ export function skip(options: Options) {
 
 // merge
 
-export function merge<Value = any, Context = any>(
-  ...grammars: Parser[]
-): Parser<Value, Context> {
+export function merge<Context = any>(...grammars: Parser[]): Parser<Context> {
   const rules: GrammarParser["rules"] = new Map();
   for (const grammar of grammars)
     if (!(grammar instanceof GrammarParser))
@@ -227,7 +225,6 @@ export const hooks: Hooks[] = [];
 export const $from = hook("$from");
 export const $to = hook("$to");
 export const $children = hook("$children");
-export const $value = hook("$value");
 export const $raw = hook("$raw");
 export const $options = hook("$options");
 export const $context = hook("$context");

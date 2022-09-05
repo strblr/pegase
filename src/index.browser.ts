@@ -6,7 +6,6 @@ if (typeof window !== "undefined") {
     "$from",
     "$to",
     "$children",
-    "$value",
     "$raw",
     "$options",
     "$context",

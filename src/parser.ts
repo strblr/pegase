@@ -24,7 +24,7 @@ import {
 
 // Parser
 
-export abstract class Parser<Value = any, Context = any> {
+export abstract class Parser<Context = any> {
   readonly defaultOptions: Partial<Options<Context>> = {};
   links?: Links;
   exec?: (options: Options, links: Record<string, any>) => any[] | null;
@@ -33,10 +33,13 @@ export abstract class Parser<Value = any, Context = any> {
     return this.parse(input, options).success;
   }
 
-  value(input: string, options?: Partial<Options<Context>>) {
+  value<Value = any>(
+    input: string,
+    options?: Partial<Options<Context>>
+  ): Value | undefined {
     const result = this.parse(input, options);
-    if (!result.success) throw new Error(result.log());
-    return result.value;
+    if (!result.success || result.children.length !== 1) return undefined;
+    return result.children[0];
   }
 
   children(input: string, options?: Partial<Options<Context>>) {
@@ -45,10 +48,7 @@ export abstract class Parser<Value = any, Context = any> {
     return result.children;
   }
 
-  parse(
-    input: string,
-    options?: Partial<Options<Context>>
-  ): Result<Value, Context> {
+  parse(input: string, options?: Partial<Options<Context>>): Result<Context> {
     const opts = buildOptions(input, {
       ...this.defaultOptions,
       ...options
@@ -95,7 +95,6 @@ export abstract class Parser<Value = any, Context = any> {
       success: true,
       from: opts.at(opts.from),
       to: opts.at(opts.to),
-      value: children.length === 1 ? children[0] : undefined,
       children,
       raw: opts.input.substring(opts.from, opts.to),
       complete: opts.to === opts.input.length,
@@ -707,7 +706,6 @@ export class ActionParser extends TweakParser {
           $from: () => options.at(options.from),
           $to: () => options.at(options.to),
           $children: () => children,
-          $value: () => (children.length === 1 ? children[0] : undefined),
           $raw: () => options.input.substring(options.from, options.to),
           $options: () => options,
           $context: () => options.context,

@@ -4,7 +4,6 @@ import peg, {
   $emit,
   $fail,
   $raw,
-  $value,
   $warn,
   ActionParser,
   createTag,
@@ -272,13 +271,13 @@ test("Semantic actions must correctly propagate children (including undefined)",
 test("L-attributed grammars should be implementable using context", () => {
   const g = peg<number>`
     expr:
-      (num ${() => ($context().acc = $value())})
+      (num ${() => ($context().acc = $children()[0])})
       exprRest
         ${() => $context().acc}
         @context(${{ acc: 0 }})
     
     exprRest:
-    | ('-' num ${() => ($context().acc -= $value())})
+    | ('-' num ${() => ($context().acc -= $children()[0])})
       exprRest
     | ε
     
@@ -386,7 +385,7 @@ test("Hooks should work correctly", () => {
   }}`;
 
   const r = b.parse("1") as SuccessResult;
-  expect(r.value).toBe("1");
+  expect(r.children).toEqual(["1"]);
   expect(r.log()).toBe(`(1:1) Warning: This is a warning
 
 > 1 | 1

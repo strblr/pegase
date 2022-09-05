@@ -19,9 +19,7 @@ export type Tweaker = (
   captures: Record<string, any>
 ) => (children: any[] | null) => any[] | null;
 
-export type SemanticAction<Value = any> = (
-  captures: Record<string, any>
-) => Value;
+export type SemanticAction = (captures: Record<string, any>) => any;
 
 export interface CompileOptions {
   id(): string;
@@ -45,7 +43,7 @@ export interface Options<Context = any> {
   from: number;
   to: number;
   complete: boolean;
-  skipper: Parser<any, Context>;
+  skipper: Parser<Context>;
   skip: boolean;
   ignoreCase: boolean;
   tracer: Tracer<Context>;
@@ -64,15 +62,14 @@ export interface Options<Context = any> {
   _ffCommit(): void;
 }
 
-export type Result<Value = any, Context = any> =
-  | SuccessResult<Value, Context>
+export type Result<Context = any> =
+  | SuccessResult<Context>
   | FailResult<Context>;
 
-export interface SuccessResult<Value = any, Context = any>
+export interface SuccessResult<Context = any>
   extends Range,
     ResultCommon<Context> {
   success: true;
-  value: Value;
   children: any[];
   raw: string;
   complete: boolean;
@@ -223,7 +220,6 @@ export interface Hooks {
   $from(): Location;
   $to(): Location;
   $children(): any[];
-  $value(): any;
   $raw(): string;
   $options(): Options;
   $context(): any;
