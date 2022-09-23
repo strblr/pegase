@@ -1,3 +1,4 @@
+import { format } from "prettier";
 import peg, {
   $children,
   $context,
@@ -9,12 +10,13 @@ import peg, {
   createTag,
   LiteralParser,
   merge,
+  Parser,
   RegexParser,
   SuccessResult
 } from ".";
 import * as competitor from "./competitor.test";
 
-function echo(entity: any) {
+function echoAst(entity: any) {
   console.log(
     JSON.stringify(
       entity,
@@ -28,6 +30,10 @@ function echo(entity: any) {
       2
     )
   );
+}
+
+function echoBuild(p: Parser) {
+  console.log(format(p.exec!.toString()));
 }
 
 test("The peg tag should work with raw strings", () => {

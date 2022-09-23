@@ -23,10 +23,13 @@ export type SemanticAction = (captures: Record<string, any>) => any;
 
 export interface CompileOptions {
   id(): string;
+  links: Links;
   children: string;
   captures: string;
-  cut: string | null;
-  links: Links;
+  cut: {
+    possible: boolean;
+    id: string | null;
+  };
 }
 
 export interface Links {

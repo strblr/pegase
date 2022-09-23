@@ -1,3 +1,4 @@
+import { endOfInput } from ".";
 import {
   $from,
   $to,
@@ -16,11 +17,9 @@ import {
   SemanticAction,
   skip,
   trace,
-  TraceEventType,
-  Tracer,
   Tweaker,
   WarningType
-} from ".";
+} from "..";
 
 // Parser
 
@@ -118,10 +117,13 @@ export abstract class Parser<Context = any> {
     this.links = { nochild: [], skip, trace };
     const code = this.generate({
       id,
+      links: this.links,
       children,
       captures,
-      cut: null,
-      links: this.links
+      cut: {
+        possible: false,
+        id: null
+      }
     });
     this.exec = new Function(
       "options",
@@ -326,8 +328,11 @@ export class BackReferenceParser extends Parser {
 
 export class CutParser extends Parser {
   generate(options: CompileOptions): string {
+    const id = options.cut.possible
+      ? options.cut.id ?? (options.cut.id = options.id())
+      : null;
     return `
-      ${options.cut ? `${options.cut} = true;` : ""}
+      ${id ? `${id} = true;` : ""}
       options.to = options.from;
       ${options.children} = nochild;
     `;
@@ -347,22 +352,25 @@ export class AlternativeParser extends Parser {
   generate(options: CompileOptions): string {
     const from = options.id();
     const captures = options.id();
-    const cut = options.id();
     return `
       var ${from} = options.from;
       var ${captures} = {};
-      var ${cut} = false;
-      ${this.parsers.reduceRight(
-        (code, parser, index) => `
+      ${this.parsers.reduceRight((acc, parser, index) => {
+        const cut: CompileOptions["cut"] = {
+          possible: index !== this.parsers.length - 1,
+          id: null
+        };
+        const code = parser.generate({ ...options, captures, cut });
+        return `
           ${index !== 0 ? `${captures} = {};` : ""}
-          ${parser.generate({ ...options, captures, cut })}
-          if(${options.children} === null && !${cut}) {
+          ${cut.id ? `var ${cut.id} = false;` : ""}
+          ${code}
+          if(${options.children} === null ${cut.id ? `&& !${cut.id}` : ""}) {
             options.from = ${from};
-            ${code}
+            ${acc}
           }
-        `,
-        ""
-      )}
+        `;
+      }, "")}
     `;
   }
 }
@@ -758,38 +766,3 @@ export class ActionParser extends TweakParser {
     this.action = action;
   }
 }
-
-// Presets
-
-export const defaultSkipper = new RegexParser(/\s*/).compile();
-
-export const pegSkipper = new RegexParser(
-  /(?:\s|#[^#\r\n]*[#\r\n])*/
-).compile();
-
-export const endOfInput = new TokenParser(
-  new PredicateParser(new RegexParser(/./), false),
-  "end of input"
-).compile();
-
-export const defaultTracer: Tracer = event => {
-  const { at } = event;
-  let adjective = "";
-  let complement = "";
-  switch (event.type) {
-    case TraceEventType.Enter:
-      adjective = "Entered";
-      complement = `at (${at.line}:${at.column})`;
-      break;
-    case TraceEventType.Match:
-      const { from, to } = event;
-      adjective = "Matched";
-      complement = `from (${from.line}:${from.column}) to (${to.line}:${to.column})`;
-      break;
-    case TraceEventType.Fail:
-      adjective = "Failed";
-      complement = `at (${at.line}:${at.column})`;
-      break;
-  }
-  console.log(adjective, `"${event.rule}"`, complement);
-};
