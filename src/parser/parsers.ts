@@ -157,15 +157,10 @@ export class LiteralParser extends Parser {
   }
 
   generate(options: CompileOptions, test?: boolean): string {
-    const literal = options.id();
-    const literalNocase =
-      this.literal !== this.literal.toLowerCase() && options.id();
+    const uncased = this.literal.toLowerCase();
     const children = this.emit && options.id();
     const expectation = options.id();
     const raw = options.id();
-    options.links[literal] = this.literal;
-    literalNocase &&
-      (options.links[literalNocase] = this.literal.toLowerCase());
     children && (options.links[children] = [this.literal]);
     options.links[expectation] = {
       type: ExpectationType.Literal,
@@ -175,11 +170,11 @@ export class LiteralParser extends Parser {
       if(!skip(options))
         ${options.children} = null;
       else {
-        options.to = options.from + ${literal}.length;
+        options.to = options.from + ${this.literal.length};
         var ${raw} = options.input.substring(options.from, options.to);
         if(options.ignoreCase
-          ? ${literalNocase || literal} === ${raw}.toLowerCase()
-          : ${literal} === ${raw})
+          ? ${JSON.stringify(uncased)} === ${raw}.toLowerCase()
+          : ${JSON.stringify(this.literal)} === ${raw})
           ${options.children} = ${children || "nochild"};
         else {
           ${options.children} = null;

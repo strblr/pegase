@@ -5,8 +5,9 @@
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
+    "test": "yarn build & yarn quick",
     "build": "tsc & browserify lib/index.browser.js -o umd/index.js",
-    "test": "yarn build & jest lib/index.test.js",
+    "quick": "jest lib/index.test.js",
     "doc": "cd doc & mkdocs gh-deploy",
     "prepare": "yarn build"
   },

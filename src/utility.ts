@@ -65,9 +65,7 @@ export function castExpectation(expected: ExpectationInput): Expectation {
 
 export function idGenerator() {
   let i = 0;
-  return function () {
-    return `_${(i++).toString(36)}`;
-  };
+  return () => `_${(i++).toString(36)}`;
 }
 
 // skip
