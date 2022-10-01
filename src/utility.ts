@@ -68,19 +68,6 @@ export function idGenerator() {
   return () => `_${(i++).toString(36)}`;
 }
 
-// skip
-
-export function skip(options: Options) {
-  if (!options.skip) return true;
-  const { skip } = options;
-  options.skip = false;
-  const children = options.skipper.exec!(options, options.skipper.links!);
-  options.skip = skip;
-  if (children === null) return false;
-  options.from = options.to;
-  return true;
-}
-
 // merge
 
 export function merge<Context = any>(...grammars: Parser[]): Parser<Context> {
@@ -405,7 +392,7 @@ export const defaultExtension: Extension = {
   directives: {
     // Option tweaks
     tweak: (parser, tweaker) => new TweakParser(parser, tweaker),
-    skip: (parser, nextSkipper?: Parser) =>
+    skip: (parser, nextSkipper?: RegExp) =>
       new TweakParser(parser, options => {
         const { skip, skipper } = options;
         options.skip = true;

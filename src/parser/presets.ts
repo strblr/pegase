@@ -1,11 +1,9 @@
 import { PredicateParser, RegexParser, TokenParser } from ".";
 import { TraceEventType, Tracer } from "..";
 
-export const defaultSkipper = new RegexParser(/\s*/).compile();
+export const defaultSkipper = /\s*/y;
 
-export const pegSkipper = new RegexParser(
-  /(?:\s|#[^#\r\n]*[#\r\n])*/
-).compile();
+export const pegSkipper = /(?:\s|#[^#\r\n]*[#\r\n])*/y;
 
 export const endOfInput = new TokenParser(
   new PredicateParser(new RegexParser(/./), false),

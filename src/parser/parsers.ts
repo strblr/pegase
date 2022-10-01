@@ -15,7 +15,6 @@ import {
   Result,
   RuleConfig,
   SemanticAction,
-  skip,
   trace,
   Tweaker,
   WarningType
@@ -114,7 +113,7 @@ export abstract class Parser<Context = any> {
     const id = idGenerator();
     const children = id();
     const captures = id();
-    this.links = { nochild: [], skip, trace };
+    this.links = { trace };
     const code = this.generate({
       id,
       links: this.links,
@@ -132,6 +131,15 @@ export abstract class Parser<Context = any> {
         ${Object.keys(this.links)
           .map(key => `var ${key} = links.${key};`)
           .join("\n")}
+          
+        function skip() {
+          if (!options.skip) return true;
+          options.skipper.lastIndex = options.from;
+          if (!options.skipper.test(options.input)) return false;
+          options.from = options.skipper.lastIndex;
+          return true;
+        }
+        
         var ${children};
         var ${captures} = {};
         ${code}
@@ -167,7 +175,7 @@ export class LiteralParser extends Parser {
       literal: this.literal
     };
     return `
-      if(!skip(options))
+      if(!skip())
         ${options.children} = null;
       else {
         options.to = options.from + ${this.literal.length};
@@ -175,7 +183,7 @@ export class LiteralParser extends Parser {
         if(options.ignoreCase
           ? ${JSON.stringify(uncased)} === ${raw}.toLowerCase()
           : ${JSON.stringify(this.literal)} === ${raw})
-          ${options.children} = ${children || "nochild"};
+          ${options.children} = ${children || "[]"};
         else {
           ${options.children} = null;
           options.log && options._ffExpect(options.from, ${expectation});
@@ -210,7 +218,7 @@ export class RegexParser extends Parser {
       regex: this.regex
     };
     return `
-      if(!skip(options))
+      if(!skip())
         ${options.children} = null;
       else {
         var ${usedRegex} = options.ignoreCase ? ${regexNocase} : ${regex};
@@ -222,7 +230,7 @@ export class RegexParser extends Parser {
               ? `if (${result}.groups) Object.assign(${options.captures}, ${result}.groups);`
               : ""
           }
-          options.to = options.from + ${result}[0].length;
+          options.to = ${usedRegex}.lastIndex;
           ${options.children} = ${result}.slice(1);
         } else {
           ${options.children} = null;
@@ -260,7 +268,7 @@ export class TokenParser extends Parser {
     }
     const code = this.parser.generate(options);
     return `
-      if(!skip(options))
+      if(!skip())
         ${options.children} = null;
       else {
         var ${skip} = options.skip;
@@ -297,7 +305,7 @@ export class BackReferenceParser extends Parser {
     const reference = options.id();
     const raw = options.id();
     return `
-      if(!skip(options))
+      if(!skip())
         ${options.children} = null;
       else {
         var ${reference} = ${options.captures}["${this.name}"];
@@ -306,7 +314,7 @@ export class BackReferenceParser extends Parser {
         if(options.ignoreCase
           ? ${reference}.toLowerCase() === ${raw}.toLowerCase()
           : ${reference} === ${raw})
-          ${options.children} = nochild;
+          ${options.children} = [];
         else {
           ${options.children} = null;
           options.log && options._ffExpect(options.from, {
@@ -329,7 +337,7 @@ export class CutParser extends Parser {
     return `
       ${id ? `${id} = true;` : ""}
       options.to = options.from;
-      ${options.children} = nochild;
+      ${options.children} = [];
     `;
   }
 }
@@ -434,7 +442,7 @@ export class RepetitionParser extends Parser {
         ${code}
         if(${options.children} === null) {
           options.from = options.to = ${from};
-          ${options.children} = nochild;
+          ${options.children} = [];
         }
       `;
     }
@@ -488,7 +496,7 @@ export class RepetitionParser extends Parser {
           ? `
             else {
               options.from = options.to = ${from};
-              ${options.children} = nochild;
+              ${options.children} = [];
             }
           `
           : ""
@@ -616,7 +624,7 @@ export class PredicateParser extends Parser {
         ${code}
         if(${options.children} !== null) {
           options.from = options.to = ${from};
-          ${options.children} = nochild;
+          ${options.children} = [];
         }
       `;
     return `
@@ -627,7 +635,7 @@ export class PredicateParser extends Parser {
       options.log = ${log};
       if(${options.children} === null) {
         options.from = options.to = ${from};
-        ${options.children} = nochild;
+        ${options.children} = [];
       } else {
         ${options.children} = null;
         options.log &&

@@ -1,4 +1,4 @@
-import { Parser, skip, trace } from ".";
+import { Parser, trace } from ".";
 
 // Related to parser generation
 
@@ -33,8 +33,6 @@ export interface CompileOptions {
 }
 
 export interface Links {
-  nochild: [];
-  skip: typeof skip;
   trace: typeof trace;
   [link: string]: any;
 }
@@ -46,7 +44,7 @@ export interface Options<Context = any> {
   from: number;
   to: number;
   complete: boolean;
-  skipper: Parser<Context>;
+  skipper: RegExp;
   skip: boolean;
   ignoreCase: boolean;
   tracer: Tracer<Context>;
