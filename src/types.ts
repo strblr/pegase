@@ -53,8 +53,8 @@ export interface Options<Context = any> {
   _ffType: FailureType | null;
   _ffSemantic: string | null;
   _ffExpectations: Expectation[];
-  _ffExpect(from: number, expected: Expectation): void;
-  _ffFail(from: number, message: string): void;
+  _ffExpect(expected: Expectation): void;
+  _ffFail(message: string): void;
   _ffCommit(): void;
 }
 

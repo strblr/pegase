@@ -202,7 +202,7 @@ export class LiteralParser extends Parser {
           ${options.children} = ${children || "[]"};
         else {
           ${options.children} = null;
-          options.log && options._ffExpect(options.from, ${expectation});
+          options.log && options._ffExpect(${expectation});
         }
       }
     `;
@@ -250,7 +250,7 @@ export class RegexParser extends Parser {
           ${options.children} = ${result}.slice(1);
         } else {
           ${options.children} = null;
-          options.log && options._ffExpect(options.from, ${expectation});
+          options.log && options._ffExpect(${expectation});
         }
       }
     `;
@@ -272,7 +272,7 @@ export class EndOfInputParser extends Parser {
           ${options.children} = [];
         } else {
           ${options.children} = null;
-          options.log && options._ffExpect(options.from, ${expectation});
+          options.log && options._ffExpect(${expectation});
         }
       }
     `;
@@ -320,7 +320,7 @@ export class TokenParser extends Parser {
               ${code}
               options.log = ${log};
               if(${options.children} === null && ${log})
-                options._ffExpect(options.from, ${expectation});
+                options._ffExpect(${expectation});
             `
         }
         options.skip = ${skip};
@@ -355,7 +355,7 @@ export class BackReferenceParser extends Parser {
           ${options.children} = [];
         else {
           ${options.children} = null;
-          options.log && options._ffExpect(options.from, {
+          options.log && options._ffExpect({
             type: "${ExpectationType.Literal}",
             literal: ${reference}
           });
@@ -677,7 +677,7 @@ export class PredicateParser extends Parser {
       } else {
         ${options.children} = null;
         options.log &&
-          options._ffExpect(options.from, {
+          options._ffExpect({
             type: "${ExpectationType.Mismatch}",
             match: options.input.substring(options.from, options.to)
           });
@@ -773,7 +773,7 @@ export class ActionParser extends TweakParser {
             options._ffType = ffType;
             options._ffSemantic = ffSemantic;
             options._ffExpectations = ffExpectations;
-            options.log && options._ffFail(options.from, message);
+            options.log && options._ffFail(message);
           },
           $expected(expected) {
             failed = true;
@@ -784,7 +784,7 @@ export class ActionParser extends TweakParser {
             options.log &&
               expected
                 .map(castExpectation)
-                .forEach(expected => options._ffExpect(options.from, expected));
+                .forEach(expected => options._ffExpect(expected));
           },
           $commit: () => options._ffCommit(),
           $emit(children) {

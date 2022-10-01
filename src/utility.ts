@@ -245,19 +245,22 @@ export function buildOptions<Context>(
     _ffType: null,
     _ffSemantic: null,
     _ffExpectations: [],
-    _ffExpect(from, expected) {
-      if (this._ffIndex === from && this._ffType !== FailureType.Semantic) {
+    _ffExpect(expected) {
+      if (
+        this._ffIndex === this.from &&
+        this._ffType !== FailureType.Semantic
+      ) {
         this._ffType = FailureType.Expectation;
         this._ffExpectations.push(expected);
-      } else if (this._ffIndex < from) {
-        this._ffIndex = from;
+      } else if (this._ffIndex < this.from) {
+        this._ffIndex = this.from;
         this._ffType = FailureType.Expectation;
         this._ffExpectations = [expected];
       }
     },
-    _ffFail(from: number, message: string) {
-      if (this._ffIndex <= from) {
-        this._ffIndex = from;
+    _ffFail(message: string) {
+      if (this._ffIndex <= this.from) {
+        this._ffIndex = this.from;
         this._ffType = FailureType.Semantic;
         this._ffSemantic = message;
       }
