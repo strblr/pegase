@@ -23,7 +23,6 @@ import {
   SemanticAction,
   SequenceParser,
   TokenParser,
-  TraceEventType,
   Tracer,
   TweakParser,
   Warning,
@@ -78,41 +77,6 @@ export function merge<Context = any>(...grammars: Parser[]): Parser<Context> {
       return grammar.rules;
     })
   ).compile();
-}
-
-// trace
-
-export function trace(
-  rule: string,
-  options: Options,
-  exec: () => any[] | null
-) {
-  const at = options.at(options.from);
-  options.tracer({
-    type: TraceEventType.Enter,
-    rule,
-    at,
-    options
-  });
-  const children = exec();
-  if (children === null)
-    options.tracer({
-      type: TraceEventType.Fail,
-      rule,
-      at,
-      options
-    });
-  else
-    options.tracer({
-      type: TraceEventType.Match,
-      rule,
-      at,
-      options,
-      from: options.at(options.from),
-      to: options.at(options.to),
-      children
-    });
-  return children;
 }
 
 // resolveCast
