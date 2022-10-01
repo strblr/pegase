@@ -186,6 +186,8 @@ export function expectationToString(expectation: Expectation) {
       return `"${expectation.literal}"`;
     case ExpectationType.RegExp:
       return String(expectation.regex);
+    case ExpectationType.EndOfInput:
+      return "end of input";
     case ExpectationType.Token:
       return expectation.displayName;
     case ExpectationType.Mismatch:

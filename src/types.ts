@@ -123,6 +123,7 @@ export enum FailureType {
 export type Expectation =
   | LiteralExpectation
   | RegexExpectation
+  | EndOfInputExpectation
   | TokenExpectation
   | MismatchExpectation
   | CustomExpectation;
@@ -135,6 +136,10 @@ export interface LiteralExpectation {
 export interface RegexExpectation {
   type: ExpectationType.RegExp;
   regex: RegExp;
+}
+
+export interface EndOfInputExpectation {
+  type: ExpectationType.EndOfInput;
 }
 
 export interface TokenExpectation {
@@ -156,6 +161,7 @@ export interface CustomExpectation {
 export enum ExpectationType {
   Literal = "LITERAL",
   RegExp = "REGEXP",
+  EndOfInput = "END_OF_INPUT",
   Token = "TOKEN",
   Mismatch = "MISMATCH",
   Custom = "CUSTOM"

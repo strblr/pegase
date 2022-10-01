@@ -1,4 +1,3 @@
-import { endOfInput } from ".";
 import {
   $from,
   $to,
@@ -48,28 +47,9 @@ export abstract class Parser<Context = any> {
   parse(input: string, options?: Partial<Options<Context>>): Result<Context> {
     const opts = buildOptions(input, this.defaultOptions, options);
     let children = this.exec!(opts, this.links!);
-    if (children === null) {
-      opts._ffCommit();
-      return {
-        success: false,
-        options: opts,
-        warnings: opts.warnings,
-        failures: opts.failures,
-        log(options) {
-          return log(input, {
-            warnings: opts.warnings,
-            failures: opts.failures,
-            ...options
-          });
-        }
-      };
-    }
-    if (opts.complete) {
-      const from = opts.from;
-      opts.from = opts.to;
-      if (endOfInput.exec!(opts, endOfInput.links!) === null) {
-        opts._ffCommit();
-        return {
+    return children === null
+      ? (opts._ffCommit(),
+        {
           success: false,
           options: opts,
           warnings: opts.warnings,
@@ -81,28 +61,25 @@ export abstract class Parser<Context = any> {
               ...options
             });
           }
-        };
-      }
-      opts.from = from;
-    }
-    return {
-      success: true,
-      from: opts.at(opts.from),
-      to: opts.at(opts.to),
-      children,
-      raw: opts.input.substring(opts.from, opts.to),
-      complete: opts.to === opts.input.length,
-      options: opts,
-      warnings: opts.warnings,
-      failures: opts.failures,
-      log(options) {
-        return log(input, {
+        })
+      : {
+          success: true,
+          from: opts.at(opts.from),
+          to: opts.at(opts.to),
+          children,
+          raw: opts.input.substring(opts.from, opts.to),
+          complete: opts.to === opts.input.length,
+          options: opts,
           warnings: opts.warnings,
           failures: opts.failures,
-          ...options
-        });
-      }
-    };
+          log(options) {
+            return log(input, {
+              warnings: opts.warnings,
+              failures: opts.failures,
+              ...options
+            });
+          }
+        };
   }
 
   compile() {
@@ -110,7 +87,7 @@ export abstract class Parser<Context = any> {
     const links = new Map();
     const children = id();
     const captures = id();
-    const code = this.generate({
+    const options: CompileOptions = {
       id,
       links,
       children,
@@ -119,7 +96,9 @@ export abstract class Parser<Context = any> {
         possible: false,
         id: null
       }
-    });
+    };
+    const code = this.generate(options);
+    const endOfInput = new EndOfInputParser().generate(options);
     this.links = Object.fromEntries(links);
     this.exec = new Function(
       "options",
@@ -136,14 +115,14 @@ export abstract class Parser<Context = any> {
         }
         
         function trace(rule, exec) {
-          const at = options.at(options.from);
+          var at = options.at(options.from);
           options.tracer({
             type: "${TraceEventType.Enter}",
             rule,
             at,
             options
           });
-          const children = exec();
+          var children = exec();
           if (children === null)
             options.tracer({
               type: "${TraceEventType.Fail}",
@@ -166,7 +145,20 @@ export abstract class Parser<Context = any> {
         
         var ${children};
         var ${captures} = {};
+        
         ${code}
+        
+        if(${children} !== null && options.complete) {
+          var children = ${children};
+          var from = options.from;
+          options.from = options.to;
+          ${endOfInput}
+          if(${children} !== null) {
+            ${children} = children;
+            options.from = from;
+          }
+        }
+        
         return ${children};
       `
     ) as any;
@@ -256,6 +248,28 @@ export class RegexParser extends Parser {
           }
           options.to = ${usedRegex}.lastIndex;
           ${options.children} = ${result}.slice(1);
+        } else {
+          ${options.children} = null;
+          options.log && options._ffExpect(options.from, ${expectation});
+        }
+      }
+    `;
+  }
+}
+
+// EndOfInputParser
+
+export class EndOfInputParser extends Parser {
+  generate(options: CompileOptions) {
+    const expectation = options.id();
+    options.links.set(expectation, { type: ExpectationType.EndOfInput });
+    return `
+      if(!skip())
+        ${options.children} = null;
+      else {
+        if(options.from === options.input.length) {
+          options.to = options.from;
+          ${options.children} = [];
         } else {
           ${options.children} = null;
           options.log && options._ffExpect(options.from, ${expectation});

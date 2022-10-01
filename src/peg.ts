@@ -11,6 +11,7 @@ import {
   CaptureParser,
   CutParser,
   defaultExtension,
+  EndOfInputParser,
   GrammarParser,
   LiteralParser,
   modulo,
@@ -273,11 +274,7 @@ const metaparser = new GrammarParser([
           new PredicateParser(new NonTerminalParser("identifier"), false),
           new LiteralParser("$")
         ]),
-        () =>
-          new TokenParser(
-            new PredicateParser(new RegexParser(/./), false),
-            "end of input"
-          )
+        () => new EndOfInputParser()
       ),
       new ActionParser(new LiteralParser("ε"), () => new LiteralParser("")),
       new ActionParser(new LiteralParser("^"), () => new CutParser()),
