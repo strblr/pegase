@@ -71,16 +71,13 @@ export function idGenerator() {
 // merge
 
 export function merge<Context = any>(...grammars: Parser[]): Parser<Context> {
-  const rules: GrammarParser["rules"] = new Map();
-  for (const grammar of grammars)
-    if (!(grammar instanceof GrammarParser))
-      throw new Error("Only GrammarParser can be merged");
-    else
-      for (const [rule, definition] of grammar.rules)
-        if (rules.has(rule))
-          throw new Error(`Conflicting declaration of rule "${rule}"`);
-        else rules.set(rule, definition);
-  return new GrammarParser([...rules]).compile();
+  return new GrammarParser(
+    grammars.flatMap(grammar => {
+      if (!(grammar instanceof GrammarParser))
+        throw new Error("Only GrammarParser can be merged");
+      return grammar.rules;
+    })
+  ).compile();
 }
 
 // trace

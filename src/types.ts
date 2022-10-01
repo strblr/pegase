@@ -234,6 +234,7 @@ export interface Hooks {
 // Other
 
 export type RuleConfig = [
+  rule: string,
   parameters: [parameter: string, defaultValue: Parser | null][],
   definition: Parser
 ];

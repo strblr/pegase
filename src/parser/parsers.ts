@@ -508,12 +508,12 @@ export class RepetitionParser extends Parser {
 // GrammarParser
 
 export class GrammarParser extends Parser {
-  readonly rules: Map<string, RuleConfig>;
+  readonly rules: RuleConfig[];
   private readonly start: NonTerminalParser;
 
-  constructor(rules: [string, RuleConfig][]) {
+  constructor(rules: RuleConfig[]) {
     super();
-    this.rules = new Map(rules);
+    this.rules = rules;
     this.start = new NonTerminalParser(rules[0][0]);
   }
 
@@ -521,9 +521,9 @@ export class GrammarParser extends Parser {
     const children = options.id();
     const captures = options.id();
     return `
-      ${Array.from(this.rules)
+      ${this.rules
         .map(
-          ([rule, [parameters, parser]]) => `
+          ([rule, parameters, parser]) => `
             function r_${rule}(${parameters
             .map(([name]) => `r_${name}`)
             .join(",")}) {
