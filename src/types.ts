@@ -1,4 +1,4 @@
-import { Parser, trace } from ".";
+import { Parser } from ".";
 
 // Related to parser generation
 
@@ -23,18 +23,13 @@ export type SemanticAction = (captures: Record<string, any>) => any;
 
 export interface CompileOptions {
   id(): string;
-  links: Links;
+  links: Map<string, any>;
   children: string;
   captures: string;
   cut: {
     possible: boolean;
     id: string | null;
   };
-}
-
-export interface Links {
-  trace: typeof trace;
-  [link: string]: any;
 }
 
 // Related to parsing

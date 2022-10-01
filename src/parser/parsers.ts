@@ -9,13 +9,12 @@ import {
   extendFlags,
   hooks,
   idGenerator,
-  Links,
   log,
   Options,
   Result,
   RuleConfig,
   SemanticAction,
-  trace,
+  TraceEventType,
   Tweaker,
   WarningType
 } from "..";
@@ -24,7 +23,7 @@ import {
 
 export abstract class Parser<Context = any> {
   readonly defaultOptions: Partial<Options<Context>> = {};
-  links?: Links;
+  links?: Record<string, any>;
   exec?: (options: Options, links: Record<string, any>) => any[] | null;
 
   test(input: string, options?: Partial<Options<Context>>) {
@@ -111,12 +110,12 @@ export abstract class Parser<Context = any> {
 
   compile() {
     const id = idGenerator();
+    const links = new Map();
     const children = id();
     const captures = id();
-    this.links = { trace };
     const code = this.generate({
       id,
-      links: this.links,
+      links,
       children,
       captures,
       cut: {
@@ -124,13 +123,12 @@ export abstract class Parser<Context = any> {
         id: null
       }
     });
+    this.links = Object.fromEntries(links);
     this.exec = new Function(
       "options",
       "links",
       `
-        ${Object.keys(this.links)
-          .map(key => `var ${key} = links.${key};`)
-          .join("\n")}
+        ${[...links.keys()].map(key => `var ${key} = links.${key};`).join("\n")}
           
         function skip() {
           if (!options.skip) return true;
@@ -138,6 +136,35 @@ export abstract class Parser<Context = any> {
           if (!options.skipper.test(options.input)) return false;
           options.from = options.skipper.lastIndex;
           return true;
+        }
+        
+        function trace(rule, exec) {
+          const at = options.at(options.from);
+          options.tracer({
+            type: "${TraceEventType.Enter}",
+            rule,
+            at,
+            options
+          });
+          const children = exec();
+          if (children === null)
+            options.tracer({
+              type: "${TraceEventType.Fail}",
+              rule,
+              at,
+              options
+            });
+          else
+            options.tracer({
+              type: "${TraceEventType.Match}",
+              rule,
+              at,
+              options,
+              from: options.at(options.from),
+              to: options.at(options.to),
+              children
+            });
+          return children;
         }
         
         var ${children};
@@ -169,11 +196,11 @@ export class LiteralParser extends Parser {
     const children = this.emit && options.id();
     const expectation = options.id();
     const raw = options.id();
-    children && (options.links[children] = [this.literal]);
-    options.links[expectation] = {
+    children && options.links.set(children, [this.literal]);
+    options.links.set(expectation, {
       type: ExpectationType.Literal,
       literal: this.literal
-    };
+    });
     return `
       if(!skip())
         ${options.children} = null;
@@ -211,12 +238,12 @@ export class RegexParser extends Parser {
     const usedRegex = options.id();
     const expectation = options.id();
     const result = options.id();
-    options.links[regex] = extendFlags(this.regex, "y");
-    options.links[regexNocase] = extendFlags(this.regex, "iy");
-    options.links[expectation] = {
+    options.links.set(regex, extendFlags(this.regex, "y"));
+    options.links.set(regexNocase, extendFlags(this.regex, "iy"));
+    options.links.set(expectation, {
       type: ExpectationType.RegExp,
       regex: this.regex
-    };
+    });
     return `
       if(!skip())
         ${options.children} = null;
@@ -258,7 +285,7 @@ export class TokenParser extends Parser {
     const log = options.id();
     const expectation = this.displayName && options.id();
     expectation &&
-      (options.links[expectation] = {
+      options.links.set(expectation, {
         type: ExpectationType.Token,
         displayName: this.displayName!
       });
@@ -592,7 +619,7 @@ export class NonTerminalParser extends Parser {
         )
         .join("\n")}
       if(options.trace) {
-        ${options.children} = trace("${this.rule}", options, function() {
+        ${options.children} = trace("${this.rule}", function() {
           return (${call});
         })
       } else {
@@ -690,7 +717,7 @@ export class TweakParser extends Parser {
   generate(options: CompileOptions): string {
     const tweaker = options.id();
     const cleanUp = options.id();
-    options.links[tweaker] = this.tweaker;
+    options.links.set(tweaker, this.tweaker);
     return `
       var ${cleanUp} = ${tweaker}(options, ${options.captures});
       ${this.parser.generate(options)}
