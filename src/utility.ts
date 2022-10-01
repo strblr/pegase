@@ -220,10 +220,11 @@ export const $emit = hook("$emit");
 
 export function buildOptions<Context>(
   input: string,
-  partial: Partial<Options<Context>>
+  defaultOptions?: Partial<Options<Context>>,
+  partialOptions?: Partial<Options<Context>>
 ): Options<Context> {
-  input = partial.input ?? input;
-  return {
+  input = partialOptions?.input ?? input;
+  const startOptions: Options<Context> = {
     input,
     from: 0,
     to: 0,
@@ -278,9 +279,9 @@ export function buildOptions<Context>(
           });
         this._ffType = null;
       }
-    },
-    ...partial
+    }
   };
+  return Object.assign(startOptions, defaultOptions, partialOptions);
 }
 
 // locationGenerator

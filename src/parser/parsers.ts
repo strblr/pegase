@@ -46,10 +46,7 @@ export abstract class Parser<Context = any> {
   }
 
   parse(input: string, options?: Partial<Options<Context>>): Result<Context> {
-    const opts = buildOptions(input, {
-      ...this.defaultOptions,
-      ...options
-    });
+    const opts = buildOptions(input, this.defaultOptions, options);
     let children = this.exec!(opts, this.links!);
     if (children === null) {
       opts._ffCommit();
