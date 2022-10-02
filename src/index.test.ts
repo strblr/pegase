@@ -449,9 +449,7 @@ test("Benchmark between Pegase and competitor", () => {
 
 test("Benchmark of metaparsing", () => {
   const a = new Date();
-  for (let i = 0; i !== 1000; ++i) {
-    createMetaparser();
-  }
+  for (let i = 0; i !== 1000; ++i) createMetaparser();
   const b = new Date();
   console.log(b.getTime() - a.getTime(), "ms");
 });

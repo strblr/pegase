@@ -342,13 +342,6 @@ export function log(input: string, options: Partial<LogOptions>) {
 
 // defaultExtension
 
-function action(
-  callback: (captures: Record<string, any>, ...args: any[]) => any
-): Directive {
-  return (parser, ...args) =>
-    new ActionParser(parser, captures => callback(captures, ...args));
-}
-
 export const defaultExtension: Extension = {
   cast(arg) {
     if (typeof arg === "number") return new LiteralParser(String(arg));
@@ -427,45 +420,61 @@ export const defaultExtension: Extension = {
         };
       }),
     // Children transforms
-    omit: action(() => $emit([])),
-    raw: action(() => $raw()),
-    length: action(() => $raw().length),
-    number: action(() => Number($raw())),
-    index: action(() => $from().index),
-    children: action(() => $children()),
-    count: action(() => $children().length),
-    every: action((_, predicate) => $children().every(predicate)),
-    filter: action((_, predicate) => $emit($children().filter(predicate))),
-    find: action((_, predicate, defaultValue?) =>
-      $emit([$children().find(predicate) ?? defaultValue])
-    ),
-    flat: action((_, depth = 1) => $emit($children().flat(depth))),
-    forEach: action((_, callback) => $children().forEach(callback)),
-    join: action((_, separator = ",") => $children().join(separator)),
-    map: action((_, mapper) => $emit($children().map(mapper))),
-    reduce: action((_, ...args) => ($children().reduce as Function)(...args)),
-    infix: action((_, reducer, ltr = true) =>
-      ltr
-        ? $children().reduce((acc, op, index) =>
-            index % 2 ? reducer(acc, op, $children()[index + 1]) : acc
-          )
-        : $children().reduceRight((acc, op, index) =>
-            index % 2 ? reducer($children()[index - 1], op, acc) : acc
-          )
-    ),
-    reverse: action(() => $emit([...$children()].reverse())),
-    some: action((_, predicate) => $children().some(predicate)),
-    reorder: action((_, ...indexes) =>
-      $emit(indexes.map(index => $children()[index]))
-    ),
+    omit: parser => new ActionParser(parser, () => $emit([])),
+    raw: parser => new ActionParser(parser, () => $raw()),
+    length: parser => new ActionParser(parser, () => $raw().length),
+    number: parser => new ActionParser(parser, () => Number($raw())),
+    index: parser => new ActionParser(parser, () => $from().index),
+    children: parser => new ActionParser(parser, () => $children()),
+    count: parser => new ActionParser(parser, () => $children().length),
+    every: (parser, predicate) =>
+      new ActionParser(parser, () => $children().every(predicate)),
+    filter: (parser, predicate) =>
+      new ActionParser(parser, () => $emit($children().filter(predicate))),
+    find: (parser, predicate, defaultValue?) =>
+      new ActionParser(parser, () =>
+        $emit([$children().find(predicate) ?? defaultValue])
+      ),
+    flat: (parser, depth) =>
+      new ActionParser(parser, () => $emit($children().flat(depth))),
+    forEach: (parser, callback) =>
+      new ActionParser(parser, () => $children().forEach(callback)),
+    join: (parser, separator = ",") =>
+      new ActionParser(parser, () => $children().join(separator)),
+    map: (parser, mapper) =>
+      new ActionParser(parser, () => $emit($children().map(mapper))),
+    reduce: (parser, ...args) =>
+      new ActionParser(parser, () => ($children().reduce as Function)(...args)),
+    infix: (parser, reducer, ltr = true) =>
+      new ActionParser(
+        parser,
+        ltr
+          ? () =>
+              $children().reduce((acc, op, index) =>
+                index % 2 ? reducer(acc, op, $children()[index + 1]) : acc
+              )
+          : () =>
+              $children().reduceRight((acc, op, index) =>
+                index % 2 ? reducer($children()[index - 1], op, acc) : acc
+              )
+      ),
+    reverse: parser =>
+      new ActionParser(parser, () => $emit([...$children()].reverse())),
+    some: (parser, predicate) =>
+      new ActionParser(parser, () => $children().some(predicate)),
+    reorder: (parser, ...indexes) =>
+      new ActionParser(parser, () =>
+        $emit(indexes.map(index => $children()[index]))
+      ),
     // Other
     action: (parser, action: SemanticAction) =>
       new ActionParser(parser, action),
-    fail: action((_, message) => $fail(message)),
-    echo: action((_, message) => console.log(message)),
+    fail: (parser, message) => new ActionParser(parser, () => $fail(message)),
+    echo: (parser, message) =>
+      new ActionParser(parser, () => console.log(message)),
     token: (parser, displayName?: string) =>
       new TokenParser(parser, displayName),
-    commit: action(() => $commit()),
+    commit: parser => new ActionParser(parser, () => $commit()),
     test: parser =>
       new AlternativeParser([
         new ActionParser(parser, () => true),
