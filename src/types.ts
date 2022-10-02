@@ -15,8 +15,7 @@ export interface Extension {
 export type Directive = (parser: Parser, ...args: any[]) => Parser;
 
 export type Tweaker = (
-  options: Options,
-  captures: Record<string, any>
+  options: Options
 ) => (children: any[] | null) => any[] | null;
 
 export type SemanticAction = (captures: Record<string, any>) => any;

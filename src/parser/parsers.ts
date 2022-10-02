@@ -730,7 +730,7 @@ export class TweakParser extends Parser {
     const cleanUp = options.id();
     options.links.set(tweaker, this.tweaker);
     return `
-      var ${cleanUp} = ${tweaker}(options, ${options.captures});
+      var ${cleanUp} = ${tweaker}(options);
       ${this.parser.generate(options)}
       ${options.children} = ${cleanUp}(${options.children})
     `;
@@ -739,11 +739,18 @@ export class TweakParser extends Parser {
 
 // ActionParser
 
-export class ActionParser extends TweakParser {
+export class ActionParser extends Parser {
+  readonly parser: Parser;
   readonly action: SemanticAction;
+  private readonly tweaker: (
+    ...args: [...Parameters<Tweaker>, Record<string, any>]
+  ) => ReturnType<Tweaker>;
 
   constructor(parser: Parser, action: SemanticAction) {
-    super(parser, (options, captures) => {
+    super();
+    this.parser = parser;
+    this.action = action;
+    this.tweaker = (options, captures) => {
       const ffIndex = options._ffIndex,
         ffType = options._ffType,
         ffSemantic = options._ffSemantic,
@@ -803,7 +810,17 @@ export class ActionParser extends TweakParser {
         else if (value !== undefined) return [value];
         return children;
       };
-    });
-    this.action = action;
+    };
+  }
+
+  generate(options: CompileOptions): string {
+    const tweaker = options.id();
+    const cleanUp = options.id();
+    options.links.set(tweaker, this.tweaker);
+    return `
+      var ${cleanUp} = ${tweaker}(options, ${options.captures});
+      ${this.parser.generate(options)}
+      ${options.children} = ${cleanUp}(${options.children})
+    `;
   }
 }
