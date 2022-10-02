@@ -24,7 +24,9 @@ export interface CompileOptions {
   id(): string;
   links: Map<string, any>;
   children: string;
-  captures: string;
+  captures: {
+    id: string | null;
+  };
   cut: {
     possible: boolean;
     id: string | null;

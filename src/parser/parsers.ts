@@ -86,16 +86,12 @@ export abstract class Parser<Context = any> {
     const id = idGenerator();
     const links = new Map();
     const children = id();
-    const captures = id();
     const options: CompileOptions = {
       id,
       links,
       children,
-      captures,
-      cut: {
-        possible: false,
-        id: null
-      }
+      captures: { id: null },
+      cut: { possible: false, id: null }
     };
     const code = this.generate(options);
     const endOfInput = new EndOfInputParser().generate(options);
@@ -144,8 +140,7 @@ export abstract class Parser<Context = any> {
         }
         
         var ${children};
-        var ${captures} = {};
-        
+        ${options.captures.id ? `var ${options.captures.id} = {};` : ""}
         ${code}
         
         if(${children} !== null && options.complete) {
@@ -218,7 +213,7 @@ export class RegexParser extends Parser {
   constructor(regex: RegExp) {
     super();
     this.regex = regex;
-    this.hasCaptures = /\(\?<[\w]+>/.test(this.regex.toString());
+    this.hasCaptures = /\(\?</.test(this.regex.toString());
   }
 
   generate(options: CompileOptions): string {
@@ -243,7 +238,9 @@ export class RegexParser extends Parser {
         if(${result} !== null) {
           ${
             this.hasCaptures
-              ? `if (${result}.groups) Object.assign(${options.captures}, ${result}.groups);`
+              ? `Object.assign(${
+                  options.captures.id ?? (options.captures.id = options.id())
+                }, ${result}.groups);`
               : ""
           }
           options.to = ${usedRegex}.lastIndex;
@@ -342,11 +339,13 @@ export class BackReferenceParser extends Parser {
   generate(options: CompileOptions): string {
     const reference = options.id();
     const raw = options.id();
+    const captures =
+      options.captures.id ?? (options.captures.id = options.id());
     return `
       if(!skip())
         ${options.children} = null;
       else {
-        var ${reference} = ${options.captures}["${this.name}"];
+        var ${reference} = ${captures}["${this.name}"];
         options.to = options.from + ${reference}.length;
         var ${raw} = options.input.substring(options.from, options.to);
         if(options.ignoreCase
@@ -392,18 +391,15 @@ export class AlternativeParser extends Parser {
 
   generate(options: CompileOptions): string {
     const from = options.id();
-    const captures = options.id();
     return `
       var ${from} = options.from;
-      var ${captures} = {};
       ${this.parsers.reduceRight((acc, parser, index) => {
         const cut: CompileOptions["cut"] = {
           possible: index !== this.parsers.length - 1,
           id: null
         };
-        const code = parser.generate({ ...options, captures, cut });
+        const code = parser.generate({ ...options, cut });
         return `
-          ${index !== 0 ? `${captures} = {};` : ""}
           ${cut.id ? `var ${cut.id} = false;` : ""}
           ${code}
           if(${options.children} === null ${cut.id ? `&& !${cut.id}` : ""}) {
@@ -557,37 +553,39 @@ export class GrammarParser extends Parser {
 
   generate(options: CompileOptions): string {
     const children = options.id();
-    const captures = options.id();
     return `
       ${this.rules
-        .map(
-          ([rule, parameters, parser]) => `
+        .map(([rule, parameters, parser]) => {
+          const captures: CompileOptions["captures"] = { id: null };
+          const code = parser.generate({ ...options, children, captures });
+          const assignCode = parameters
+            .filter(([_, defaultParser]) => defaultParser)
+            .map(
+              ([name, defaultParser]) => `
+                r_${name} = r_${name} !== void 0 ? r_${name} : function() {
+                  var ${children};
+                  ${defaultParser!.generate({
+                    ...options,
+                    children,
+                    captures
+                  })}
+                  return ${children};
+                }
+              `
+            )
+            .join("\n");
+          return `
             function r_${rule}(${parameters
             .map(([name]) => `r_${name}`)
             .join(",")}) {
               var ${children};
-              var ${captures} = {};
-              ${parameters
-                .filter(([_, defaultParser]) => defaultParser)
-                .map(
-                  ([name, defaultParser]) => `
-                    r_${name} = r_${name} !== void 0 ? r_${name} : function() {
-                      var ${children};
-                      ${defaultParser!.generate({
-                        ...options,
-                        children,
-                        captures
-                      })}
-                      return ${children};
-                    }
-                  `
-                )
-                .join("\n")}
-              ${parser.generate({ ...options, children, captures })}
+              ${captures.id ? `var ${captures.id} = {};` : ""}
+              ${assignCode}
+              ${code}
               return ${children};
             }
-          `
-        )
+          `;
+        })
         .join("\n")}
       ${this.start.generate(options)}
     `;
@@ -701,10 +699,12 @@ export class CaptureParser extends Parser {
   }
 
   generate(options: CompileOptions): string {
+    const captures =
+      options.captures.id ?? (options.captures.id = options.id());
     return `
       ${this.parser.generate(options)}
       if(${options.children} !== null)
-        ${options.captures}["${this.name}"] = ${
+        ${captures}["${this.name}"] = ${
       this.all
         ? options.children
         : `${options.children}.length === 1 ? ${options.children}[0] : undefined;`
@@ -816,9 +816,11 @@ export class ActionParser extends Parser {
   generate(options: CompileOptions): string {
     const tweaker = options.id();
     const cleanUp = options.id();
+    const captures =
+      options.captures.id ?? (options.captures.id = options.id());
     options.links.set(tweaker, this.tweaker);
     return `
-      var ${cleanUp} = ${tweaker}(options, ${options.captures});
+      var ${cleanUp} = ${tweaker}(options, ${captures});
       ${this.parser.generate(options)}
       ${options.children} = ${cleanUp}(${options.children})
     `;
