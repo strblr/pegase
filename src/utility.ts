@@ -425,7 +425,7 @@ export const defaultExtension: Extension = {
     length: parser => new ActionParser(parser, () => $raw().length),
     number: parser => new ActionParser(parser, () => Number($raw())),
     index: parser => new ActionParser(parser, () => $from().index),
-    children: parser => new ActionParser(parser, () => $children()),
+    clump: parser => new ActionParser(parser, () => $children()),
     count: parser => new ActionParser(parser, () => $children().length),
     every: (parser, predicate) =>
       new ActionParser(parser, () => $children().every(predicate)),
