@@ -89,6 +89,7 @@ export abstract class Parser<Context = any> {
   compile() {
     const id = new IdGenerator();
     const children = id.generate();
+    const endOfInputChildren = id.generate();
     const options: CompileOptions = {
       id,
       children,
@@ -96,7 +97,10 @@ export abstract class Parser<Context = any> {
       cut: { possible: false, id: null }
     };
     const code = this.generate(options);
-    const endOfInput = new EndOfInputParser().generate(options);
+    const endOfInput = new EndOfInputParser().generate({
+      ...options,
+      children: endOfInputChildren
+    });
     this.links = Object.fromEntries(id.entries());
     this.exec = new Function(
       "options",
@@ -149,13 +153,14 @@ export abstract class Parser<Context = any> {
         ${code}
         
         if(${children} !== null && options.complete) {
-          var children = ${children};
+          var ${endOfInputChildren};
           var from = options.from;
           options.from = options.to;
           ${endOfInput}
-          if(${children} !== null) {
-            ${children} = children;
+          if(${endOfInputChildren} !== null) {
             options.from = from;
+          } else {
+            return null;
           }
         }
         
