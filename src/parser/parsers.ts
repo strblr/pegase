@@ -297,10 +297,6 @@ export class TokenParser extends Parser {
         type: ExpectationType.Token,
         displayName: this.displayName!
       });
-    if (!this.parser.generate) {
-      console.log({ this: this });
-      return "";
-    }
     const code = this.parser.generate(options);
     return `
       if(!skip())
