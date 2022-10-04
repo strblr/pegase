@@ -4,15 +4,19 @@ import {
   buildOptions,
   castExpectation,
   CompileOptions,
+  EndOfInputExpectation,
   ExpectationType,
   extendFlags,
   hooks,
-  idGenerator,
+  IdGenerator,
+  LiteralExpectation,
   log,
   Options,
+  RegexExpectation,
   Result,
   RuleConfig,
   SemanticAction,
+  TokenExpectation,
   TraceEventType,
   Tweaker,
   WarningType
@@ -83,24 +87,25 @@ export abstract class Parser<Context = any> {
   }
 
   compile() {
-    const id = idGenerator();
-    const links = new Map();
-    const children = id();
+    const id = new IdGenerator();
+    const children = id.generate();
     const options: CompileOptions = {
       id,
-      links,
       children,
       captures: { id: null },
       cut: { possible: false, id: null }
     };
     const code = this.generate(options);
     const endOfInput = new EndOfInputParser().generate(options);
-    this.links = Object.fromEntries(links);
+    this.links = Object.fromEntries(id.entries());
     this.exec = new Function(
       "options",
       "links",
       `
-        ${[...links.keys()].map(key => `var ${key} = links.${key};`).join("\n")}
+        ${id
+          .entries()
+          .map(([id]) => `var ${id} = links.${id};`)
+          .join("\n")}
           
         function skip() {
           if (!options.skip) return true;
@@ -177,11 +182,9 @@ export class LiteralParser extends Parser {
 
   generate(options: CompileOptions, test?: boolean): string {
     const uncased = this.literal.toLowerCase();
-    const children = this.emit && options.id();
-    const expectation = options.id();
-    const raw = options.id();
-    children && options.links.set(children, [this.literal]);
-    options.links.set(expectation, {
+    const raw = options.id.generate();
+    const children = this.emit && options.id.generate([this.literal]);
+    const expectation = options.id.generate<LiteralExpectation>({
       type: ExpectationType.Literal,
       literal: this.literal
     });
@@ -213,21 +216,21 @@ export class RegexParser extends Parser {
   constructor(regex: RegExp) {
     super();
     this.regex = regex;
-    this.hasCaptures = /\(\?</.test(this.regex.toString());
+    this.hasCaptures = /\(\?</.test(this.regex.source);
   }
 
   generate(options: CompileOptions): string {
-    const regex = options.id();
-    const regexNocase = options.id();
-    const usedRegex = options.id();
-    const expectation = options.id();
-    const result = options.id();
-    options.links.set(regex, extendFlags(this.regex, "y"));
-    options.links.set(regexNocase, extendFlags(this.regex, "iy"));
-    options.links.set(expectation, {
+    const regex = options.id.generate(extendFlags(this.regex, "y"));
+    const regexNocase = options.id.generate(extendFlags(this.regex, "iy"));
+    const expectation = options.id.generate<RegexExpectation>({
       type: ExpectationType.RegExp,
       regex: this.regex
     });
+    const usedRegex = options.id.generate();
+    const result = options.id.generate();
+    const captures =
+      this.hasCaptures &&
+      (options.captures.id ?? (options.captures.id = options.id.generate()));
     return `
       if(!skip())
         ${options.children} = null;
@@ -236,13 +239,7 @@ export class RegexParser extends Parser {
         ${usedRegex}.lastIndex = options.from;
         var ${result} = ${usedRegex}.exec(options.input);
         if(${result} !== null) {
-          ${
-            this.hasCaptures
-              ? `Object.assign(${
-                  options.captures.id ?? (options.captures.id = options.id())
-                }, ${result}.groups);`
-              : ""
-          }
+          ${captures ? `Object.assign(${captures}, ${result}.groups);` : ""}
           options.to = ${usedRegex}.lastIndex;
           ${options.children} = ${result}.slice(1);
         } else {
@@ -258,8 +255,9 @@ export class RegexParser extends Parser {
 
 export class EndOfInputParser extends Parser {
   generate(options: CompileOptions) {
-    const expectation = options.id();
-    options.links.set(expectation, { type: ExpectationType.EndOfInput });
+    const expectation = options.id.generate<EndOfInputExpectation>({
+      type: ExpectationType.EndOfInput
+    });
     return `
       if(!skip())
         ${options.children} = null;
@@ -289,13 +287,13 @@ export class TokenParser extends Parser {
   }
 
   generate(options: CompileOptions): string {
-    const skip = options.id();
-    const log = options.id();
-    const expectation = this.displayName && options.id();
-    expectation &&
-      options.links.set(expectation, {
+    const skip = options.id.generate();
+    const log = this.displayName && options.id.generate();
+    const expectation =
+      this.displayName &&
+      options.id.generate<TokenExpectation>({
         type: ExpectationType.Token,
-        displayName: this.displayName!
+        displayName: this.displayName
       });
     const code = this.parser.generate(options);
     return `
@@ -333,10 +331,10 @@ export class BackReferenceParser extends Parser {
   }
 
   generate(options: CompileOptions): string {
-    const reference = options.id();
-    const raw = options.id();
+    const reference = options.id.generate();
+    const raw = options.id.generate();
     const captures =
-      options.captures.id ?? (options.captures.id = options.id());
+      options.captures.id ?? (options.captures.id = options.id.generate());
     return `
       if(!skip())
         ${options.children} = null;
@@ -365,7 +363,7 @@ export class BackReferenceParser extends Parser {
 export class CutParser extends Parser {
   generate(options: CompileOptions): string {
     const id = options.cut.possible
-      ? options.cut.id ?? (options.cut.id = options.id())
+      ? options.cut.id ?? (options.cut.id = options.id.generate())
       : null;
     return `
       ${id ? `${id} = true;` : ""}
@@ -386,7 +384,7 @@ export class AlternativeParser extends Parser {
   }
 
   generate(options: CompileOptions): string {
-    const from = options.id();
+    const from = options.id.generate();
     return `
       var ${from} = options.from;
       ${this.parsers.reduceRight((acc, parser, index) => {
@@ -420,8 +418,8 @@ export class SequenceParser extends Parser {
 
   generate(options: CompileOptions): string {
     const [first, ...rest] = this.parsers;
-    const acc = options.id();
-    const from = options.id();
+    const acc = options.id.generate();
+    const from = options.id.generate();
     return `
       ${first.generate(options)}
       if(${options.children} !== null) {
@@ -461,9 +459,9 @@ export class RepetitionParser extends Parser {
   }
 
   generate(options: CompileOptions): string {
-    const from = options.id();
-    const to = options.id();
-    const acc = options.id();
+    const from = options.id.generate();
+    const to = options.id.generate();
+    const acc = options.id.generate();
     const code = this.parser.generate(options);
     if (this.max === 1) {
       if (this.min === 1) return code;
@@ -476,7 +474,7 @@ export class RepetitionParser extends Parser {
         }
       `;
     }
-    const temp = options.id();
+    const temp = options.id.generate();
     const iterate = (times: number, finish: string = "") =>
       Array.from(Array(times)).reduceRight(
         code => `
@@ -548,7 +546,7 @@ export class GrammarParser extends Parser {
   }
 
   generate(options: CompileOptions): string {
-    const children = options.id();
+    const children = options.id.generate();
     return `
       ${this.rules
         .map(([rule, parameters, parser]) => {
@@ -601,9 +599,9 @@ export class NonTerminalParser extends Parser {
   }
 
   generate(options: CompileOptions): string {
-    const children = options.id();
+    const children = options.id.generate();
     const parameters = this.parameters.map(parameter =>
-      parameter ? ([options.id(), parameter] as const) : null
+      parameter ? ([options.id.generate(), parameter] as const) : null
     );
     const call = `
       r_${this.rule}(${parameters
@@ -647,8 +645,7 @@ export class PredicateParser extends Parser {
   }
 
   generate(options: CompileOptions): string {
-    const from = options.id();
-    const log = options.id();
+    const from = options.id.generate();
     const code = this.parser.generate(options);
     if (this.polarity)
       return `
@@ -659,6 +656,7 @@ export class PredicateParser extends Parser {
           ${options.children} = [];
         }
       `;
+    const log = options.id.generate();
     return `
       var ${from} = options.from;
       var ${log} = options.log;
@@ -696,7 +694,7 @@ export class CaptureParser extends Parser {
 
   generate(options: CompileOptions): string {
     const captures =
-      options.captures.id ?? (options.captures.id = options.id());
+      options.captures.id ?? (options.captures.id = options.id.generate());
     return `
       ${this.parser.generate(options)}
       if(${options.children} !== null)
@@ -722,9 +720,8 @@ export class TweakParser extends Parser {
   }
 
   generate(options: CompileOptions): string {
-    const tweaker = options.id();
-    const cleanUp = options.id();
-    options.links.set(tweaker, this.tweaker);
+    const tweaker = options.id.generate(this.tweaker);
+    const cleanUp = options.id.generate();
     return `
       var ${cleanUp} = ${tweaker}(options);
       ${this.parser.generate(options)}
@@ -810,11 +807,10 @@ export class ActionParser extends Parser {
   }
 
   generate(options: CompileOptions): string {
-    const tweaker = options.id();
-    const cleanUp = options.id();
+    const tweaker = options.id.generate(this.tweaker);
+    const cleanUp = options.id.generate();
     const captures =
-      options.captures.id ?? (options.captures.id = options.id());
-    options.links.set(tweaker, this.tweaker);
+      options.captures.id ?? (options.captures.id = options.id.generate());
     return `
       var ${cleanUp} = ${tweaker}(options, ${captures});
       ${this.parser.generate(options)}

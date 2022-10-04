@@ -1,4 +1,4 @@
-import { Parser } from ".";
+import { IdGenerator, Parser } from ".";
 
 // Related to parser generation
 
@@ -21,8 +21,7 @@ export type Tweaker = (
 export type SemanticAction = (captures: Record<string, any>) => any;
 
 export interface CompileOptions {
-  id(): string;
-  links: Map<string, any>;
+  id: IdGenerator;
   children: string;
   captures: {
     id: string | null;

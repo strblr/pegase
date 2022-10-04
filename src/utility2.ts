@@ -60,13 +60,6 @@ export function castExpectation(expected: ExpectationInput): Expectation {
     : expected;
 }
 
-// idGenerator
-
-export function idGenerator() {
-  let i = 0;
-  return () => `_${(i++).toString(36)}`;
-}
-
 // merge
 
 export function merge<Context = any>(...grammars: Parser[]): Parser<Context> {
@@ -149,7 +142,7 @@ export function expectationToString(expectation: Expectation) {
     case ExpectationType.Literal:
       return `"${expectation.literal}"`;
     case ExpectationType.RegExp:
-      return String(expectation.regex);
+      return `${expectation.regex.source} (regex)`;
     case ExpectationType.EndOfInput:
       return "end of input";
     case ExpectationType.Token:
