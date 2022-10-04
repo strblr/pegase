@@ -1,6 +1,4 @@
 import {
-  $from,
-  $to,
   buildOptions,
   castExpectation,
   CompileOptions,
@@ -740,86 +738,93 @@ export class TweakParser extends Parser {
 export class ActionParser extends Parser {
   readonly parser: Parser;
   readonly action: SemanticAction;
-  private readonly tweaker: (
-    ...args: [...Parameters<Tweaker>, Record<string, any>]
-  ) => ReturnType<Tweaker>;
 
   constructor(parser: Parser, action: SemanticAction) {
     super();
     this.parser = parser;
     this.action = action;
-    this.tweaker = (options, captures) => {
-      const ffIndex = options._ffIndex,
-        ffType = options._ffType,
-        ffSemantic = options._ffSemantic,
-        ffExpectations = options._ffExpectations.concat();
-      return children => {
-        if (children === null) return null;
-        let value, emit, failed;
-        hooks.push({
+  }
+
+  generate(options: CompileOptions): string {
+    const ffIndex = options.id.generate();
+    const ffType = options.id.generate();
+    const ffSemantic = options.id.generate();
+    const ffExpectations = options.id.generate();
+    const value = options.id.generate();
+    const emit = options.id.generate();
+    const failed = options.id.generate();
+    const hook = options.id.generate(hooks);
+    const action = options.id.generate(this.action);
+    const castExpect = options.id.generate(castExpectation);
+    const captures =
+      options.captures.id ?? (options.captures.id = options.id.generate());
+    return `
+      var ${ffIndex} = options._ffIndex,
+        ${ffType} = options._ffType,
+        ${ffSemantic} = options._ffSemantic,
+        ${ffExpectations} = options._ffExpectations.concat();
+      
+      ${this.parser.generate(options)}
+    
+      if(${options.children} !== null) {
+        var ${value}, ${emit}, ${failed};
+        ${hook}.push({
           $from: () => options.at(options.from),
           $to: () => options.at(options.to),
-          $children: () => children,
+          $children: () => ${options.children},
           $raw: () => options.input.substring(options.from, options.to),
           $options: () => options,
           $context: () => options.context,
           $warn(message) {
             options.log &&
               options.warnings.push({
-                from: $from(),
-                to: $to(),
-                type: WarningType.Message,
+                from: options.at(options.from),
+                to: options.at(options.to),
+                type: "${WarningType.Message}",
                 message
               });
           },
           $fail(message) {
-            failed = true;
-            options._ffIndex = ffIndex;
-            options._ffType = ffType;
-            options._ffSemantic = ffSemantic;
-            options._ffExpectations = ffExpectations;
+            ${failed} = true;
+            options._ffIndex = ${ffIndex};
+            options._ffType = ${ffType};
+            options._ffSemantic = ${ffSemantic};
+            options._ffExpectations = ${ffExpectations};
             options.log && options._ffFail(message);
           },
           $expected(expected) {
-            failed = true;
-            options._ffIndex = ffIndex;
-            options._ffType = ffType;
-            options._ffSemantic = ffSemantic;
-            options._ffExpectations = ffExpectations;
+            ${failed} = true;
+            options._ffIndex = ${ffIndex};
+            options._ffType = ${ffType};
+            options._ffSemantic = ${ffSemantic};
+            options._ffExpectations = ${ffExpectations};
             options.log &&
               expected
-                .map(castExpectation)
+                .map(${castExpect})
                 .forEach(expected => options._ffExpect(expected));
           },
           $commit: () => options._ffCommit(),
           $emit(children) {
-            emit = children;
+            ${emit} = children;
           }
         });
+        
         try {
-          value = action(captures);
+          ${value} = ${action}(${captures});
         } catch (e) {
-          hooks.pop();
+          ${hook}.pop();
           throw e;
         }
-        hooks.pop();
-        if (failed) return null;
-        if (emit !== undefined) return emit;
-        else if (value !== undefined) return [value];
-        return children;
-      };
-    };
-  }
-
-  generate(options: CompileOptions): string {
-    const tweaker = options.id.generate(this.tweaker);
-    const cleanUp = options.id.generate();
-    const captures =
-      options.captures.id ?? (options.captures.id = options.id.generate());
-    return `
-      var ${cleanUp} = ${tweaker}(options, ${captures});
-      ${this.parser.generate(options)}
-      ${options.children} = ${cleanUp}(${options.children})
+        ${hook}.pop();
+        
+        if (${failed}) {
+          ${options.children} = null;
+        } else if (${emit} !== undefined) {
+          ${options.children} = ${emit};
+        } else if (${value} !== undefined) {
+          ${options.children} = [${value}]
+        }
+      }
     `;
   }
 }
