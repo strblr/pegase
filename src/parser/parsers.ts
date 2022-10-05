@@ -110,7 +110,6 @@ export abstract class Parser<Context = any> {
           .join("\n")}
           
         function skip() {
-          if (!options.skip) return true;
           options.skipper.lastIndex = options.from;
           if (!options.skipper.test(options.input)) return false;
           options.from = options.skipper.lastIndex;
@@ -192,7 +191,7 @@ export class LiteralParser extends Parser {
       literal: this.literal
     });
     return `
-      if(!skip())
+      if(options.skip && !skip())
         ${options.children} = null;
       else {
         options.to = options.from + ${this.literal.length};
@@ -235,7 +234,7 @@ export class RegexParser extends Parser {
       this.hasCaptures &&
       (options.captures.id ?? (options.captures.id = options.id.generate()));
     return `
-      if(!skip())
+      if(options.skip && !skip())
         ${options.children} = null;
       else {
         var ${usedRegex} = options.ignoreCase ? ${regexNocase} : ${regex};
@@ -262,7 +261,7 @@ export class EndOfInputParser extends Parser {
       type: ExpectationType.EndOfInput
     });
     return `
-      if(!skip())
+      if(options.skip && !skip())
         ${options.children} = null;
       else {
         if(options.from === options.input.length) {
@@ -300,7 +299,7 @@ export class TokenParser extends Parser {
       });
     const code = this.parser.generate(options);
     return `
-      if(!skip())
+      if(options.skip && !skip())
         ${options.children} = null;
       else {
         var ${skip} = options.skip;
@@ -339,7 +338,7 @@ export class BackReferenceParser extends Parser {
     const captures =
       options.captures.id ?? (options.captures.id = options.id.generate());
     return `
-      if(!skip())
+      if(options.skip && !skip())
         ${options.children} = null;
       else {
         var ${reference} = ${captures}["${this.name}"];
