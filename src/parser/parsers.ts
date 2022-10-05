@@ -157,7 +157,7 @@ export abstract class Parser<Context = any> {
           if(${endOfInputChildren} !== null) {
             options.from = from;
           } else {
-            return null;
+            ${children} = null;
           }
         }
         
