@@ -228,7 +228,7 @@ test("The cut operator should work correctly", () => {
 });
 
 test("Back references should work correctly", () => {
-  const g = peg`<a>(\d @raw) >a<*`;
+  const g = peg`<a>(\d @raw) \<a>*`;
   expect(g.test("5")).toBe(true);
   expect(g.test("6 6")).toBe(true);
   expect(g.test("7 7 6")).toBe(false);

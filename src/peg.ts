@@ -303,10 +303,10 @@ export function createMetaparser() {
         ]),
         new ActionParser(
           new SequenceParser([
-            new LiteralParser(">"),
+            new LiteralParser("\\<"),
             new CutParser(),
             new NonTerminalParser("identifier"),
-            new LiteralParser("<")
+            new LiteralParser(">")
           ]),
           () => new BackReferenceParser($children()[0])
         ),
