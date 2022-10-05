@@ -12,6 +12,7 @@ import {
   CutParser,
   defaultExtension,
   EndOfInputParser,
+  Extension,
   GrammarParser,
   LiteralParser,
   modulo,
@@ -31,8 +32,18 @@ import {
 
 // createTag
 
-export function createTag() {
+export interface TagOptions {
+  trace: boolean;
+  extensions: Extension[];
+}
+
+export function createTag(options?: Partial<TagOptions>) {
   const metaparser = createMetaparser();
+  const opts: TagOptions = {
+    trace: false,
+    extensions: [defaultExtension],
+    ...options
+  };
 
   function peg<Context = any>(
     chunks: TemplateStringsArray | string,
@@ -46,8 +57,8 @@ export function createTag() {
           ),
       {
         skipper: pegSkipper,
-        trace: peg.trace,
-        context: { extensions: peg.extensions, args }
+        trace: opts.trace,
+        context: { extensions: opts.extensions, args }
       }
     );
     if (!result.success) {
@@ -56,8 +67,6 @@ export function createTag() {
     return result.children[0].compile();
   }
 
-  peg.trace = false;
-  peg.extensions = [defaultExtension];
   return peg;
 }
 

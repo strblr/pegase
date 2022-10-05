@@ -9,6 +9,7 @@ import peg, {
   ActionParser,
   createMetaparser,
   createTag,
+  defaultExtension,
   LiteralParser,
   merge,
   Parser,
@@ -241,15 +242,20 @@ test("Back references should work correctly", () => {
 });
 
 test("The extension system should work", () => {
-  const tag = createTag();
-  tag.extensions.push({
-    directives: {
-      min: parser => peg`${parser} ${() => Math.min(...$children())}`,
-      max: parser => new ActionParser(parser, () => Math.max(...$children()))
-    }
+  const custom = createTag({
+    extensions: [
+      defaultExtension,
+      {
+        directives: {
+          min: parser => peg`${parser} ${() => Math.min(...$children())}`,
+          max: parser =>
+            new ActionParser(parser, () => Math.max(...$children()))
+        }
+      }
+    ]
   });
 
-  const max = tag`
+  const max = custom`
     list: $int+ @max
     $int: \d+ @number
   `;
