@@ -35,10 +35,12 @@ function echoAst(entity: any) {
 }
 
 function echoBuild(p: Parser) {
-  console.log(format(p.exec!.toString()));
+  console.log(format((p.exec as any).code, { parser: "babel" }));
 }
 
 test("The peg tag should work with raw strings", () => {
+  echoBuild(peg`^ ${() => {}} ${() => {}} ${() => {}}`);
+
   const g1 = peg` "My name is \"pegase\"." `;
   const g2 = peg`[\]]`;
   const g3 = peg`\s`;

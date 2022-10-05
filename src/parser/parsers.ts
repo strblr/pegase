@@ -24,8 +24,7 @@ import {
 
 export abstract class Parser<Context = any> {
   readonly defaultOptions: Partial<Options<Context>> = {};
-  links?: Record<string, any>;
-  exec?: (options: Options, links: Record<string, any>) => any[] | null;
+  exec?: (options: Options) => any[] | null;
 
   test(input: string, options?: Partial<Options<Context>>) {
     return this.parse(input, options).success;
@@ -48,7 +47,7 @@ export abstract class Parser<Context = any> {
 
   parse(input: string, options?: Partial<Options<Context>>): Result<Context> {
     const opts = buildOptions(input, this.defaultOptions, options);
-    let children = this.exec!(opts, this.links!);
+    let children = this.exec!(opts);
     return children === null
       ? (opts._ffCommit(),
         {
@@ -99,10 +98,9 @@ export abstract class Parser<Context = any> {
       ...options,
       children: endOfInputChildren
     });
-    this.links = Object.fromEntries(id.entries());
-    this.exec = new Function(
-      "options",
+    const exec = new Function(
       "links",
+      "options",
       `
         ${id
           .entries()
@@ -163,7 +161,10 @@ export abstract class Parser<Context = any> {
         
         return ${children};
       `
-    ) as any;
+    );
+
+    this.exec = exec.bind(null, Object.fromEntries(id.entries()));
+    (this.exec as any).code = exec.toString();
     return this;
   }
 
