@@ -156,10 +156,10 @@ export function expectationToString(expectation: Expectation) {
 
 // Hooks
 
-function hook<K extends keyof Hooks>(key: K): Hooks[K] {
-  return function () {
-    return (hooks[hooks.length - 1][key] as Function).apply(null, arguments);
-  };
+function hook<K extends keyof Hooks>(key: K) {
+  return new Function(
+    `return this[this.length-1].${key}.apply(null, arguments)`
+  ).bind(hooks) as Hooks[K];
 }
 
 export const hooks: Hooks[] = [];
