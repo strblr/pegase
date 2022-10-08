@@ -28,7 +28,7 @@ import {
   SequenceParser,
   spaceCase,
   TokenParser
-} from ".";
+} from "./index.js";
 
 // createTag
 

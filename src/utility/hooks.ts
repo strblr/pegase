@@ -1,4 +1,4 @@
-import { Expectation, ExpectationType, Location, Options } from "..";
+import { Expectation, ExpectationType, Location, Options } from "../index.js";
 
 // Hooks
 

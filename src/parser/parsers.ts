@@ -18,7 +18,7 @@ import {
   Tracer,
   Warning,
   WarningType
-} from "..";
+} from "../index.js";
 
 export interface CompileOptions {
   id: IdGenerator;

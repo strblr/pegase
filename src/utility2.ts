@@ -25,7 +25,7 @@ import {
   TokenParser,
   Tracer,
   TweakParser
-} from ".";
+} from "./index.js";
 
 // merge
 

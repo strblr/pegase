@@ -1,4 +1,4 @@
-import { Location, Range, unique } from "..";
+import { Location, Range, unique } from "../index.js";
 
 // Warning
 

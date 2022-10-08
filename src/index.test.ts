@@ -1,4 +1,6 @@
+import { expect, test } from "vitest";
 import { format } from "prettier";
+import * as competitor from "./competitor.test.js";
 import peg, {
   $children,
   $context,
@@ -16,8 +18,7 @@ import peg, {
   Parser,
   RegexParser,
   SuccessResult
-} from ".";
-import * as competitor from "./competitor.test";
+} from "./index.js";
 
 function echoAst(entity: any) {
   console.log(

@@ -1,4 +1,4 @@
-import { Location, Options, Range } from "..";
+import { Location, Options, Range } from "../index.js";
 
 // Trace events
 
