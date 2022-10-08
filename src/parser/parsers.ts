@@ -23,7 +23,7 @@ import {
 
 export abstract class Parser<Context = any> {
   readonly defaultOptions: Partial<Options<Context>> = {};
-  exec?: (options: Options) => Result<Context>;
+  exec?: (options: Options) => Result;
 
   test(input: string, options?: Partial<Options<Context>>) {
     return this.parse(input, options).success;
@@ -44,7 +44,7 @@ export abstract class Parser<Context = any> {
     return !result.success ? undefined : result.children;
   }
 
-  parse(input: string, options?: Partial<Options<Context>>): Result<Context> {
+  parse(input: string, options?: Partial<Options<Context>>) {
     return this.exec!(buildOptions(input, this.defaultOptions, options));
   }
 
@@ -137,8 +137,6 @@ export abstract class Parser<Context = any> {
           from: options.at(options.from),
           to: options.at(options.to),
           children: ${children},
-          raw: options.input.substring(options.from, options.to),
-          complete: options.to === options.input.length,
           warnings: options.warnings,
           failures: options.failures
         };

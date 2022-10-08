@@ -65,20 +65,16 @@ export interface Options<Context = any> {
   _ffCommit(): void;
 }
 
-export type Result<Context = any> =
-  | SuccessResult<Context>
-  | FailResult<Context>;
+export type Result = SuccessResult | FailResult;
 
-export interface SuccessResult<Context = any> extends Range {
+export interface SuccessResult extends Range {
   success: true;
   children: any[];
-  raw: string;
-  complete: boolean;
   warnings: Warning[];
   failures: Failure[];
 }
 
-export interface FailResult<Context = any> {
+export interface FailResult {
   success: false;
   warnings: Warning[];
   failures: Failure[];
