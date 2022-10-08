@@ -6,7 +6,6 @@ import {
   $raw,
   ActionParser,
   AlternativeParser,
-  Any,
   BackReferenceParser,
   CaptureParser,
   CutParser,
@@ -37,6 +36,19 @@ export interface TagOptions {
   trace: boolean;
   extensions: Extension[];
 }
+
+// This is basically a hack to replace "any" but without an "implicit any" error
+// on function parameter destructuration
+export type Any =
+  | null
+  | undefined
+  | string
+  | number
+  | boolean
+  | symbol
+  | bigint
+  | object
+  | ((...args: any[]) => any);
 
 export function createTag(options?: Partial<TagOptions>) {
   const metaparser = createMetaparser();
@@ -73,7 +85,12 @@ export function createTag(options?: Partial<TagOptions>) {
 
 // createMetaparser
 
-export function createMetaparser() {
+export interface MetaContext {
+  extensions: Extension[];
+  args: any[];
+}
+
+export function createMetaparser(): Parser<MetaContext> {
   const unresolvedDirectiveFail = (directive: string) => {
     $fail(
       `Couldn't resolve directive "${directive}", you can add support for it via peg.extend`

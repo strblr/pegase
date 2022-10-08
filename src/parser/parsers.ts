@@ -14,12 +14,9 @@ import {
   Location,
   Range,
   RegexExpectation,
-  RuleConfig,
-  SemanticAction,
   TokenExpectation,
   TraceEventType,
   Tracer,
-  Tweaker,
   Warning,
   WarningType
 } from "..";
@@ -564,6 +561,12 @@ export class RepetitionParser extends Parser {
 
 // GrammarParser
 
+export type RuleConfig = [
+  rule: string,
+  parameters: [parameter: string, defaultValue: Parser | null][],
+  definition: Parser
+];
+
 export class GrammarParser extends Parser {
   readonly rules: RuleConfig[];
   private readonly start: NonTerminalParser;
@@ -738,6 +741,10 @@ export class CaptureParser extends Parser {
 
 // TweakParser
 
+export type Tweaker = (
+  options: Options
+) => (children: any[] | null) => any[] | null;
+
 export class TweakParser extends Parser {
   readonly parser: Parser;
   readonly tweaker: Tweaker;
@@ -760,6 +767,8 @@ export class TweakParser extends Parser {
 }
 
 // ActionParser
+
+export type SemanticAction = (captures: Record<string, any>) => any;
 
 export class ActionParser extends Parser {
   readonly parser: Parser;

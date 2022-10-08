@@ -25,27 +25,6 @@ import {
   TweakParser
 } from ".";
 
-// unique
-
-export function unique<T>(items: Iterable<T>) {
-  return [...new Set(items)];
-}
-
-// extendFlags
-
-export function extendFlags(regex: RegExp, flags: string) {
-  return new RegExp(regex, unique([...regex.flags, ...flags]).join(""));
-}
-
-// spaceCase
-
-export function spaceCase(input: string) {
-  return input
-    .replace("_", " ")
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .toLowerCase();
-}
-
 // castExpectation
 
 export function castExpectation(expected: ExpectationInput): Expectation {
