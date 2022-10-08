@@ -20,18 +20,6 @@ import {
   WarningType
 } from "../index.js";
 
-export interface CompileOptions {
-  id: IdGenerator;
-  children: string;
-  captures: {
-    id: string | null;
-  };
-  cut: {
-    possible: boolean;
-    id: string | null;
-  };
-}
-
 export interface Options<Context = any> {
   input: string;
   from: number;
@@ -69,6 +57,18 @@ export interface FailResult {
   success: false;
   warnings: Warning[];
   failures: Failure[];
+}
+
+export interface CompileOptions {
+  id: IdGenerator;
+  children: string;
+  captures: {
+    id: string | null;
+  };
+  cut: {
+    possible: boolean;
+    id: string | null;
+  };
 }
 
 /**
