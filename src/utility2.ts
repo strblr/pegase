@@ -1,17 +1,19 @@
 import {
+  $children,
+  $commit,
+  $emit,
+  $fail,
+  $from,
+  $raw,
   ActionParser,
   AlternativeParser,
   CutParser,
   defaultSkipper,
   defaultTracer,
   Directive,
-  Expectation,
-  ExpectationInput,
-  ExpectationType,
   Extension,
   FailureType,
   GrammarParser,
-  Hooks,
   LiteralParser,
   locationGenerator,
   Options,
@@ -24,16 +26,6 @@ import {
   Tracer,
   TweakParser
 } from ".";
-
-// castExpectation
-
-export function castExpectation(expected: ExpectationInput): Expectation {
-  return typeof expected === "string"
-    ? { type: ExpectationType.Literal, literal: expected }
-    : expected instanceof RegExp
-    ? { type: ExpectationType.RegExp, regex: expected }
-    : expected;
-}
 
 // merge
 
@@ -90,27 +82,6 @@ export function modulo(
     new RepetitionParser(new SequenceParser([separator, item]), repetitionRange)
   ]);
 }
-
-// Hooks
-
-function hook<K extends keyof Hooks>(key: K) {
-  return new Function(
-    `return this[this.length-1].${key}.apply(null, arguments)`
-  ).bind(hooks) as Hooks[K];
-}
-
-export const hooks: Hooks[] = [];
-export const $from = hook("$from");
-export const $to = hook("$to");
-export const $children = hook("$children");
-export const $raw = hook("$raw");
-export const $options = hook("$options");
-export const $context = hook("$context");
-export const $warn = hook("$warn");
-export const $fail = hook("$fail");
-export const $expected = hook("$expected");
-export const $commit = hook("$commit");
-export const $emit = hook("$emit");
 
 // buildOptions
 
