@@ -10,15 +10,13 @@ import {
   CaptureParser,
   CutParser,
   defaultExtension,
-  Directive,
   EndOfInputParser,
+  Extension,
   GrammarParser,
   LiteralParser,
-  log,
   modulo,
   NonTerminalParser,
   Parser,
-  pegSkipper,
   pipeDirectives,
   PredicateParser,
   RegexParser,
@@ -28,67 +26,7 @@ import {
   SequenceParser,
   spaceCase,
   TokenParser
-} from "./index.js";
-
-// createTag
-
-export interface TagOptions {
-  trace: boolean;
-  extensions: Extension[];
-}
-
-export interface Extension {
-  cast?(arg: any): Parser | undefined;
-  directives?: Record<string, Directive>;
-}
-
-// This is basically a hack to replace "any" but without an "implicit any" error
-// on function parameter destructuration
-export type Any =
-  | null
-  | undefined
-  | string
-  | number
-  | boolean
-  | symbol
-  | bigint
-  | object
-  | ((...args: any[]) => any);
-
-export function createTag(options?: Partial<TagOptions>) {
-  const metaparser = createMetaparser();
-  const opts: TagOptions = {
-    trace: false,
-    extensions: [defaultExtension],
-    ...options
-  };
-
-  function peg<Context = any>(
-    chunks: TemplateStringsArray | string,
-    ...args: Any[]
-  ): Parser<Context> {
-    const result = metaparser.parse(
-      typeof chunks === "string"
-        ? chunks
-        : chunks.raw.reduce(
-            (acc, chunk, index) => acc + `~${index - 1}` + chunk
-          ),
-      {
-        skipper: pegSkipper,
-        trace: opts.trace,
-        context: { extensions: opts.extensions, args }
-      }
-    );
-    if (!result.success) {
-      throw new Error(log(result));
-    }
-    return result.children[0].compile();
-  }
-
-  return peg;
-}
-
-// createMetaparser
+} from "../index.js";
 
 export interface MetaContext {
   extensions: Extension[];
@@ -651,7 +589,3 @@ export function createMetaparser(): Parser<MetaContext> {
     ]
   ]).compile();
 }
-
-// peg
-
-export const peg = createTag();

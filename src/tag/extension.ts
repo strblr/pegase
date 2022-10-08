@@ -8,153 +8,21 @@ import {
   ActionParser,
   AlternativeParser,
   CutParser,
-  defaultSkipper,
-  defaultTracer,
-  Directive,
-  Extension,
-  FailureType,
-  GrammarParser,
   LiteralParser,
-  locationGenerator,
-  Options,
   Parser,
   RegexParser,
-  RepetitionParser,
   SemanticAction,
-  SequenceParser,
   TokenParser,
   Tracer,
   TweakParser
-} from "./index.js";
+} from "../index.js";
 
-// merge
-
-export function merge<Context = any>(...grammars: Parser[]): Parser<Context> {
-  return new GrammarParser(
-    grammars.flatMap(grammar => {
-      if (!(grammar instanceof GrammarParser))
-        throw new Error("Only GrammarParser can be merged");
-      return grammar.rules;
-    })
-  ).compile();
+export interface Extension {
+  cast?(arg: any): Parser | undefined;
+  directives?: Record<string, Directive>;
 }
 
-// resolveCast
-
-export function resolveCast(extensions: Extension[], value: any) {
-  let parser: Parser | undefined;
-  for (const extension of extensions)
-    if ((parser = extension.cast?.(value))) break;
-  return parser;
-}
-
-// resolveDirective
-
-export function resolveDirective(extensions: Extension[], directive: string) {
-  return extensions.find(
-    extension =>
-      extension.directives &&
-      Object.prototype.hasOwnProperty.call(extension.directives, directive)
-  )?.directives![directive];
-}
-
-// pipeDirectives
-
-export function pipeDirectives(
-  parser: Parser,
-  directives: [Directive, any[]][]
-) {
-  return directives.reduce(
-    (parser, [directive, args]) => directive(parser, ...args),
-    parser
-  );
-}
-
-// modulo
-
-export function modulo(
-  item: Parser,
-  separator: Parser,
-  repetitionRange: [number, number] = [0, Infinity]
-) {
-  return new SequenceParser([
-    item,
-    new RepetitionParser(new SequenceParser([separator, item]), repetitionRange)
-  ]);
-}
-
-// buildOptions
-
-export function buildOptions<Context>(
-  input: string,
-  defaultOptions?: Partial<Options<Context>>,
-  partialOptions?: Partial<Options<Context>>
-): Options<Context> {
-  input = partialOptions?.input ?? input;
-  const startOptions: Options<Context> = {
-    input,
-    from: 0,
-    to: 0,
-    complete: true,
-    skipper: defaultSkipper,
-    skip: true,
-    ignoreCase: false,
-    tracer: defaultTracer,
-    trace: false,
-    log: true,
-    warnings: [],
-    failures: [],
-    context: undefined as any,
-    at: locationGenerator(input),
-    _ffIndex: 0,
-    _ffType: null,
-    _ffSemantic: null,
-    _ffExpectations: [],
-    _ffExpect(expected) {
-      if (
-        this._ffIndex === this.from &&
-        this._ffType !== FailureType.Semantic
-      ) {
-        this._ffType = FailureType.Expectation;
-        this._ffExpectations.push(expected);
-      } else if (this._ffIndex < this.from) {
-        this._ffIndex = this.from;
-        this._ffType = FailureType.Expectation;
-        this._ffExpectations = [expected];
-      }
-    },
-    _ffFail(message: string) {
-      if (this._ffIndex <= this.from) {
-        this._ffIndex = this.from;
-        this._ffType = FailureType.Semantic;
-        this._ffSemantic = message;
-      }
-    },
-    _ffCommit() {
-      if (this._ffType !== null) {
-        const pos = this.at(this._ffIndex);
-        if (this._ffType === FailureType.Expectation)
-          this.failures.push({
-            from: pos,
-            to: pos,
-            type: FailureType.Expectation,
-            expected: this._ffExpectations
-          });
-        else
-          this.failures.push({
-            from: pos,
-            to: pos,
-            type: FailureType.Semantic,
-            message: this._ffSemantic!
-          });
-        this._ffType = null;
-      }
-    }
-  };
-  return Object.assign(startOptions, defaultOptions, partialOptions);
-}
-
-// defaultExtension
+export type Directive = (parser: Parser, ...args: any[]) => Parser;
 
 export const defaultExtension: Extension = {
   cast(arg) {

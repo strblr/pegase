@@ -18,7 +18,7 @@ import peg, {
   Parser,
   RegexParser,
   SuccessResult
-} from "./index.js";
+} from "../index.js";
 
 function echoAst(entity: any) {
   console.log(
