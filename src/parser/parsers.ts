@@ -3,23 +3,69 @@ import {
   castExpectation,
   CompileOptions,
   EndOfInputExpectation,
+  Expectation,
   ExpectationType,
   extendFlags,
+  Failure,
+  FailureType,
   hooks,
   IdGenerator,
   LiteralExpectation,
-  Options,
+  Location,
+  Range,
   RegexExpectation,
-  Result,
   RuleConfig,
   SemanticAction,
   TokenExpectation,
   TraceEventType,
+  Tracer,
   Tweaker,
+  Warning,
   WarningType
 } from "..";
 
-// Parser
+export interface Options<Context = any> {
+  input: string;
+  from: number;
+  to: number;
+  complete: boolean;
+  skipper: RegExp;
+  skip: boolean;
+  ignoreCase: boolean;
+  tracer: Tracer<Context>;
+  trace: boolean;
+  log: boolean;
+  warnings: Warning[];
+  failures: Failure[];
+  context: Context;
+  at(index: number): Location;
+  _ffIndex: number;
+  _ffType: FailureType | null;
+  _ffSemantic: string | null;
+  _ffExpectations: Expectation[];
+  _ffExpect(expected: Expectation): void;
+  _ffFail(message: string): void;
+  _ffCommit(): void;
+}
+
+export type Result = SuccessResult | FailResult;
+
+export interface SuccessResult extends Range {
+  success: true;
+  children: any[];
+  warnings: Warning[];
+  failures: Failure[];
+}
+
+export interface FailResult {
+  success: false;
+  warnings: Warning[];
+  failures: Failure[];
+}
+
+/**
+ * Abstract base class for all parsers
+ */
 
 export abstract class Parser<Context = any> {
   readonly defaultOptions: Partial<Options<Context>> = {};

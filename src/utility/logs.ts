@@ -11,12 +11,12 @@ export interface Warning extends Range {
   message: string;
 }
 
+// Failure
+
 export enum FailureType {
   Expectation = "EXPECTATION",
   Semantic = "SEMANTIC"
 }
-
-// Failure
 
 export type Failure = ExpectationFailure | SemanticFailure;
 
@@ -77,7 +77,7 @@ export interface CustomExpectation {
   [field: string]: any;
 }
 
-// Utility
+// Arguments
 
 export interface Entries {
   warnings?: Warning[];

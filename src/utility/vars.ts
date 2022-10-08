@@ -1,3 +1,7 @@
+/**
+ * Creates an identifier factory and symbol table (used to compile parsers)
+ */
+
 export class IdGenerator {
   private counter = 0;
   private table = new Map<{}, string>();

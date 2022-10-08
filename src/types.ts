@@ -1,11 +1,4 @@
-import {
-  Expectation,
-  Failure,
-  FailureType,
-  IdGenerator,
-  Parser,
-  Warning
-} from ".";
+import { Expectation, IdGenerator, Location, Options, Parser } from ".";
 
 // Related to parser generation
 
@@ -39,96 +32,7 @@ export interface CompileOptions {
   };
 }
 
-// Related to parsing
-
-export interface Options<Context = any> {
-  input: string;
-  from: number;
-  to: number;
-  complete: boolean;
-  skipper: RegExp;
-  skip: boolean;
-  ignoreCase: boolean;
-  tracer: Tracer<Context>;
-  trace: boolean;
-  log: boolean;
-  warnings: Warning[];
-  failures: Failure[];
-  context: Context;
-  at(index: number): Location;
-  _ffIndex: number;
-  _ffType: FailureType | null;
-  _ffSemantic: string | null;
-  _ffExpectations: Expectation[];
-  _ffExpect(expected: Expectation): void;
-  _ffFail(message: string): void;
-  _ffCommit(): void;
-}
-
-export type Result = SuccessResult | FailResult;
-
-export interface SuccessResult extends Range {
-  success: true;
-  children: any[];
-  warnings: Warning[];
-  failures: Failure[];
-}
-
-export interface FailResult {
-  success: false;
-  warnings: Warning[];
-  failures: Failure[];
-}
-
-// Related to tracing
-
-export type Tracer<Context = any> = (event: TraceEvent<Context>) => void;
-
-export type TraceEvent<Context = any> =
-  | EnterEvent<Context>
-  | MatchEvent<Context>
-  | FailEvent<Context>;
-
-export enum TraceEventType {
-  Enter = "ENTER",
-  Match = "MATCH",
-  Fail = "FAIL"
-}
-
-export interface EnterEvent<Context = any> extends TraceCommon<Context> {
-  type: TraceEventType.Enter;
-}
-
-export interface MatchEvent<Context = any> extends TraceCommon<Context> {
-  type: TraceEventType.Match;
-  from: Location;
-  to: Location;
-  children: any[];
-}
-
-export interface FailEvent<Context = any> extends TraceCommon<Context> {
-  type: TraceEventType.Fail;
-}
-
-export interface TraceCommon<Context = any> {
-  rule: string;
-  at: Location;
-  options: Options<Context>;
-}
-
 // Shared
-
-export interface Range {
-  from: Location;
-  to: Location;
-}
-
-export interface Location {
-  input: string;
-  index: number;
-  line: number;
-  column: number;
-}
 
 export type ExpectationInput = string | RegExp | Expectation;
 
