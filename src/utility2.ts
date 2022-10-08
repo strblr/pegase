@@ -9,13 +9,11 @@ import {
   ExpectationInput,
   ExpectationType,
   Extension,
-  Failure,
   FailureType,
   GrammarParser,
   Hooks,
   LiteralParser,
   Location,
-  LogOptions,
   Options,
   Parser,
   RegexParser,
@@ -24,9 +22,7 @@ import {
   SequenceParser,
   TokenParser,
   Tracer,
-  TweakParser,
-  Warning,
-  WarningType
+  TweakParser
 } from ".";
 
 // unique
@@ -114,44 +110,6 @@ export function modulo(
     item,
     new RepetitionParser(new SequenceParser([separator, item]), repetitionRange)
   ]);
-}
-
-// entryToString
-
-export function entryToString(entry: Warning | Failure) {
-  switch (entry.type) {
-    case WarningType.Message:
-      return `Warning: ${entry.message}`;
-    case FailureType.Semantic:
-      return `Failure: ${entry.message}`;
-    case FailureType.Expectation:
-      const expectations = unique(
-        entry.expected.map(expectationToString)
-      ).reduce(
-        (acc, expected, index, { length }) =>
-          `${acc}${index === length - 1 ? " or " : ", "}${expected}`
-      );
-      return `Failure: Expected ${expectations}`;
-  }
-}
-
-// expectationToString
-
-export function expectationToString(expectation: Expectation) {
-  switch (expectation.type) {
-    case ExpectationType.Literal:
-      return `"${expectation.literal}"`;
-    case ExpectationType.RegExp:
-      return `${expectation.regex.source} (regex)`;
-    case ExpectationType.EndOfInput:
-      return "end of input";
-    case ExpectationType.Token:
-      return expectation.displayName;
-    case ExpectationType.Mismatch:
-      return `mismatch of "${expectation.match}"`;
-    case ExpectationType.Custom:
-      return expectation.display;
-  }
 }
 
 // Hooks
@@ -268,69 +226,12 @@ function locationGenerator(input: string) {
       }
     }
     return {
+      input,
       index,
       line: line + 1,
       column: index - indexes[line] + 1
     };
   };
-}
-
-// log
-
-export function log(input: string, options: Partial<LogOptions>) {
-  const opts: LogOptions = {
-    warnings: [],
-    failures: [],
-    showWarnings: true,
-    showFailures: true,
-    showCodeFrames: true,
-    linesBefore: 2,
-    linesAfter: 2,
-    ...options
-  };
-
-  const entries = [
-    ...((opts.showWarnings && opts.warnings) || []),
-    ...((opts.showFailures && opts.failures) || [])
-  ];
-
-  if (entries.length === 0) return "";
-  const lines = input.split(/[\r\n]/);
-
-  const codeFrame = (options: LogOptions, location: Location) => {
-    const start = Math.max(1, location.line - options.linesBefore);
-    const end = Math.min(lines.length, location.line + options.linesAfter);
-    const maxLineNum = String(end).length;
-    const padding = " ".repeat(maxLineNum);
-    let acc = "";
-    for (let i = start; i !== end + 1; i++) {
-      const lineNum = (padding + i).slice(-maxLineNum);
-      const current = lines[i - 1];
-      const normalized = current.replace(/\t+/, tabs =>
-        "  ".repeat(tabs.length)
-      );
-      if (i !== location.line) acc += `  ${lineNum} | ${normalized}\n`;
-      else {
-        const count = Math.max(
-          0,
-          normalized.length - current.length + location.column - 1
-        );
-        acc += `> ${lineNum} | ${normalized}\n`;
-        acc += `  ${padding} | ${" ".repeat(count)}^\n`;
-      }
-    }
-    return acc;
-  };
-
-  return entries
-    .sort((a, b) => a.from.index - b.from.index)
-    .map(
-      entry =>
-        `(${entry.from.line}:${entry.from.column}) ${entryToString(entry)}${
-          opts.showCodeFrames ? `\n\n${codeFrame(opts, entry.from)}` : ""
-        }`
-    )
-    .join("\n");
 }
 
 // defaultExtension

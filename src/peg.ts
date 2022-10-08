@@ -15,6 +15,7 @@ import {
   Extension,
   GrammarParser,
   LiteralParser,
+  log,
   modulo,
   NonTerminalParser,
   Parser,
@@ -62,7 +63,7 @@ export function createTag(options?: Partial<TagOptions>) {
       }
     );
     if (!result.success) {
-      throw new Error(result.log());
+      throw new Error(log(result));
     }
     return result.children[0].compile();
   }

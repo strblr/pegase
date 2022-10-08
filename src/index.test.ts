@@ -11,6 +11,7 @@ import peg, {
   createTag,
   defaultExtension,
   LiteralParser,
+  log,
   merge,
   Parser,
   RegexParser,
@@ -235,7 +236,7 @@ test("Back references should work correctly", () => {
   expect(g.test("5")).toBe(true);
   expect(g.test("6 6")).toBe(true);
   expect(g.test("7 7 6")).toBe(false);
-  expect(g.parse("7 7 6").log())
+  expect(log(g.parse("7 7 6")))
     .toBe(`(1:5) Failure: Expected "7" or end of input
 
 > 1 | 7 7 6
@@ -319,7 +320,7 @@ test("Warnings should work correctly", () => {
     $identifier @raw: [a-zA-Z]+
   `;
 
-  expect(g.parse("class test {").log())
+  expect(log(g.parse("class test {")))
     .toBe(`(1:7) Warning: Class names should be capitalized
 
 > 1 | class test {
@@ -358,7 +359,7 @@ test("Failure recovery should work", () => {
   const result = g.parse("[1, 0, 1, 3, 0, 1, 2, 1]");
 
   expect(result.success).toBe(true);
-  expect(result.log()).toBe(`(1:11) Failure: Expected "0" or "1"
+  expect(log(result)).toBe(`(1:11) Failure: Expected "0" or "1"
 
 > 1 | [1, 0, 1, 3, 0, 1, 2, 1]
     |           ^
@@ -383,7 +384,7 @@ test("Failure heuristic should work correctly", () => {
   ]);
 
   expect(g1.value("foo", { context })).toBe(42);
-  expect(g1.parse("baz", { context }).log())
+  expect(log(g1.parse("baz", { context })))
     .toBe(`(1:1) Failure: Undeclared identifier "baz"
 
 > 1 | baz
@@ -401,7 +402,7 @@ test("Hooks should work correctly", () => {
 
   const r = b.parse("1") as SuccessResult;
   expect(r.children).toEqual(["1"]);
-  expect(r.log()).toBe(`(1:1) Warning: This is a warning
+  expect(log(r)).toBe(`(1:1) Warning: This is a warning
 
 > 1 | 1
     | ^

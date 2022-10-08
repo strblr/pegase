@@ -1,1 +1,2 @@
-export * from "./idGenerator";
+export * from "./vars";
+export * from "./logs";

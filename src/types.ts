@@ -1,4 +1,11 @@
-import { IdGenerator, Parser } from ".";
+import {
+  Expectation,
+  Failure,
+  FailureType,
+  IdGenerator,
+  Parser,
+  Warning
+} from ".";
 
 // Related to parser generation
 
@@ -62,109 +69,19 @@ export type Result<Context = any> =
   | SuccessResult<Context>
   | FailResult<Context>;
 
-export interface SuccessResult<Context = any>
-  extends Range,
-    ResultCommon<Context> {
+export interface SuccessResult<Context = any> extends Range {
   success: true;
   children: any[];
   raw: string;
   complete: boolean;
+  warnings: Warning[];
+  failures: Failure[];
 }
 
-export interface FailResult<Context = any> extends ResultCommon<Context> {
+export interface FailResult<Context = any> {
   success: false;
-}
-
-export interface ResultCommon<Context = any> {
-  options: Options<Context>;
   warnings: Warning[];
   failures: Failure[];
-  log(options?: Partial<LogOptions>): string;
-}
-
-// Related to feedback
-
-export interface LogOptions {
-  warnings: Warning[];
-  failures: Failure[];
-  showWarnings: boolean;
-  showFailures: boolean;
-  showCodeFrames: boolean;
-  linesBefore: number;
-  linesAfter: number;
-}
-
-export interface Warning extends Range {
-  type: WarningType.Message;
-  message: string;
-}
-
-export enum WarningType {
-  Message = "MESSAGE"
-}
-
-export type Failure = ExpectationFailure | SemanticFailure;
-
-export interface ExpectationFailure extends Range {
-  type: FailureType.Expectation;
-  expected: Expectation[];
-}
-
-export interface SemanticFailure extends Range {
-  type: FailureType.Semantic;
-  message: string;
-}
-
-export enum FailureType {
-  Expectation = "EXPECTATION",
-  Semantic = "SEMANTIC"
-}
-
-export type Expectation =
-  | LiteralExpectation
-  | RegexExpectation
-  | EndOfInputExpectation
-  | TokenExpectation
-  | MismatchExpectation
-  | CustomExpectation;
-
-export interface LiteralExpectation {
-  type: ExpectationType.Literal;
-  literal: string;
-}
-
-export interface RegexExpectation {
-  type: ExpectationType.RegExp;
-  regex: RegExp;
-}
-
-export interface EndOfInputExpectation {
-  type: ExpectationType.EndOfInput;
-}
-
-export interface TokenExpectation {
-  type: ExpectationType.Token;
-  displayName: string;
-}
-
-export interface MismatchExpectation {
-  type: ExpectationType.Mismatch;
-  match: string;
-}
-
-export interface CustomExpectation {
-  type: ExpectationType.Custom;
-  display: string;
-  [field: string]: any;
-}
-
-export enum ExpectationType {
-  Literal = "LITERAL",
-  RegExp = "REGEXP",
-  EndOfInput = "END_OF_INPUT",
-  Token = "TOKEN",
-  Mismatch = "MISMATCH",
-  Custom = "CUSTOM"
 }
 
 // Related to tracing
@@ -211,6 +128,7 @@ export interface Range {
 }
 
 export interface Location {
+  input: string;
   index: number;
   line: number;
   column: number;

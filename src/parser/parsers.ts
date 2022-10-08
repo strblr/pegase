@@ -8,7 +8,6 @@ import {
   hooks,
   IdGenerator,
   LiteralExpectation,
-  log,
   Options,
   RegexExpectation,
   Result,
@@ -24,7 +23,7 @@ import {
 
 export abstract class Parser<Context = any> {
   readonly defaultOptions: Partial<Options<Context>> = {};
-  exec?: (options: Options) => any[] | null;
+  exec?: (options: Options) => Result<Context>;
 
   test(input: string, options?: Partial<Options<Context>>) {
     return this.parse(input, options).success;
@@ -35,52 +34,18 @@ export abstract class Parser<Context = any> {
     options?: Partial<Options<Context>>
   ): Value | undefined {
     const result = this.parse(input, options);
-    if (!result.success || result.children.length !== 1) return undefined;
-    return result.children[0];
+    return !result.success || result.children.length !== 1
+      ? undefined
+      : result.children[0];
   }
 
   children(input: string, options?: Partial<Options<Context>>) {
     const result = this.parse(input, options);
-    if (!result.success) throw new Error(result.log());
-    return result.children;
+    return !result.success ? undefined : result.children;
   }
 
   parse(input: string, options?: Partial<Options<Context>>): Result<Context> {
-    const opts = buildOptions(input, this.defaultOptions, options);
-    let children = this.exec!(opts);
-    return children === null
-      ? (opts._ffCommit(),
-        {
-          success: false,
-          options: opts,
-          warnings: opts.warnings,
-          failures: opts.failures,
-          log(options) {
-            return log(input, {
-              warnings: opts.warnings,
-              failures: opts.failures,
-              ...options
-            });
-          }
-        })
-      : {
-          success: true,
-          from: opts.at(opts.from),
-          to: opts.at(opts.to),
-          children,
-          raw: opts.input.substring(opts.from, opts.to),
-          complete: opts.to === opts.input.length,
-          options: opts,
-          warnings: opts.warnings,
-          failures: opts.failures,
-          log(options) {
-            return log(input, {
-              warnings: opts.warnings,
-              failures: opts.failures,
-              ...options
-            });
-          }
-        };
+    return this.exec!(buildOptions(input, this.defaultOptions, options));
   }
 
   compile() {
@@ -159,7 +124,24 @@ export abstract class Parser<Context = any> {
           }
         }
         
-        return ${children};
+        if(${children} === null) {
+          options._ffCommit();
+          return {
+            success: false,
+            warnings: options.warnings,
+            failures: options.failures
+          }
+        }
+        return {
+          success: true,
+          from: options.at(options.from),
+          to: options.at(options.to),
+          children: ${children},
+          raw: options.input.substring(options.from, options.to),
+          complete: options.to === options.input.length,
+          warnings: options.warnings,
+          failures: options.failures
+        };
       `
     );
 
