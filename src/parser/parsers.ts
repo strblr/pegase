@@ -1,7 +1,6 @@
 import {
   buildOptions,
   castExpectation,
-  CompileOptions,
   EndOfInputExpectation,
   Expectation,
   ExpectationType,
@@ -20,6 +19,18 @@ import {
   Warning,
   WarningType
 } from "..";
+
+export interface CompileOptions {
+  id: IdGenerator;
+  children: string;
+  captures: {
+    id: string | null;
+  };
+  cut: {
+    possible: boolean;
+    id: string | null;
+  };
+}
 
 export interface Options<Context = any> {
   input: string;

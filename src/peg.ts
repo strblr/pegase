@@ -10,8 +10,8 @@ import {
   CaptureParser,
   CutParser,
   defaultExtension,
+  Directive,
   EndOfInputParser,
-  Extension,
   GrammarParser,
   LiteralParser,
   log,
@@ -35,6 +35,11 @@ import {
 export interface TagOptions {
   trace: boolean;
   extensions: Extension[];
+}
+
+export interface Extension {
+  cast?(arg: any): Parser | undefined;
+  directives?: Record<string, Directive>;
 }
 
 // This is basically a hack to replace "any" but without an "implicit any" error
