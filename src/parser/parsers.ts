@@ -11,6 +11,7 @@ import {
   IdGenerator,
   LiteralExpectation,
   Location,
+  printIf,
   Range,
   RegexExpectation,
   TokenExpectation,
@@ -62,6 +63,9 @@ export interface FailResult {
 export interface CompileOptions {
   id: IdGenerator;
   children: string;
+  actions: {
+    has: boolean;
+  };
   captures: {
     id: string | null;
   };
@@ -113,6 +117,7 @@ export abstract class Parser<Context = any> {
     const options: CompileOptions = {
       id,
       children: id.generate(),
+      actions: { has: false },
       captures: { id: null },
       cut: { possible: false, id: null },
       hooks: {
@@ -125,14 +130,17 @@ export abstract class Parser<Context = any> {
         ffExpectations: id.generate()
       }
     };
-    const hook = id.generate(hooks);
-    const castExpect = id.generate(castExpectation);
+
     const endOfInputChildren = id.generate();
     const code = this.generate(options);
     const endOfInput = new EndOfInputParser().generate({
       ...options,
       children: endOfInputChildren
     });
+
+    const hook = options.actions.has && id.generate(hooks);
+    const castExpect = options.actions.has && id.generate(castExpectation);
+
     const exec = new Function(
       "links",
       "options",
@@ -178,59 +186,70 @@ export abstract class Parser<Context = any> {
           return children;
         }
         
-        var ${Object.values(options.hooks).join(",")};
-        ${hook}.push({
-          $from: () => options.at(options.from),
-          $to: () => options.at(options.to),
-          $children: () => ${options.hooks.children},
-          $value: () => ${options.hooks.children}.length !== 1 ? void 0 : ${
-        options.hooks.children
-      }[0],
-          $raw: () => options.input.substring(options.from, options.to),
-          $options: () => options,
-          $context: () => options.context,
-          $warn(message) {
-            options.log &&
-              options.warnings.push({
-                from: options.at(options.from),
-                to: options.at(options.to),
-                type: "${WarningType.Message}",
-                message
-              });
-          },
-          $fail(message) {
-            ${options.hooks.failed} = true;
-            options._ffIndex = ${options.hooks.ffIndex};
-            options._ffType = ${options.hooks.ffType};
-            options._ffSemantic = ${options.hooks.ffSemantic};
-            options._ffExpectations = ${options.hooks.ffExpectations};
-            options.log && options._ffFail(message);
-          },
-          $expected(expected) {
-            ${options.hooks.failed} = true;
-            options._ffIndex = ${options.hooks.ffIndex};
-            options._ffType = ${options.hooks.ffType};
-            options._ffSemantic = ${options.hooks.ffSemantic};
-            options._ffExpectations = ${options.hooks.ffExpectations};
-            options.log &&
-              expected
-                .map(${castExpect})
-                .forEach(expected => options._ffExpect(expected));
-          },
-          $commit: () => options._ffCommit(),
-          $emit(children) {
-            ${options.hooks.emit} = children;
-          }
-        });
+        ${printIf(
+          options.actions.has,
+          `
+            var ${Object.values(options.hooks).join(",")};
+            ${hook}.push({
+              $from: () => options.at(options.from),
+              $to: () => options.at(options.to),
+              $children: () => ${options.hooks.children},
+              $value: () => ${options.hooks.children}.length !== 1 ? void 0 : ${
+            options.hooks.children
+          }[0],
+              $raw: () => options.input.substring(options.from, options.to),
+              $options: () => options,
+              $context: () => options.context,
+              $warn(message) {
+                options.log &&
+                  options.warnings.push({
+                    from: options.at(options.from),
+                    to: options.at(options.to),
+                    type: "${WarningType.Message}",
+                    message
+                  });
+              },
+              $fail(message) {
+                ${options.hooks.failed} = true;
+                options._ffIndex = ${options.hooks.ffIndex};
+                options._ffType = ${options.hooks.ffType};
+                options._ffSemantic = ${options.hooks.ffSemantic};
+                options._ffExpectations = ${options.hooks.ffExpectations};
+                options.log && options._ffFail(message);
+              },
+              $expected(expected) {
+                ${options.hooks.failed} = true;
+                options._ffIndex = ${options.hooks.ffIndex};
+                options._ffType = ${options.hooks.ffType};
+                options._ffSemantic = ${options.hooks.ffSemantic};
+                options._ffExpectations = ${options.hooks.ffExpectations};
+                options.log &&
+                  expected
+                    .map(${castExpect})
+                    .forEach(expected => options._ffExpect(expected));
+              },
+              $commit: () => options._ffCommit(),
+              $emit(children) {
+                ${options.hooks.emit} = children;
+              }
+            });
+          `
+        )}
         
         var ${options.children};
-        ${options.captures.id ? `var ${options.captures.id} = {};` : ""}
+        ${printIf(options.captures.id, `var ${options.captures.id} = {};`)}
         
-        try {
-          ${code}
-        } finally {
-          ${hook}.pop();
-        }
+        ${printIf(
+          options.actions.has,
+          `
+            try {
+              ${code}
+            } finally {
+              ${hook}.pop();
+            }
+          `,
+          code
+        )}
         
         if(${options.children} !== null && options.complete) {
           var ${endOfInputChildren};
@@ -342,7 +361,7 @@ export class RegexParser extends Parser {
         ${usedRegex}.lastIndex = options.from;
         var ${result} = ${usedRegex}.exec(options.input);
         if(${result} !== null) {
-          ${captures ? `Object.assign(${captures}, ${result}.groups);` : ""}
+          ${printIf(captures, `Object.assign(${captures}, ${result}.groups);`)}
           options.to = ${usedRegex}.lastIndex;
           ${options.children} = ${result}.slice(1);
         } else {
@@ -858,6 +877,7 @@ export class ActionParser extends Parser {
   }
 
   generate(options: CompileOptions): string {
+    options.actions.has = true;
     const value = options.id.generate();
     const action = options.id.generate(this.action);
     const captures =

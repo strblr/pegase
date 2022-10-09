@@ -41,7 +41,7 @@ function echoBuild(p: Parser) {
 }
 
 test("The peg tag should work with raw strings", () => {
-  echoBuild(peg`^ ${() => {}} ${() => {}} ${() => {}}`);
+  echoBuild(peg`^`);
 
   const g1 = peg` "My name is \"pegase\"." `;
   const g2 = peg`[\]]`;
