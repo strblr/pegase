@@ -92,19 +92,16 @@ export abstract class Parser<Context = any> {
     return this.parse(input, options).success;
   }
 
-  value<Value = any>(
-    input: string,
-    options?: Partial<Options<Context>>
-  ): Value | undefined {
+  children(input: string, options?: Partial<Options<Context>>) {
+    const result = this.parse(input, options);
+    return !result.success ? undefined : result.children;
+  }
+
+  value(input: string, options?: Partial<Options<Context>>) {
     const result = this.parse(input, options);
     return !result.success || result.children.length !== 1
       ? undefined
       : result.children[0];
-  }
-
-  children(input: string, options?: Partial<Options<Context>>) {
-    const result = this.parse(input, options);
-    return !result.success ? undefined : result.children;
   }
 
   parse(input: string, options?: Partial<Options<Context>>) {
@@ -186,6 +183,9 @@ export abstract class Parser<Context = any> {
           $from: () => options.at(options.from),
           $to: () => options.at(options.to),
           $children: () => ${options.hooks.children},
+          $value: () => ${options.hooks.children}.length !== 1 ? void 0 : ${
+        options.hooks.children
+      }[0],
           $raw: () => options.input.substring(options.from, options.to),
           $options: () => options,
           $context: () => options.context,
@@ -881,7 +881,7 @@ export class ActionParser extends Parser {
         ${options.hooks.ffSemantic} = ${ffSemantic};
         ${options.hooks.ffExpectations} = ${ffExpectations};
         ${options.hooks.emit} = void 0;
-        ${options.hooks.failed} = void 0;
+        ${options.hooks.failed} = false;
         
         var ${value} = ${action}(${captures});
         

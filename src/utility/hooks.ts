@@ -6,6 +6,7 @@ export interface Hooks {
   $from(): Location;
   $to(): Location;
   $children(): any[];
+  $value(): any;
   $raw(): string;
   $options(): Options;
   $context(): any;
@@ -26,6 +27,7 @@ export const hooks: Hooks[] = [];
 export const $from = hook("$from");
 export const $to = hook("$to");
 export const $children = hook("$children");
+export const $value = hook("$value");
 export const $raw = hook("$raw");
 export const $options = hook("$options");
 export const $context = hook("$context");
