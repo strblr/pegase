@@ -17,12 +17,12 @@ export interface Hooks {
 }
 
 function hook<K extends keyof Hooks>(key: K) {
-  return new Function(`return this.current.${key}.apply(null, arguments)`).bind(
-    hooks
-  ) as Hooks[K];
+  return new Function(
+    `return this[this.length-1].${key}.apply(null, arguments)`
+  ).bind(hooks) as Hooks[K];
 }
 
-export const hooks = { current: {} as Hooks };
+export const hooks: Hooks[] = [];
 export const $from = hook("$from");
 export const $to = hook("$to");
 export const $children = hook("$children");

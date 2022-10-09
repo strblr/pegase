@@ -437,13 +437,13 @@ test("Benchmark between Pegase and competitor", () => {
   `;
 
   const a = new Date();
-  for (let i = 0; i !== 5000; ++i) {
+  for (let i = 0; i !== 20000; ++i) {
     calc.parse("42");
     calc.parse("42 +  63");
     calc.parse("42 +  63 * (12 / 3)");
   }
   const b = new Date();
-  for (let i = 0; i !== 5000; ++i) {
+  for (let i = 0; i !== 20000; ++i) {
     competitor.parse("42");
     competitor.parse("42 +  63");
     competitor.parse("42 +  63 * (12 / 3)");
