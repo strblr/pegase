@@ -121,10 +121,10 @@ export abstract class Parser<Context = any> {
       "links",
       "options",
       `
-        ${id
+        var { ${id
           .entries()
-          .map(([id]) => `var ${id} = links.${id};`)
-          .join("\n")}
+          .map(([id]) => id)
+          .join(",")} } = links;
           
         function skip() {
           options.skipper.lastIndex = options.from;
@@ -800,6 +800,7 @@ export class ActionParser extends Parser {
     const emit = options.id.generate();
     const failed = options.id.generate();
     const hook = options.id.generate(hooks);
+    const savedHooks = options.id.generate();
     const action = options.id.generate(this.action);
     const castExpect = options.id.generate(castExpectation);
     const captures =
@@ -813,8 +814,8 @@ export class ActionParser extends Parser {
       ${this.parser.generate(options)}
     
       if(${options.children} !== null) {
-        var ${value}, ${emit}, ${failed};
-        ${hook}.push({
+        var ${value}, ${emit}, ${failed}, ${savedHooks} = ${hook}.current;
+        ${hook}.current = {
           $from: () => options.at(options.from),
           $to: () => options.at(options.to),
           $children: () => ${options.children},
@@ -853,15 +854,15 @@ export class ActionParser extends Parser {
           $emit(children) {
             ${emit} = children;
           }
-        });
+        };
         
         try {
           ${value} = ${action}(${captures});
         } catch (e) {
-          ${hook}.pop();
+          ${hook}.current = ${savedHooks};
           throw e;
         }
-        ${hook}.pop();
+        ${hook}.current = ${savedHooks};
         
         if (${failed}) {
           ${options.children} = null;
