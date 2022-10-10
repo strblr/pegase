@@ -7,6 +7,7 @@ import {
   $raw,
   ActionParser,
   AlternativeParser,
+  CustomParser,
   CutParser,
   LiteralParser,
   Parser,
@@ -14,7 +15,7 @@ import {
   SemanticAction,
   TokenParser,
   Tracer,
-  TweakParser
+  wrap
 } from "../index.js";
 
 export interface Extension {
@@ -33,74 +34,67 @@ export const defaultExtension: Extension = {
   },
   directives: {
     // Option tweaks
-    tweak: (parser, tweaker) => new TweakParser(parser, tweaker),
     skip: (parser, nextSkipper?: RegExp) =>
-      new TweakParser(parser, options => {
-        const { skip, skipper } = options;
-        options.skip = true;
-        options.skipper = nextSkipper ?? skipper;
-        return match => {
-          options.skip = skip;
-          options.skipper = skipper;
-          return match;
-        };
+      new CustomParser(options => {
+        let code = wrap(
+          parser.generate(options),
+          "options.skip",
+          "true",
+          options
+        );
+        if (nextSkipper)
+          code = wrap(
+            code,
+            "options.skipper",
+            options.id.generate(nextSkipper),
+            options
+          );
+        return code;
       }),
     noskip: parser =>
-      new TweakParser(parser, options => {
-        const { skip } = options;
-        options.skip = false;
-        return match => {
-          options.skip = skip;
-          return match;
-        };
-      }),
+      new CustomParser(options =>
+        wrap(parser.generate(options), "options.skip", "false", options)
+      ),
     case: parser =>
-      new TweakParser(parser, options => {
-        const { ignoreCase } = options;
-        options.ignoreCase = false;
-        return match => {
-          options.ignoreCase = ignoreCase;
-          return match;
-        };
-      }),
+      new CustomParser(options =>
+        wrap(parser.generate(options), "options.ignoreCase", "false", options)
+      ),
     nocase: parser =>
-      new TweakParser(parser, options => {
-        const { ignoreCase } = options;
-        options.ignoreCase = true;
-        return match => {
-          options.ignoreCase = ignoreCase;
-          return match;
-        };
-      }),
+      new CustomParser(options =>
+        wrap(parser.generate(options), "options.ignoreCase", "true", options)
+      ),
     trace: (parser, nextTracer?: Tracer) =>
-      new TweakParser(parser, options => {
-        const { trace, tracer } = options;
-        options.trace = true;
-        options.tracer = nextTracer ?? tracer;
-        return match => {
-          options.trace = trace;
-          options.tracer = tracer;
-          return match;
-        };
+      new CustomParser(options => {
+        let code = wrap(
+          parser.generate(options),
+          "options.trace",
+          "true",
+          options
+        );
+        if (nextTracer)
+          code = wrap(
+            code,
+            "options.tracer",
+            options.id.generate(nextTracer),
+            options
+          );
+        return code;
       }),
     notrace: parser =>
-      new TweakParser(parser, options => {
-        const { trace } = options;
-        options.trace = false;
-        return match => {
-          options.trace = trace;
-          return match;
-        };
-      }),
+      new CustomParser(options =>
+        wrap(parser.generate(options), "options.trace", "false", options)
+      ),
     context: (parser, nextContext: any) =>
-      new TweakParser(parser, options => {
-        const { context } = options;
-        options.context = nextContext;
-        return match => {
-          options.context = context;
-          return match;
-        };
-      }),
+      new CustomParser(options =>
+        wrap(
+          parser.generate(options),
+          "options.context",
+          nextContext === undefined
+            ? "void 0"
+            : options.id.generate(nextContext),
+          options
+        )
+      ),
     // Children transforms
     omit: parser => new ActionParser(parser, () => $emit([])),
     raw: parser => new ActionParser(parser, () => $raw()),

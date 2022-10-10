@@ -847,30 +847,14 @@ export class CaptureParser extends Parser {
   }
 }
 
-// TweakParser
+// CustomParser
 
-export type Tweaker = (
-  options: Options
-) => (children: any[] | null) => any[] | null;
+export class CustomParser extends Parser {
+  readonly generate: (options: CompileOptions) => string;
 
-export class TweakParser extends Parser {
-  readonly parser: Parser;
-  readonly tweaker: Tweaker;
-
-  constructor(parser: Parser, tweaker: Tweaker) {
+  constructor(generate: (options: CompileOptions) => string) {
     super();
-    this.parser = parser;
-    this.tweaker = tweaker;
-  }
-
-  generate(options: CompileOptions): string {
-    const tweaker = options.id.generate(this.tweaker);
-    const cleanUp = options.id.generate();
-    return `
-      var ${cleanUp} = ${tweaker}(options);
-      ${this.parser.generate(options)}
-      ${options.children} = ${cleanUp}(${options.children})
-    `;
+    this.generate = generate;
   }
 }
 
