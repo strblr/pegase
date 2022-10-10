@@ -36,13 +36,13 @@ export interface Options<Context = any> {
   failures: Failure[];
   context: Context;
   at(index: number): Location;
-  _ffIndex: number;
-  _ffType: FailureType | null;
-  _ffSemantic: string | null;
-  _ffExpectations: Expectation[];
-  _ffExpect(expected: Expectation): void;
-  _ffFail(message: string): void;
-  _ffCommit(): void;
+  ffIndex: number;
+  ffType: FailureType | null;
+  ffSemantic: string | null;
+  ffExpectations: Expectation[];
+  ffExpect(expected: Expectation): void;
+  ffFail(message: string): void;
+  ffCommit(): void;
 }
 
 export type Result = SuccessResult | FailResult;
@@ -136,6 +136,7 @@ export abstract class Parser<Context = any> {
     };
 
     const endOfInputChildren = id.generate();
+    const endOfInputFrom = id.generate();
     const code = this.generate(options);
     const endOfInput = new EndOfInputParser().generate({
       ...options,
@@ -222,24 +223,24 @@ export abstract class Parser<Context = any> {
               },
               $fail(message) {
                 ${options.hooks.failed} = true;
-                options._ffIndex = ${options.hooks.ffIndex};
-                options._ffType = ${options.hooks.ffType};
-                options._ffSemantic = ${options.hooks.ffSemantic};
-                options._ffExpectations = ${options.hooks.ffExpectations};
-                options.log && options._ffFail(message);
+                options.ffIndex = ${options.hooks.ffIndex};
+                options.ffType = ${options.hooks.ffType};
+                options.ffSemantic = ${options.hooks.ffSemantic};
+                options.ffExpectations = ${options.hooks.ffExpectations};
+                options.log && options.ffFail(message);
               },
               $expected(expected) {
                 ${options.hooks.failed} = true;
-                options._ffIndex = ${options.hooks.ffIndex};
-                options._ffType = ${options.hooks.ffType};
-                options._ffSemantic = ${options.hooks.ffSemantic};
-                options._ffExpectations = ${options.hooks.ffExpectations};
+                options.ffIndex = ${options.hooks.ffIndex};
+                options.ffType = ${options.hooks.ffType};
+                options.ffSemantic = ${options.hooks.ffSemantic};
+                options.ffExpectations = ${options.hooks.ffExpectations};
                 options.log &&
                   expected
                     .map(${castExpect})
-                    .forEach(expected => options._ffExpect(expected));
+                    .forEach(expected => options.ffExpect(expected));
               },
-              $commit: () => options._ffCommit(),
+              $commit: () => options.ffCommit(),
               $emit(children) {
                 ${options.hooks.emit} = children;
               }
@@ -264,18 +265,18 @@ export abstract class Parser<Context = any> {
         
         if(${options.children} !== null && options.complete) {
           var ${endOfInputChildren};
-          var from = options.from;
+          var ${endOfInputFrom} = options.from;
           options.from = options.to;
           ${endOfInput}
           if(${endOfInputChildren} !== null) {
-            options.from = from;
+            options.from = ${endOfInputFrom};
           } else {
             ${options.children} = null;
           }
         }
         
         if(${options.children} === null) {
-          options._ffCommit();
+          options.ffCommit();
           return {
             success: false,
             warnings: options.warnings,
@@ -337,7 +338,7 @@ export class LiteralParser extends Parser {
           ${options.children} = ${children || "[]"};
         else {
           ${options.children} = null;
-          options.log && options._ffExpect(${expectation});
+          options.log && options.ffExpect(${expectation});
         }
       }
     `;
@@ -381,7 +382,7 @@ export class RegexParser extends Parser {
           ${options.children} = ${result}.slice(1);
         } else {
           ${options.children} = null;
-          options.log && options._ffExpect(${expectation});
+          options.log && options.ffExpect(${expectation});
         }
       }
     `;
@@ -404,7 +405,7 @@ export class EndOfInputParser extends Parser {
           ${options.children} = [];
         } else {
           ${options.children} = null;
-          options.log && options._ffExpect(${expectation});
+          options.log && options.ffExpect(${expectation});
         }
       }
     `;
@@ -448,7 +449,7 @@ export class TokenParser extends Parser {
             ${code}
             options.log = ${log};
             if(${options.children} === null && ${log})
-              options._ffExpect(${expectation});
+              options.ffExpect(${expectation});
           `
         )}
         options.skip = ${skip};
@@ -485,7 +486,7 @@ export class BackReferenceParser extends Parser {
           ${options.children} = [];
         else {
           ${options.children} = null;
-          options.log && options._ffExpect({
+          options.log && options.ffExpect({
             type: "${ExpectationType.Literal}",
             literal: ${reference}
           });
@@ -555,8 +556,8 @@ export class SequenceParser extends Parser {
 
   generate(options: CompileOptions): string {
     const [first, ...rest] = this.parsers;
-    const acc = options.id.generate();
     const from = options.id.generate();
+    const acc = options.id.generate();
     return `
       ${first.generate(options)}
       if(${options.children} !== null) {
@@ -812,7 +813,7 @@ export class PredicateParser extends Parser {
       } else {
         ${options.children} = null;
         options.log &&
-          options._ffExpect({
+          options.ffExpect({
             type: "${ExpectationType.Mismatch}",
             match: options.input.substring(options.from, options.to)
           });
@@ -898,10 +899,10 @@ export class ActionParser extends Parser {
     const ffSemantic = options.id.generate();
     const ffExpectations = options.id.generate();
     return `
-      var ${ffIndex} = options._ffIndex,
-        ${ffType} = options._ffType,
-        ${ffSemantic} = options._ffSemantic,
-        ${ffExpectations} = options._ffExpectations.concat();
+      var ${ffIndex} = options.ffIndex,
+        ${ffType} = options.ffType,
+        ${ffSemantic} = options.ffSemantic,
+        ${ffExpectations} = options.ffExpectations.concat();
       
       ${this.parser.generate(options)}
       

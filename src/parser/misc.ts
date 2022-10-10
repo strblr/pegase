@@ -27,48 +27,45 @@ export function buildOptions<Context>(
     failures: [],
     context: undefined as any,
     at: locationGenerator(input),
-    _ffIndex: 0,
-    _ffType: null,
-    _ffSemantic: null,
-    _ffExpectations: [],
-    _ffExpect(expected) {
-      if (
-        this._ffIndex === this.from &&
-        this._ffType !== FailureType.Semantic
-      ) {
-        this._ffType = FailureType.Expectation;
-        this._ffExpectations.push(expected);
-      } else if (this._ffIndex < this.from) {
-        this._ffIndex = this.from;
-        this._ffType = FailureType.Expectation;
-        this._ffExpectations = [expected];
+    ffIndex: 0,
+    ffType: null,
+    ffSemantic: null,
+    ffExpectations: [],
+    ffExpect(expected) {
+      if (this.ffIndex === this.from && this.ffType !== FailureType.Semantic) {
+        this.ffType = FailureType.Expectation;
+        this.ffExpectations.push(expected);
+      } else if (this.ffIndex < this.from) {
+        this.ffIndex = this.from;
+        this.ffType = FailureType.Expectation;
+        this.ffExpectations = [expected];
       }
     },
-    _ffFail(message: string) {
-      if (this._ffIndex <= this.from) {
-        this._ffIndex = this.from;
-        this._ffType = FailureType.Semantic;
-        this._ffSemantic = message;
+    ffFail(message: string) {
+      if (this.ffIndex <= this.from) {
+        this.ffIndex = this.from;
+        this.ffType = FailureType.Semantic;
+        this.ffSemantic = message;
       }
     },
-    _ffCommit() {
-      if (this._ffType !== null) {
-        const pos = this.at(this._ffIndex);
-        if (this._ffType === FailureType.Expectation)
+    ffCommit() {
+      if (this.ffType !== null) {
+        const pos = this.at(this.ffIndex);
+        if (this.ffType === FailureType.Expectation)
           this.failures.push({
             from: pos,
             to: pos,
             type: FailureType.Expectation,
-            expected: this._ffExpectations
+            expected: this.ffExpectations
           });
         else
           this.failures.push({
             from: pos,
             to: pos,
             type: FailureType.Semantic,
-            message: this._ffSemantic!
+            message: this.ffSemantic!
           });
-        this._ffType = null;
+        this.ffType = null;
       }
     }
   };
