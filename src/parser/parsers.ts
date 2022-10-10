@@ -142,6 +142,8 @@ export abstract class Parser<Context = any> {
       children: endOfInputChildren
     });
 
+    const traceAt = options.nonTerminals.has && id.generate();
+    const traceChildren = options.nonTerminals.has && id.generate();
     const hook = options.actions.has && id.generate(hooks);
     const castExpect = options.actions.has && id.generate(castExpectation);
 
@@ -154,7 +156,7 @@ export abstract class Parser<Context = any> {
           .map(([id]) => id)
           .join(",")} } = links;
           
-        function skip() {
+        function u_skip() {
           options.skipper.lastIndex = options.from;
           if (!options.skipper.test(options.input)) return false;
           options.from = options.skipper.lastIndex;
@@ -164,33 +166,33 @@ export abstract class Parser<Context = any> {
         ${cond(
           options.nonTerminals.has,
           `
-            function trace(rule, exec) {
-              var at = options.at(options.from);
+            function u_trace(rule, exec) {
+              var ${traceAt} = options.at(options.from);
               options.tracer({
                 type: "${TraceEventType.Enter}",
                 rule,
-                at,
+                at: ${traceAt},
                 options
               });
-              var children = exec();
-              if (children === null)
+              var ${traceChildren} = exec();
+              if (${traceChildren} === null)
                 options.tracer({
                   type: "${TraceEventType.Fail}",
                   rule,
-                  at,
+                  at: ${traceAt},
                   options
                 });
               else
                 options.tracer({
                   type: "${TraceEventType.Match}",
                   rule,
-                  at,
+                  at: ${traceAt},
                   options,
                   from: options.at(options.from),
                   to: options.at(options.to),
-                  children
+                  children: ${traceChildren}
                 });
-              return children;
+              return ${traceChildren};
             }
           `
         )}
@@ -321,7 +323,7 @@ export class LiteralParser extends Parser {
       literal: this.literal
     });
     return `
-      if(options.skip && !skip())
+      if(options.skip && !u_skip())
         ${options.children} = null;
       else {
         options.to = options.from + ${this.literal.length};
@@ -367,7 +369,7 @@ export class RegexParser extends Parser {
       this.hasCaptures &&
       (options.captures.id ?? (options.captures.id = options.id.generate()));
     return `
-      if(options.skip && !skip())
+      if(options.skip && !u_skip())
         ${options.children} = null;
       else {
         var ${usedRegex} = options.ignoreCase ? ${regexNocase} : ${regex};
@@ -394,7 +396,7 @@ export class EndOfInputParser extends Parser {
       type: ExpectationType.EndOfInput
     });
     return `
-      if(options.skip && !skip())
+      if(options.skip && !u_skip())
         ${options.children} = null;
       else {
         if(options.from === options.input.length) {
@@ -432,7 +434,7 @@ export class TokenParser extends Parser {
       });
     const code = this.parser.generate(options);
     return `
-      if(options.skip && !skip())
+      if(options.skip && !u_skip())
         ${options.children} = null;
       else {
         var ${skip} = options.skip;
@@ -471,7 +473,7 @@ export class BackReferenceParser extends Parser {
     const captures =
       options.captures.id ?? (options.captures.id = options.id.generate());
     return `
-      if(options.skip && !skip())
+      if(options.skip && !u_skip())
         ${options.children} = null;
       else {
         var ${reference} = ${captures}["${this.name}"];
@@ -763,7 +765,7 @@ export class NonTerminalParser extends Parser {
         )
         .join("\n")}
       if(options.trace) {
-        ${options.children} = trace("${this.rule}", function() {
+        ${options.children} = u_trace("${this.rule}", function() {
           return (${call});
         })
       } else {
