@@ -313,6 +313,7 @@ export class LiteralParser extends Parser {
 
   generate(options: CompileOptions, test?: boolean): string {
     const uncased = this.literal.toLowerCase();
+    const isCaseSensitive = this.literal !== uncased;
     const raw = options.id.generate();
     const children = this.emit && options.id.generate([this.literal]);
     const expectation = options.id.generate<LiteralExpectation>({
@@ -325,9 +326,13 @@ export class LiteralParser extends Parser {
       else {
         options.to = options.from + ${this.literal.length};
         var ${raw} = options.input.substring(options.from, options.to);
-        if(options.ignoreCase
-          ? ${JSON.stringify(uncased)} === ${raw}.toLowerCase()
-          : ${JSON.stringify(this.literal)} === ${raw})
+        if(${cond(
+          isCaseSensitive,
+          `options.ignoreCase
+            ? ${JSON.stringify(uncased)} === ${raw}.toLowerCase()
+            :
+          `
+        )} ${JSON.stringify(this.literal)} === ${raw})
           ${options.children} = ${children || "[]"};
         else {
           ${options.children} = null;
