@@ -1,6 +1,7 @@
 import {
   buildOptions,
   castExpectation,
+  cond,
   EndOfInputExpectation,
   Expectation,
   ExpectationType,
@@ -11,7 +12,6 @@ import {
   IdGenerator,
   LiteralExpectation,
   Location,
-  printIf,
   Range,
   RegexExpectation,
   TokenExpectation,
@@ -186,7 +186,7 @@ export abstract class Parser<Context = any> {
           return children;
         }
         
-        ${printIf(
+        ${cond(
           options.actions.has,
           `
             var ${Object.values(options.hooks).join(",")};
@@ -237,9 +237,9 @@ export abstract class Parser<Context = any> {
         )}
         
         var ${options.children};
-        ${printIf(options.captures.id, `var ${options.captures.id} = {};`)}
+        ${cond(options.captures.id, `var ${options.captures.id} = {};`)}
         
-        ${printIf(
+        ${cond(
           options.actions.has,
           `
             try {
@@ -361,7 +361,7 @@ export class RegexParser extends Parser {
         ${usedRegex}.lastIndex = options.from;
         var ${result} = ${usedRegex}.exec(options.input);
         if(${result} !== null) {
-          ${printIf(captures, `Object.assign(${captures}, ${result}.groups);`)}
+          ${cond(captures, `Object.assign(${captures}, ${result}.groups);`)}
           options.to = ${usedRegex}.lastIndex;
           ${options.children} = ${result}.slice(1);
         } else {
@@ -424,18 +424,18 @@ export class TokenParser extends Parser {
       else {
         var ${skip} = options.skip;
         options.skip = false;
-        ${
-          !this.displayName
-            ? code
-            : `
-              var ${log} = options.log;
-              options.log = false;
-              ${code}
-              options.log = ${log};
-              if(${options.children} === null && ${log})
-                options._ffExpect(${expectation});
-            `
-        }
+        ${cond(
+          !this.displayName,
+          code,
+          `
+            var ${log} = options.log;
+            options.log = false;
+            ${code}
+            options.log = ${log};
+            if(${options.children} === null && ${log})
+              options._ffExpect(${expectation});
+          `
+        )}
         options.skip = ${skip};
       }
     `;
@@ -488,7 +488,7 @@ export class CutParser extends Parser {
       ? options.cut.id ?? (options.cut.id = options.id.generate())
       : null;
     return `
-      ${id ? `${id} = true;` : ""}
+      ${cond(id, `${id} = true;`)}
       options.to = options.from;
       ${options.children} = [];
     `;
@@ -516,9 +516,9 @@ export class AlternativeParser extends Parser {
         };
         const code = parser.generate({ ...options, cut });
         return `
-          ${cut.id ? `var ${cut.id} = false;` : ""}
+          ${cond(cut.id, `var ${cut.id} = false;`)}
           ${code}
-          if(${options.children} === null ${cut.id ? `&& !${cut.id}` : ""}) {
+          if(${options.children} === null ${cond(cut.id, `&& !${cut.id}`)}) {
             options.from = ${from};
             ${acc}
           }
@@ -611,7 +611,7 @@ export class RepetitionParser extends Parser {
         finish
       );
     return `
-      var ${from}${this.min === 0 ? " = options.from" : ""};
+      var ${from}${cond(this.min === 0, " = options.from")};
       function ${temp}() { ${code} }
       ${temp}();
       if(${options.children} !== null) {
@@ -641,16 +641,15 @@ export class RepetitionParser extends Parser {
           `
         )}
       }
-      ${
-        this.min === 0
-          ? `
-            else {
-              options.from = options.to = ${from};
-              ${options.children} = [];
-            }
-          `
-          : ""
-      }
+      ${cond(
+        this.min === 0,
+        `
+          else {
+            options.from = options.to = ${from};
+            ${options.children} = [];
+          }
+        `
+      )}
     `;
   }
 }
@@ -701,7 +700,7 @@ export class GrammarParser extends Parser {
             .map(([name]) => `r_${name}`)
             .join(",")}) {
               var ${children};
-              ${captures.id ? `var ${captures.id} = {};` : ""}
+              ${cond(captures.id, `var ${captures.id} = {};`)}
               ${assignCode}
               ${code}
               return ${children};

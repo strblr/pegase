@@ -75,6 +75,6 @@ export function buildOptions<Context>(
   return Object.assign(startOptions, defaultOptions, partialOptions);
 }
 
-export function printIf(condition: unknown, code: string, elseCode = "") {
+export function cond(condition: unknown, code: string, elseCode = "") {
   return condition ? code : elseCode;
 }
