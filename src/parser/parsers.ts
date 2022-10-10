@@ -329,8 +329,7 @@ export class LiteralParser extends Parser {
         if(${cond(
           isCaseSensitive,
           `options.ignoreCase
-            ? ${JSON.stringify(uncased)} === ${raw}.toLowerCase()
-            :
+            ? ${JSON.stringify(uncased)} === ${raw}.toLowerCase() :
           `
         )} ${JSON.stringify(this.literal)} === ${raw})
           ${options.children} = ${children || "[]"};
