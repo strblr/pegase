@@ -66,6 +66,9 @@ export interface CompileOptions {
   actions: {
     has: boolean;
   };
+  nonTerminals: {
+    has: boolean;
+  };
   captures: {
     id: string | null;
   };
@@ -118,6 +121,7 @@ export abstract class Parser<Context = any> {
       id,
       children: id.generate(),
       actions: { has: false },
+      nonTerminals: { has: false },
       captures: { id: null },
       cut: { possible: false, id: null },
       hooks: {
@@ -157,34 +161,39 @@ export abstract class Parser<Context = any> {
           return true;
         }
         
-        function trace(rule, exec) {
-          var at = options.at(options.from);
-          options.tracer({
-            type: "${TraceEventType.Enter}",
-            rule,
-            at,
-            options
-          });
-          var children = exec();
-          if (children === null)
-            options.tracer({
-              type: "${TraceEventType.Fail}",
-              rule,
-              at,
-              options
-            });
-          else
-            options.tracer({
-              type: "${TraceEventType.Match}",
-              rule,
-              at,
-              options,
-              from: options.at(options.from),
-              to: options.at(options.to),
-              children
-            });
-          return children;
-        }
+        ${cond(
+          options.nonTerminals.has,
+          `
+            function trace(rule, exec) {
+              var at = options.at(options.from);
+              options.tracer({
+                type: "${TraceEventType.Enter}",
+                rule,
+                at,
+                options
+              });
+              var children = exec();
+              if (children === null)
+                options.tracer({
+                  type: "${TraceEventType.Fail}",
+                  rule,
+                  at,
+                  options
+                });
+              else
+                options.tracer({
+                  type: "${TraceEventType.Match}",
+                  rule,
+                  at,
+                  options,
+                  from: options.at(options.from),
+                  to: options.at(options.to),
+                  children
+                });
+              return children;
+            }
+          `
+        )}
         
         ${cond(
           options.actions.has,
@@ -726,6 +735,7 @@ export class NonTerminalParser extends Parser {
   }
 
   generate(options: CompileOptions): string {
+    options.nonTerminals.has = true;
     const children = options.id.generate();
     const parameters = this.parameters.map(parameter =>
       parameter ? ([options.id.generate(), parameter] as const) : null
