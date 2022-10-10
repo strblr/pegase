@@ -1,4 +1,4 @@
-import { Location, Options, Range } from "../index.js";
+import { Location, Range } from "../index.js";
 
 // Trace events
 
@@ -29,7 +29,6 @@ export interface FailEvent<Context = any> extends TraceCommon<Context> {
 export interface TraceCommon<Context = any> {
   rule: string;
   at: Location;
-  options: Options<Context>;
 }
 
 // Tracer signature

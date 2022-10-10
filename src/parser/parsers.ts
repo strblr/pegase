@@ -172,23 +172,20 @@ export abstract class Parser<Context = any> {
               options.tracer({
                 type: "${TraceEventType.Enter}",
                 rule,
-                at: ${traceAt},
-                options
+                at: ${traceAt}
               });
               var ${traceChildren} = exec();
               if (${traceChildren} === null)
                 options.tracer({
                   type: "${TraceEventType.Fail}",
                   rule,
-                  at: ${traceAt},
-                  options
+                  at: ${traceAt}
                 });
               else
                 options.tracer({
                   type: "${TraceEventType.Match}",
                   rule,
                   at: ${traceAt},
-                  options,
                   from: options.at(options.from),
                   to: options.at(options.to),
                   children: ${traceChildren}
