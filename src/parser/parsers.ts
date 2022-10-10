@@ -313,7 +313,7 @@ export class LiteralParser extends Parser {
 
   generate(options: CompileOptions, test?: boolean): string {
     const uncased = this.literal.toLowerCase();
-    const isCaseSensitive = this.literal !== uncased;
+    const isCaseSensitive = this.literal.toUpperCase() !== uncased;
     const raw = options.id.generate();
     const children = this.emit && options.id.generate([this.literal]);
     const expectation = options.id.generate<LiteralExpectation>({
@@ -823,14 +823,12 @@ export class PredicateParser extends Parser {
 
 export class CaptureParser extends Parser {
   readonly parser: Parser;
-  readonly name: string;
-  readonly all: boolean;
+  readonly captures: [spread: boolean, name: string][];
 
-  constructor(parser: Parser, name: string, all = false) {
+  constructor(parser: Parser, captures: [spread: boolean, name: string][]) {
     super();
     this.parser = parser;
-    this.name = name;
-    this.all = all;
+    this.captures = captures;
   }
 
   generate(options: CompileOptions): string {
@@ -839,11 +837,9 @@ export class CaptureParser extends Parser {
     return `
       ${this.parser.generate(options)}
       if(${options.children} !== null)
-        ${captures}["${this.name}"] = ${
-      this.all
-        ? options.children
-        : `${options.children}.length === 1 ? ${options.children}[0] : void 0;`
-    };
+        [${this.captures
+          .map(([spread, name]) => `${cond(spread, "...")}${captures}.${name}`)
+          .join(",")}] = ${options.children};
     `;
   }
 }

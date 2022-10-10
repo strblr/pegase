@@ -187,17 +187,25 @@ export function createMetaparser(): Parser<MetaContext> {
             new ActionParser(
               new SequenceParser([
                 new LiteralParser("<"),
-                new RepetitionParser(new LiteralParser("...", true), [0, 1]),
-                new AlternativeParser([
-                  new NonTerminalParser("identifier"),
-                  new ActionParser(new CutParser(), () => null)
-                ]),
+                modulo(
+                  new ActionParser(
+                    new SequenceParser([
+                      new AlternativeParser([
+                        new ActionParser(new LiteralParser("..."), () => true),
+                        new ActionParser(new CutParser(), () => false)
+                      ]),
+                      new AlternativeParser([
+                        new NonTerminalParser("identifier"),
+                        new ActionParser(new CutParser(), () => null)
+                      ])
+                    ]),
+                    () => $children()
+                  ),
+                  new LiteralParser(",")
+                ),
                 new LiteralParser(">")
               ]),
-              () =>
-                $children().length === 1
-                  ? [false, $children()[0]]
-                  : [true, $children()[1]]
+              () => $children()
             ),
             [0, 1]
           ),
@@ -205,15 +213,19 @@ export function createMetaparser(): Parser<MetaContext> {
         ]),
         () => {
           if ($children().length === 1) return $children()[0];
-          let [all, name] = $children()[0];
-          if (name === null) {
-            if (!($children()[1] instanceof NonTerminalParser))
-              return $fail(
-                "Auto-captures can only be applied to non-terminals"
-              );
-            name = $children()[1].rule;
+          const someEmpty = $children()[0].some(
+            ([_, id]: [boolean, string | null]) => id === null
+          );
+          if (someEmpty && !($children()[1] instanceof NonTerminalParser)) {
+            return $fail("Auto-captures can only be applied to non-terminals");
           }
-          return new CaptureParser($children()[1], name, all);
+          const captures = $children()[0].map(
+            ([spread, id]: [boolean, string | null]) => [
+              spread,
+              id ?? $children()[1].rule
+            ]
+          );
+          return new CaptureParser($children()[1], captures);
         }
       )
     ],
