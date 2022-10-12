@@ -36,11 +36,11 @@ export interface TraceCommon<Context = any> {
 export type Tracer<Context = any> = (event: TraceEvent<Context>) => void;
 
 /**
- * A generic predefined tracer to quickly debug a grammar
+ * A generic console.log tracer to quickly debug a grammar
  * @param event
  */
 
-export const defaultTracer: Tracer = event => {
+export const consoleTracer: Tracer = event => {
   const { at } = event;
   let adjective = "";
   let complement = "";

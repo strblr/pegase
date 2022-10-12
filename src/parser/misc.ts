@@ -1,7 +1,7 @@
 import {
   CompileOptions,
+  consoleTracer,
   defaultSkipper,
-  defaultTracer,
   FailureType,
   locationGenerator,
   Options
@@ -21,7 +21,7 @@ export function buildOptions<Context>(
     skipper: defaultSkipper,
     skip: true,
     ignoreCase: false,
-    tracer: defaultTracer,
+    tracer: consoleTracer,
     trace: false,
     log: true,
     warnings: [],

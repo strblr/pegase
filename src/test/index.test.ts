@@ -13,11 +13,13 @@ import peg, {
   createTag,
   defaultExtension,
   LiteralParser,
+  Location,
   log,
   merge,
   Parser,
   RegexParser,
-  SuccessResult
+  SuccessResult,
+  TraceEventType
 } from "../index.js";
 
 function echoAst(entity: any) {
@@ -41,15 +43,6 @@ function echoBuild(p: Parser) {
 }
 
 test("The peg tag should work with raw strings", () => {
-  const g = peg`
-    a: b(d)
-    b(c): c
-    d: 'a'
-  `;
-  echoBuild(g);
-
-  console.log(g.test("a", { trace: true }));
-
   const g1 = peg` "My name is \"pegase\"." `;
   const g2 = peg`[\]]`;
   const g3 = peg`\s`;
@@ -290,6 +283,75 @@ test("Semantic actions must correctly propagate children (including undefined)",
     1,
     undefined
   ]);
+});
+
+test("Tracing should work", () => {
+  const g = peg`
+    a: b(d)
+    b(c): c
+    d: 'a'
+  `;
+
+  let output = "";
+  const saved = console.log;
+  console.log = (...args) => (output += args.join(" ") + "\n");
+  g.test("a", { trace: true });
+  console.log = saved;
+  expect(output).toBe(`Entered "a" at (1:1)
+Entered "b" at (1:1)
+Entered "c" at (1:1)
+Entered "d" at (1:1)
+Matched "d" from (1:1) to (1:2)
+Matched "c" from (1:1) to (1:2)
+Matched "b" from (1:1) to (1:2)
+Matched "a" from (1:1) to (1:2)
+`);
+
+  const traced: Array<{
+    event: string;
+    rule: string;
+    at: string;
+    from?: string;
+    to?: string;
+    input: string;
+  }> = [];
+
+  const formatLocation = (loc: Location) => `(${loc.line}:${loc.column})`;
+  const inputSubstring = (loc: Location) =>
+    loc.input.substring(loc.index, loc.index + 8);
+
+  g.test(" a", {
+    trace: true,
+    tracer(event) {
+      const common = { rule: event.rule, at: formatLocation(event.at) };
+      switch (event.type) {
+        case TraceEventType.Enter:
+          traced.push({
+            event: "Entered",
+            ...common,
+            input: inputSubstring(event.at)
+          });
+          break;
+        case TraceEventType.Match:
+          traced.push({
+            event: "Matched",
+            ...common,
+            from: formatLocation(event.from),
+            to: formatLocation(event.to),
+            input: inputSubstring(event.from)
+          });
+          break;
+        case TraceEventType.Fail:
+          traced.push({
+            event: "Failed",
+            ...common,
+            input: inputSubstring(event.at)
+          });
+      }
+    }
+  });
+
+  console.table(traced, ["event", "rule", "at", "from", "to", "input"]);
 });
 
 test("L-attributed grammars should be implementable using context", () => {

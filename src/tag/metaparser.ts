@@ -312,14 +312,14 @@ export function createMetaparser(): Parser<MetaContext> {
           ),
           new NonTerminalParser("nonTerminal")
         ]),
-        new ActionParser(
-          new NonTerminalParser("numberLiteral"),
-          () => new LiteralParser(String($children()[0]))
-        ),
         new ActionParser(new NonTerminalParser("stringLiteral"), () => {
           const [value, emit] = $children()[0];
           return new LiteralParser(value, emit);
         }),
+        new ActionParser(
+          new NonTerminalParser("numberLiteral"),
+          () => new LiteralParser(String($children()[0]))
+        ),
         new ActionParser(
           new NonTerminalParser("characterClass"),
           () => new RegexParser($children()[0])
