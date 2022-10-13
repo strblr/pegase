@@ -596,7 +596,7 @@ export function createMetaparser(): Parser<MetaContext> {
             return $fail("The tag argument is not a function");
           return $children()[0];
         }),
-        "action tag argument"
+        "semantic action"
       )
     ]
   ]).compile();

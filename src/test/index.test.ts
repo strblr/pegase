@@ -13,13 +13,10 @@ import peg, {
   createTag,
   defaultExtension,
   LiteralParser,
-  Location,
   log,
-  merge,
   Parser,
   RegexParser,
-  SuccessResult,
-  TraceEventType
+  SuccessResult
 } from "../index.js";
 
 function echoAst(entity: any) {
@@ -307,7 +304,7 @@ Matched "b" from (1:1) to (1:2)
 Matched "a" from (1:1) to (1:2)
 `);
 
-  const traced: Array<{
+  /*const traced: Array<{
     event: string;
     rule: string;
     at: string;
@@ -351,7 +348,7 @@ Matched "a" from (1:1) to (1:2)
     }
   });
 
-  console.table(traced, ["event", "rule", "at", "from", "to", "input"]);
+  console.table(traced, ["event", "rule", "at", "from", "to", "input"]);*/
 });
 
 test("L-attributed grammars should be implementable using context", () => {
@@ -404,19 +401,21 @@ test("Warnings should work correctly", () => {
 });
 
 test("Grammar fragmentation should work", () => {
-  const fragment1 = peg`
-    a: 'a' b
-    b: 'b' c
-  `;
-  const fragment2 = peg`
+  const c = peg`
     c: 'c' d
+  `;
+  const d = peg`
     d: 'd' a?
   `;
-  const p = merge(fragment1, fragment2);
-  expect(p.test("abc")).toBe(false);
-  expect(p.test("abcd")).toBe(true);
-  expect(p.test("abcdabcc")).toBe(false);
-  expect(p.test("abcdabcd")).toBe(true);
+  const g = peg`(
+    a: 'a' b
+    b: 'b' c
+  ) @import(${c}, ${d})`;
+
+  expect(g.test("abc")).toBe(false);
+  expect(g.test("abcd")).toBe(true);
+  expect(g.test("abcdabcc")).toBe(false);
+  expect(g.test("abcdabcd")).toBe(true);
 });
 
 test("Failure recovery should work", () => {

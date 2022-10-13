@@ -7,8 +7,10 @@ import {
   $raw,
   ActionParser,
   AlternativeParser,
+  CompileOptions,
   CustomParser,
   CutParser,
+  GrammarParser,
   LiteralParser,
   Parser,
   RegexParser,
@@ -155,6 +157,20 @@ export const defaultExtension: Extension = {
       new AlternativeParser([
         new ActionParser(parser, () => true),
         new ActionParser(new CutParser(), () => false)
-      ])
+      ]),
+    import: (parser, ...grammars: Parser[]) => {
+      if (grammars.some(g => !(g instanceof GrammarParser)))
+        throw new Error("Arguments to @use directive can only be grammars");
+      return new CustomParser(options => {
+        const grammarOptions: CompileOptions = {
+          ...options,
+          grammarStart: false
+        };
+        return `
+          ${grammars.map(g => g.generate(grammarOptions)).join("\n")}
+          ${parser.generate(options)}
+        `;
+      });
+    }
   }
 };

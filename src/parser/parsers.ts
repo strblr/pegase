@@ -63,6 +63,7 @@ export interface FailResult {
 export interface CompileOptions {
   id: IdGenerator;
   children: string;
+  grammarStart: boolean;
   actions: {
     has: boolean;
   };
@@ -120,6 +121,7 @@ export abstract class Parser<Context = any> {
     const options: CompileOptions = {
       id,
       children: id.generate(),
+      grammarStart: true,
       actions: { has: false },
       nonTerminals: { has: false },
       captures: { has: false },
@@ -721,7 +723,7 @@ export class GrammarParser extends Parser {
           `;
         })
         .join("\n")}
-      ${this.start.generate(options)}
+      ${options.grammarStart ? this.start.generate(options) : ""}
     `;
   }
 }
