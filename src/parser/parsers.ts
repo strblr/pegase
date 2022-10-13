@@ -70,11 +70,11 @@ export interface CompileOptions {
     has: boolean;
   };
   captures: {
-    id: string | null;
+    has: string | false;
   };
   cut: {
     possible: boolean;
-    id: string | null;
+    has: string | false;
   };
   hooks: {
     children: string;
@@ -122,8 +122,8 @@ export abstract class Parser<Context = any> {
       children: id.generate(),
       actions: { has: false },
       nonTerminals: { has: false },
-      captures: { id: null },
-      cut: { possible: false, id: null },
+      captures: { has: false },
+      cut: { possible: false, has: false },
       hooks: {
         children: id.generate(),
         emit: id.generate(),
@@ -246,7 +246,7 @@ export abstract class Parser<Context = any> {
         )}
         
         var ${options.children};
-        ${cond(options.captures.id, `var ${options.captures.id} = {};`)}
+        ${cond(options.captures.has, `var ${options.captures.has} = {};`)}
         
         ${cond(
           options.actions.has,
@@ -365,7 +365,7 @@ export class RegexParser extends Parser {
     const result = options.id.generate();
     const captures =
       this.hasCaptures &&
-      (options.captures.id ?? (options.captures.id = options.id.generate()));
+      (options.captures.has || (options.captures.has = options.id.generate()));
     return `
       if(options.skip && !u_skip())
         ${options.children} = null;
@@ -469,7 +469,7 @@ export class BackReferenceParser extends Parser {
     const reference = options.id.generate();
     const raw = options.id.generate();
     const captures =
-      options.captures.id ?? (options.captures.id = options.id.generate());
+      options.captures.has || (options.captures.has = options.id.generate());
     return `
       if(options.skip && !u_skip())
         ${options.children} = null;
@@ -498,7 +498,7 @@ export class BackReferenceParser extends Parser {
 export class CutParser extends Parser {
   generate(options: CompileOptions): string {
     const id = options.cut.possible
-      ? options.cut.id ?? (options.cut.id = options.id.generate())
+      ? options.cut.has || (options.cut.has = options.id.generate())
       : null;
     return `
       ${cond(id, `${id} = true;`)}
@@ -525,13 +525,13 @@ export class AlternativeParser extends Parser {
       ${this.parsers.reduceRight((acc, parser, index) => {
         const cut: CompileOptions["cut"] = {
           possible: index !== this.parsers.length - 1,
-          id: null
+          has: false
         };
         const code = parser.generate({ ...options, cut });
         return `
-          ${cond(cut.id, `var ${cut.id} = false;`)}
+          ${cond(cut.has, `var ${cut.has} = false;`)}
           ${code}
-          if(${options.children} === null ${cond(cut.id, `&& !${cut.id}`)}) {
+          if(${options.children} === null ${cond(cut.has, `&& !${cut.has}`)}) {
             options.from = ${from};
             ${acc}
           }
@@ -690,7 +690,7 @@ export class GrammarParser extends Parser {
     return `
       ${this.rules
         .map(([rule, parameters, parser]) => {
-          const captures: CompileOptions["captures"] = { id: null };
+          const captures: CompileOptions["captures"] = { has: false };
           const code = parser.generate({ ...options, children, captures });
           const assignCode = parameters
             .filter(([_, defaultParser]) => defaultParser)
@@ -713,7 +713,7 @@ export class GrammarParser extends Parser {
             .map(([name]) => `r_${name}`)
             .join(",")}) {
               var ${children};
-              ${cond(captures.id, `var ${captures.id} = {};`)}
+              ${cond(captures.has, `var ${captures.has} = {};`)}
               ${assignCode}
               ${code}
               return ${children};
@@ -833,7 +833,7 @@ export class CaptureParser extends Parser {
 
   generate(options: CompileOptions): string {
     const captures =
-      options.captures.id ?? (options.captures.id = options.id.generate());
+      options.captures.has || (options.captures.has = options.id.generate());
     return `
       ${this.parser.generate(options)}
       if(${options.children} !== null)
@@ -874,7 +874,7 @@ export class ActionParser extends Parser {
     const value = options.id.generate();
     const action = options.id.generate(this.action);
     const captures =
-      options.captures.id ?? (options.captures.id = options.id.generate());
+      options.captures.has || (options.captures.has = options.id.generate());
     const ffIndex = options.id.generate();
     const ffType = options.id.generate();
     const ffSemantic = options.id.generate();
