@@ -19,22 +19,6 @@ import peg, {
   SuccessResult
 } from "../index.js";
 
-function echoAst(entity: any) {
-  console.log(
-    JSON.stringify(
-      entity,
-      (_, val) => {
-        if (val instanceof Map) return [...val.entries()];
-        if (val instanceof RegExp) return val.toString();
-        if (val instanceof Function) return val.toString();
-        if (val === Infinity) return "Infinity";
-        return val;
-      },
-      2
-    )
-  );
-}
-
 function echoBuild(p: Parser) {
   console.log(format((p.exec as any).code, { parser: "babel" }));
 }
@@ -406,15 +390,28 @@ test("Grammar fragmentation should work", () => {
   const d = peg`
     d: 'd' a?
   `;
-  const g = peg`(
+  const g1 = peg`
+    @import(${c}, ${d})
+    
     a: 'a' b
     b: 'b' c
-  ) @import(${c}, ${d})`;
+  `;
+  const g2 = peg`
+    @import(${c})
+    @import(${d})
+    
+    a: 'a' b
+    b: 'b' c
+  `;
 
-  expect(g.test("abc")).toBe(false);
-  expect(g.test("abcd")).toBe(true);
-  expect(g.test("abcdabcc")).toBe(false);
-  expect(g.test("abcdabcd")).toBe(true);
+  expect(g1.test("abc")).toBe(false);
+  expect(g1.test("abcd")).toBe(true);
+  expect(g1.test("abcdabcc")).toBe(false);
+  expect(g1.test("abcdabcd")).toBe(true);
+  expect(g2.test("abc")).toBe(false);
+  expect(g2.test("abcd")).toBe(true);
+  expect(g2.test("abcdabcc")).toBe(false);
+  expect(g2.test("abcdabcd")).toBe(true);
 });
 
 test("Failure recovery should work", () => {

@@ -44,10 +44,16 @@ export function createMetaparser(): Parser<MetaContext> {
     [
       "parser",
       [],
-      new AlternativeParser([
-        new NonTerminalParser("grammarParser"),
-        new NonTerminalParser("optionsParser")
-      ])
+      new ActionParser(
+        new SequenceParser([
+          new NonTerminalParser("directives"),
+          new AlternativeParser([
+            new NonTerminalParser("grammarParser"),
+            new NonTerminalParser("optionsParser")
+          ])
+        ]),
+        () => pipeDirectives($children()[1], [...$children()[0]].reverse())
+      )
     ],
     [
       "grammarParser",
