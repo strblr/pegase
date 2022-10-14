@@ -70,9 +70,8 @@ test("The 'complete' option should work", () => {
   const p = peg`0`;
   expect(p.test(" 0 ")).toBe(true);
   expect(p.test("  0 1 ")).toBe(false);
-  p.defaultOptions.complete = false;
-  expect(p.test(" 0 ")).toBe(true);
-  expect(p.test("  0 1 ")).toBe(true);
+  expect(p.test(" 0 ", { complete: false })).toBe(true);
+  expect(p.test("  0 1 ", { complete: false })).toBe(true);
 });
 
 test("Repetition parsers should work", () => {

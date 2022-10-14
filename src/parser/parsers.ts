@@ -93,7 +93,6 @@ export interface CompileOptions {
  */
 
 export abstract class Parser<Context = any> {
-  readonly defaultOptions: Partial<Options<Context>> = {};
   exec?: (options: Options) => Result;
 
   test(input: string, options?: Partial<Options<Context>>) {
@@ -113,7 +112,7 @@ export abstract class Parser<Context = any> {
   }
 
   parse(input: string, options?: Partial<Options<Context>>) {
-    return this.exec!(buildOptions(input, this.defaultOptions, options));
+    return this.exec!(buildOptions(input, options));
   }
 
   compile() {
