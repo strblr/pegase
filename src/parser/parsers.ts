@@ -4,7 +4,6 @@ import {
   consoleTracer,
   defaultSkipper,
   EndOfInputExpectation,
-  Expectation,
   ExpectationType,
   extendFlags,
   Failure,
@@ -12,7 +11,6 @@ import {
   hooks,
   IdGenerator,
   LiteralExpectation,
-  Location,
   Range,
   RegexExpectation,
   TokenExpectation,
@@ -65,27 +63,28 @@ export interface CompileOptions {
   id: IdGenerator;
   children: string;
   grammarStart: boolean;
-  actions: {
-    has: boolean;
-  };
   nonTerminals: {
     has: boolean;
   };
   captures: {
-    has: string | false;
+    has: false | string;
   };
   cut: {
     possible: boolean;
-    has: string | false;
+    has: false | string;
   };
-  hooks: {
-    children: string;
-    emit: string;
-    failed: string;
-    ffIndex: string;
-    ffType: string;
-    ffSemantic: string;
-    ffExpectations: string;
+  actions: {
+    has:
+      | false
+      | {
+          children: string;
+          emit: string;
+          failed: string;
+          ffIndex: string;
+          ffType: string;
+          ffSemantic: string;
+          ffExpectations: string;
+        };
   };
 }
 
@@ -122,19 +121,10 @@ export abstract class Parser<Context = any> {
       id,
       children: id.generate(),
       grammarStart: true,
-      actions: { has: false },
       nonTerminals: { has: false },
       captures: { has: false },
       cut: { possible: false, has: false },
-      hooks: {
-        children: id.generate(),
-        emit: id.generate(),
-        failed: id.generate(),
-        ffIndex: id.generate(),
-        ffType: id.generate(),
-        ffSemantic: id.generate(),
-        ffExpectations: id.generate()
-      }
+      actions: { has: false }
     };
 
     const defSkipper = id.generate(defaultSkipper);
@@ -288,55 +278,60 @@ export abstract class Parser<Context = any> {
           `
         )}
         
-        ${cond(
-          options.actions.has,
-          `
-            var ${Object.values(options.hooks).join(",")};
-            ${hook}.push({
-              $from: () => options.at(options.from),
-              $to: () => options.at(options.to),
-              $children: () => ${options.hooks.children},
-              $value: () => ${options.hooks.children}.length !== 1 ? void 0 : ${
-            options.hooks.children
-          }[0],
-              $raw: () => input.substring(options.from, options.to),
-              $options: () => options,
-              $context: () => options.context,
-              $warn(message) {
-                options.log &&
-                  options.warnings.push({
-                    from: options.at(options.from),
-                    to: options.at(options.to),
-                    type: "${WarningType.Message}",
-                    message
-                  });
-              },
-              $fail(message) {
-                ${options.hooks.failed} = true;
-                options.ffIndex = ${options.hooks.ffIndex};
-                options.ffType = ${options.hooks.ffType};
-                options.ffSemantic = ${options.hooks.ffSemantic};
-                options.ffExpectations = ${options.hooks.ffExpectations};
-                options.log && options.ffFail(message);
-              },
-              $expected(expected) {
-                ${options.hooks.failed} = true;
-                options.ffIndex = ${options.hooks.ffIndex};
-                options.ffType = ${options.hooks.ffType};
-                options.ffSemantic = ${options.hooks.ffSemantic};
-                options.ffExpectations = ${options.hooks.ffExpectations};
-                options.log &&
-                  expected
-                    .map(${castExpect})
-                    .forEach(expected => options.ffExpect(expected));
-              },
-              $commit: () => options.ffCommit(),
-              $emit(children) {
-                ${options.hooks.emit} = children;
-              }
-            });
-          `
-        )}
+        ${
+          !options.actions.has
+            ? ""
+            : `
+              var ${Object.values(options.actions.has).join(",")};
+              ${hook}.push({
+                $from: () => options.at(options.from),
+                $to: () => options.at(options.to),
+                $children: () => ${options.actions.has.children},
+                $value: () => ${
+                  options.actions.has.children
+                }.length !== 1 ? void 0 : ${options.actions.has.children}[0],
+                $raw: () => input.substring(options.from, options.to),
+                $options: () => options,
+                $context: () => options.context,
+                $warn(message) {
+                  options.log &&
+                    options.warnings.push({
+                      from: options.at(options.from),
+                      to: options.at(options.to),
+                      type: "${WarningType.Message}",
+                      message
+                    });
+                },
+                $fail(message) {
+                  ${options.actions.has.failed} = true;
+                  options.ffIndex = ${options.actions.has.ffIndex};
+                  options.ffType = ${options.actions.has.ffType};
+                  options.ffSemantic = ${options.actions.has.ffSemantic};
+                  options.ffExpectations = ${
+                    options.actions.has.ffExpectations
+                  };
+                  options.log && options.ffFail(message);
+                },
+                $expected(expected) {
+                  ${options.actions.has.failed} = true;
+                  options.ffIndex = ${options.actions.has.ffIndex};
+                  options.ffType = ${options.actions.has.ffType};
+                  options.ffSemantic = ${options.actions.has.ffSemantic};
+                  options.ffExpectations = ${
+                    options.actions.has.ffExpectations
+                  };
+                  options.log &&
+                    expected
+                      .map(${castExpect})
+                      .forEach(expected => options.ffExpect(expected));
+                },
+                $commit: () => options.ffCommit(),
+                $emit(children) {
+                  ${options.actions.has.emit} = children;
+                }
+              });
+            `
+        }
         
         var ${options.children};
         ${cond(options.captures.has, `var ${options.captures.has} = {};`)}
@@ -963,7 +958,15 @@ export class ActionParser extends Parser {
   }
 
   generate(options: CompileOptions): string {
-    options.actions.has = true;
+    options.actions.has = options.actions.has || {
+      children: options.id.generate(),
+      emit: options.id.generate(),
+      failed: options.id.generate(),
+      ffIndex: options.id.generate(),
+      ffType: options.id.generate(),
+      ffSemantic: options.id.generate(),
+      ffExpectations: options.id.generate()
+    };
     const value = options.id.generate();
     const action = options.id.generate(this.action);
     const captures =
@@ -981,20 +984,20 @@ export class ActionParser extends Parser {
       ${this.parser.generate(options)}
       
       if(${options.children} !== null) {
-        ${options.hooks.children} = ${options.children};
-        ${options.hooks.ffIndex} = ${ffIndex};
-        ${options.hooks.ffType} = ${ffType};
-        ${options.hooks.ffSemantic} = ${ffSemantic};
-        ${options.hooks.ffExpectations} = ${ffExpectations};
-        ${options.hooks.emit} = void 0;
-        ${options.hooks.failed} = false;
+        ${options.actions.has.children} = ${options.children};
+        ${options.actions.has.ffIndex} = ${ffIndex};
+        ${options.actions.has.ffType} = ${ffType};
+        ${options.actions.has.ffSemantic} = ${ffSemantic};
+        ${options.actions.has.ffExpectations} = ${ffExpectations};
+        ${options.actions.has.emit} = void 0;
+        ${options.actions.has.failed} = false;
         
         var ${value} = ${action}(${captures});
         
-        if (${options.hooks.failed}) {
+        if (${options.actions.has.failed}) {
           ${options.children} = null;
-        } else if (${options.hooks.emit} !== void 0) {
-          ${options.children} = ${options.hooks.emit};
+        } else if (${options.actions.has.emit} !== void 0) {
+          ${options.children} = ${options.actions.has.emit};
         } else if (${value} !== void 0) {
           ${options.children} = [${value}]
         }
