@@ -22,7 +22,6 @@ import {
 } from "../index.js";
 
 export interface Options<Context = any> {
-  input: string;
   from: number;
   to: number;
   complete: boolean;
@@ -93,7 +92,7 @@ export interface CompileOptions {
  */
 
 export abstract class Parser<Context = any> {
-  exec?: (options: Options) => Result;
+  exec?: (input: string, options: Options) => Result;
 
   test(input: string, options?: Partial<Options<Context>>) {
     return this.parse(input, options).success;
@@ -112,7 +111,7 @@ export abstract class Parser<Context = any> {
   }
 
   parse(input: string, options?: Partial<Options<Context>>) {
-    return this.exec!(buildOptions(input, options));
+    return this.exec!(input, buildOptions(input, options));
   }
 
   compile() {
@@ -151,8 +150,11 @@ export abstract class Parser<Context = any> {
 
     const exec = new Function(
       "links",
+      "input",
       "options",
       `
+        // var { ${Object.keys(buildOptions("")).join(",")} } = options;
+      
         var { ${id
           .entries()
           .map(([id]) => id)
@@ -160,7 +162,7 @@ export abstract class Parser<Context = any> {
           
         function u_skip() {
           options.skipper.lastIndex = options.from;
-          if (!options.skipper.test(options.input)) return false;
+          if (!options.skipper.test(input)) return false;
           options.from = options.skipper.lastIndex;
           return true;
         }
@@ -207,7 +209,7 @@ export abstract class Parser<Context = any> {
               $value: () => ${options.hooks.children}.length !== 1 ? void 0 : ${
             options.hooks.children
           }[0],
-              $raw: () => options.input.substring(options.from, options.to),
+              $raw: () => input.substring(options.from, options.to),
               $options: () => options,
               $context: () => options.context,
               $warn(message) {
@@ -326,7 +328,7 @@ export class LiteralParser extends Parser {
         ${options.children} = null;
       else {
         options.to = options.from + ${this.literal.length};
-        var ${raw} = options.input.substring(options.from, options.to);
+        var ${raw} = input.substring(options.from, options.to);
         if(${cond(
           isCaseSensitive,
           `options.ignoreCase
@@ -373,7 +375,7 @@ export class RegexParser extends Parser {
       else {
         var ${usedRegex} = options.ignoreCase ? ${regexNocase} : ${regex};
         ${usedRegex}.lastIndex = options.from;
-        var ${result} = ${usedRegex}.exec(options.input);
+        var ${result} = ${usedRegex}.exec(input);
         if(${result} !== null) {
           ${cond(captures, `Object.assign(${captures}, ${result}.groups);`)}
           options.to = ${usedRegex}.lastIndex;
@@ -398,7 +400,7 @@ export class EndOfInputParser extends Parser {
       if(options.skip && !u_skip())
         ${options.children} = null;
       else {
-        if(options.from === options.input.length) {
+        if(options.from === input.length) {
           options.to = options.from;
           ${options.children} = [];
         } else {
@@ -477,7 +479,7 @@ export class BackReferenceParser extends Parser {
       else {
         var ${reference} = ${captures}["${this.name}"];
         options.to = options.from + ${reference}.length;
-        var ${raw} = options.input.substring(options.from, options.to);
+        var ${raw} = input.substring(options.from, options.to);
         if(options.ignoreCase
           ? ${reference}.toLowerCase() === ${raw}.toLowerCase()
           : ${reference} === ${raw})
@@ -813,7 +815,7 @@ export class PredicateParser extends Parser {
         options.log &&
           options.ffExpect({
             type: "${ExpectationType.Mismatch}",
-            match: options.input.substring(options.from, options.to)
+            match: input.substring(options.from, options.to)
           });
       }
     `;

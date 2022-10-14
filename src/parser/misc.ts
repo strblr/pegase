@@ -11,10 +11,8 @@ export function buildOptions<Context>(
   input: string,
   partialOptions?: Partial<Options<Context>>
 ): Options<Context> {
-  input = partialOptions?.input ?? input;
   return Object.assign<Options<Context>, typeof partialOptions>(
     {
-      input,
       from: 0,
       to: 0,
       complete: true,
