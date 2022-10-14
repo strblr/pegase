@@ -141,32 +141,6 @@ export abstract class Parser<Context = any> {
           .entries()
           .map(([id]) => id)
           .join(",")} } = links;
-          
-        let acc = 0;
-        const indexes = input.split(/[\\r\\n]/).map(chunk => {
-          const start = acc;
-          acc += chunk.length + 1;
-          return start;
-        });
-        const at = (index) => {
-          let line = 0;
-          let n = indexes.length - 1;
-          while (line < n) {
-            const k = line + ((n - line) >> 1);
-            if (index < indexes[k]) n = k - 1;
-            else if (index >= indexes[k + 1]) line = k + 1;
-            else {
-              line = k;
-              break;
-            }
-          }
-          return {
-            input,
-            index,
-            line: line + 1,
-            column: index - indexes[line] + 1
-          };
-        };
         
         const options = {
           from: 0,
@@ -207,7 +181,7 @@ export abstract class Parser<Context = any> {
           },
           ffCommit() {
             if (this.ffType !== null) {
-              const pos = at(this.ffIndex);
+              const pos = u_at(this.ffIndex);
               if (this.ffType === "${FailureType.Expectation}")
                 this.failures.push({
                   from: pos,
@@ -227,6 +201,33 @@ export abstract class Parser<Context = any> {
           },
           ...opts
         };
+        
+        let acc = 0;
+        const indexes = input.split(/[\\r\\n]/).map(chunk => {
+          const start = acc;
+          acc += chunk.length + 1;
+          return start;
+        });
+        
+        function u_at(index) {
+          let line = 0;
+          let n = indexes.length - 1;
+          while (line < n) {
+            const k = line + ((n - line) >> 1);
+            if (index < indexes[k]) n = k - 1;
+            else if (index >= indexes[k + 1]) line = k + 1;
+            else {
+              line = k;
+              break;
+            }
+          }
+          return {
+            input,
+            index,
+            line: line + 1,
+            column: index - indexes[line] + 1
+          };
+        }
           
         function u_skip() {
           options.skipper.lastIndex = options.from;
@@ -239,7 +240,7 @@ export abstract class Parser<Context = any> {
           options.nonTerminals.has,
           `
             function u_trace(rule, exec) {
-              var ${traceAt} = at(options.from);
+              var ${traceAt} = u_at(options.from);
               options.tracer({
                 type: "${TraceEventType.Enter}",
                 rule,
@@ -257,8 +258,8 @@ export abstract class Parser<Context = any> {
                   type: "${TraceEventType.Match}",
                   rule,
                   at: ${traceAt},
-                  from: at(options.from),
-                  to: at(options.to),
+                  from: u_at(options.from),
+                  to: u_at(options.to),
                   children: ${traceChildren}
                 });
               return ${traceChildren};
@@ -272,8 +273,8 @@ export abstract class Parser<Context = any> {
             : `
               var ${Object.values(options.actions.has).join(",")};
               ${hook}.push({
-                $from: () => at(options.from),
-                $to: () => at(options.to),
+                $from: () => u_at(options.from),
+                $to: () => u_at(options.to),
                 $children: () => ${options.actions.has.children},
                 $value: () => ${
                   options.actions.has.children
@@ -284,8 +285,8 @@ export abstract class Parser<Context = any> {
                 $warn(message) {
                   options.log &&
                     options.warnings.push({
-                      from: at(options.from),
-                      to: at(options.to),
+                      from: u_at(options.from),
+                      to: u_at(options.to),
                       type: "${WarningType.Message}",
                       message
                     });
@@ -358,8 +359,8 @@ export abstract class Parser<Context = any> {
         }
         return {
           success: true,
-          from: at(options.from),
-          to: at(options.to),
+          from: u_at(options.from),
+          to: u_at(options.to),
           children: ${options.children},
           warnings: options.warnings,
           failures: options.failures
