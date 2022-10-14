@@ -1,5 +1,4 @@
 import { expect, test } from "vitest";
-import { format } from "prettier";
 import * as competitor from "./competitor.test.js";
 import peg, {
   $children,
@@ -14,14 +13,13 @@ import peg, {
   defaultExtension,
   LiteralParser,
   log,
-  Parser,
   RegexParser,
   SuccessResult
 } from "../index.js";
 
-function echoBuild(p: Parser) {
-  console.log(format((p.exec as any).code, { parser: "babel" }));
-}
+/*function echoBuild(p: Parser) {
+  console.log(format((p.parse as any).code, { parser: "babel" }));
+}*/
 
 test("The peg tag should work with raw strings", () => {
   const g1 = peg` "My name is \"pegase\"." `;

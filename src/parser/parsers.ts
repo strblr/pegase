@@ -1,7 +1,8 @@
 import {
-  buildOptions,
   castExpectation,
   cond,
+  consoleTracer,
+  defaultSkipper,
   EndOfInputExpectation,
   Expectation,
   ExpectationType,
@@ -17,6 +18,7 @@ import {
   TokenExpectation,
   TraceEventType,
   Tracer,
+  uncompiledParse,
   Warning,
   WarningType
 } from "../index.js";
@@ -31,9 +33,9 @@ export interface Options<Context = any> {
   tracer: Tracer<Context>;
   trace: boolean;
   log: boolean;
+  context: Context;
   warnings: Warning[];
   failures: Failure[];
-  context: Context;
   at(index: number): Location;
   ffIndex: number;
   ffType: FailureType | null;
@@ -92,7 +94,11 @@ export interface CompileOptions {
  */
 
 export abstract class Parser<Context = any> {
-  exec?: (input: string, options: Options) => Result;
+  parse: (input: string, options?: Partial<Options>) => Result;
+
+  constructor() {
+    this.parse = uncompiledParse;
+  }
 
   test(input: string, options?: Partial<Options<Context>>) {
     return this.parse(input, options).success;
@@ -108,10 +114,6 @@ export abstract class Parser<Context = any> {
     return !result.success || result.children.length !== 1
       ? undefined
       : result.children[0];
-  }
-
-  parse(input: string, options?: Partial<Options<Context>>) {
-    return this.exec!(input, buildOptions(input, options));
   }
 
   compile() {
@@ -135,8 +137,11 @@ export abstract class Parser<Context = any> {
       }
     };
 
+    const defSkipper = id.generate(defaultSkipper);
+    const consTracer = id.generate(consoleTracer);
     const endOfInputChildren = id.generate();
     const endOfInputFrom = id.generate();
+
     const code = this.generate(options);
     const endOfInput = new EndOfInputParser().generate({
       ...options,
@@ -148,17 +153,102 @@ export abstract class Parser<Context = any> {
     const hook = options.actions.has && id.generate(hooks);
     const castExpect = options.actions.has && id.generate(castExpectation);
 
-    const exec = new Function(
+    const parse = new Function(
       "links",
       "input",
-      "options",
+      "opts",
       `
-        // var { ${Object.keys(buildOptions("")).join(",")} } = options;
-      
-        var { ${id
+        const { ${id
           .entries()
           .map(([id]) => id)
           .join(",")} } = links;
+          
+        let acc = 0;
+        const indexes = input.split(/[\\r\\n]/).map(chunk => {
+          const start = acc;
+          acc += chunk.length + 1;
+          return start;
+        });
+        const at = (index) => {
+          let line = 0;
+          let n = indexes.length - 1;
+          while (line < n) {
+            const k = line + ((n - line) >> 1);
+            if (index < indexes[k]) n = k - 1;
+            else if (index >= indexes[k + 1]) line = k + 1;
+            else {
+              line = k;
+              break;
+            }
+          }
+          return {
+            input,
+            index,
+            line: line + 1,
+            column: index - indexes[line] + 1
+          };
+        };
+        
+        const options = {
+          from: 0,
+          to: 0,
+          complete: true,
+          skipper: ${defSkipper},
+          skip: true,
+          ignoreCase: false,
+          tracer: ${consTracer},
+          trace: false,
+          log: true,
+          context: undefined,
+          warnings: [],
+          failures: [],
+          at,
+          ffIndex: 0,
+          ffType: null,
+          ffSemantic: null,
+          ffExpectations: [],
+          ffExpect(expected) {
+            if (
+              this.ffIndex === this.from &&
+              this.ffType !== "${FailureType.Semantic}"
+            ) {
+              this.ffType = "${FailureType.Expectation}";
+              this.ffExpectations.push(expected);
+            } else if (this.ffIndex < this.from) {
+              this.ffIndex = this.from;
+              this.ffType = "${FailureType.Expectation}";
+              this.ffExpectations = [expected];
+            }
+          },
+          ffFail(message) {
+            if (this.ffIndex <= this.from) {
+              this.ffIndex = this.from;
+              this.ffType = "${FailureType.Semantic}";
+              this.ffSemantic = message;
+            }
+          },
+          ffCommit() {
+            if (this.ffType !== null) {
+              const pos = this.at(this.ffIndex);
+              if (this.ffType === "${FailureType.Expectation}")
+                this.failures.push({
+                  from: pos,
+                  to: pos,
+                  type: "${FailureType.Expectation}",
+                  expected: this.ffExpectations
+                });
+              else
+                this.failures.push({
+                  from: pos,
+                  to: pos,
+                  type: "${FailureType.Semantic}",
+                  message: this.ffSemantic
+                });
+              this.ffType = null;
+            }
+          },
+          ...opts
+        };
           
         function u_skip() {
           options.skipper.lastIndex = options.from;
@@ -294,8 +384,8 @@ export abstract class Parser<Context = any> {
       `
     );
 
-    this.exec = exec.bind(null, Object.fromEntries(id.entries()));
-    (this.exec as any).code = exec.toString();
+    this.parse = parse.bind(null, Object.fromEntries(id.entries()));
+    //(this.parse as any).code = exec.toString();
     return this;
   }
 
