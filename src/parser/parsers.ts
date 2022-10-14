@@ -23,7 +23,6 @@ import {
 
 export interface Options<Context = any> {
   from: number;
-  to: number;
   complete: boolean;
   skipper: RegExp;
   skip: boolean;
@@ -32,16 +31,6 @@ export interface Options<Context = any> {
   trace: boolean;
   log: boolean;
   context: Context;
-  warnings: Warning[];
-  failures: Failure[];
-  at(index: number): Location;
-  ffIndex: number;
-  ffType: FailureType | null;
-  ffSemantic: string | null;
-  ffExpectations: Expectation[];
-  ffExpect(expected: Expectation): void;
-  ffFail(message: string): void;
-  ffCommit(): void;
 }
 
 export type Result = SuccessResult | FailResult;
@@ -192,7 +181,6 @@ export abstract class Parser<Context = any> {
           context: undefined,
           warnings: [],
           failures: [],
-          at,
           ffIndex: 0,
           ffType: null,
           ffSemantic: null,
@@ -219,7 +207,7 @@ export abstract class Parser<Context = any> {
           },
           ffCommit() {
             if (this.ffType !== null) {
-              const pos = this.at(this.ffIndex);
+              const pos = at(this.ffIndex);
               if (this.ffType === "${FailureType.Expectation}")
                 this.failures.push({
                   from: pos,
@@ -251,7 +239,7 @@ export abstract class Parser<Context = any> {
           options.nonTerminals.has,
           `
             function u_trace(rule, exec) {
-              var ${traceAt} = options.at(options.from);
+              var ${traceAt} = at(options.from);
               options.tracer({
                 type: "${TraceEventType.Enter}",
                 rule,
@@ -269,8 +257,8 @@ export abstract class Parser<Context = any> {
                   type: "${TraceEventType.Match}",
                   rule,
                   at: ${traceAt},
-                  from: options.at(options.from),
-                  to: options.at(options.to),
+                  from: at(options.from),
+                  to: at(options.to),
                   children: ${traceChildren}
                 });
               return ${traceChildren};
@@ -284,8 +272,8 @@ export abstract class Parser<Context = any> {
             : `
               var ${Object.values(options.actions.has).join(",")};
               ${hook}.push({
-                $from: () => options.at(options.from),
-                $to: () => options.at(options.to),
+                $from: () => at(options.from),
+                $to: () => at(options.to),
                 $children: () => ${options.actions.has.children},
                 $value: () => ${
                   options.actions.has.children
@@ -296,8 +284,8 @@ export abstract class Parser<Context = any> {
                 $warn(message) {
                   options.log &&
                     options.warnings.push({
-                      from: options.at(options.from),
-                      to: options.at(options.to),
+                      from: at(options.from),
+                      to: at(options.to),
                       type: "${WarningType.Message}",
                       message
                     });
@@ -370,8 +358,8 @@ export abstract class Parser<Context = any> {
         }
         return {
           success: true,
-          from: options.at(options.from),
-          to: options.at(options.to),
+          from: at(options.from),
+          to: at(options.to),
           children: ${options.children},
           warnings: options.warnings,
           failures: options.failures
