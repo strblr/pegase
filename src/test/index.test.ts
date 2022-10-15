@@ -511,10 +511,14 @@ test("Benchmark between Pegase and competitor", () => {
     competitor.parse("42 +  63 * (12 / 3)");
   }
   const c = new Date();
+  const pegaseTime = b.getTime() - a.getTime();
+  const competitorTime = c.getTime() - b.getTime();
   console.log(
-    b.getTime() - a.getTime(),
+    pegaseTime,
     "ms vs.",
-    c.getTime() - b.getTime(),
+    competitorTime,
+    "ms |",
+    pegaseTime - competitorTime,
     "ms"
   );
 });

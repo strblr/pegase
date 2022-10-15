@@ -5,12 +5,12 @@ import {
   defaultSkipper,
   EndOfInputExpectation,
   ExpectationType,
-  extendFlags,
   Failure,
   FailureType,
   hooks,
   IdGenerator,
   LiteralExpectation,
+  noop,
   Range,
   RegexExpectation,
   TokenExpectation,
@@ -369,7 +369,7 @@ export abstract class Parser<Context = any> {
     );
 
     this.parse = parse.bind(null, Object.fromEntries(id.entries()));
-    //(this.parse as any).code = exec.toString();
+    (this.parse as any).code = parse.toString();
     return this;
   }
 
@@ -381,17 +381,18 @@ export abstract class Parser<Context = any> {
 export class LiteralParser extends Parser {
   readonly literal: string;
   readonly emit: boolean;
+  private readonly caseSensitive: boolean;
 
   constructor(literal: string, emit: boolean = false) {
     super();
     this.literal = literal;
     this.emit = emit;
+    this.caseSensitive = literal.toLowerCase() !== literal.toUpperCase();
   }
 
   generate(options: CompileOptions, test?: boolean): string {
+    const substr = options.id.generate();
     const uncased = this.literal.toLowerCase();
-    const isCaseSensitive = this.literal.toUpperCase() !== uncased;
-    const raw = options.id.generate();
     const children = this.emit && options.id.generate([this.literal]);
     const expectation = options.id.generate<LiteralExpectation>({
       type: ExpectationType.Literal,
@@ -401,19 +402,29 @@ export class LiteralParser extends Parser {
       if(options.skip && !$skip())
         ${options.children} = null;
       else {
-        options.to = options.from + ${this.literal.length};
-        var ${raw} = input.substring(options.from, options.to);
-        if(${cond(
-          isCaseSensitive,
-          `options.ignoreCase
-            ? ${JSON.stringify(uncased)} === ${raw}.toLowerCase() :
+        ${cond(
+          this.literal.length === 0,
+          noop(options),
           `
-        )} ${JSON.stringify(this.literal)} === ${raw})
-          ${options.children} = ${children || "[]"};
-        else {
-          ${options.children} = null;
-          options.log && options.ffExpect(${expectation});
-        }
+            var ${substr} = ${cond(
+            this.literal.length === 1,
+            "input[options.from]",
+            `input.substring(options.from, options.from + ${this.literal.length})`
+          )};
+            if(${cond(
+              this.caseSensitive,
+              `options.ignoreCase
+                ? ${JSON.stringify(uncased)} === ${substr}.toLowerCase() :
+              `
+            )} ${JSON.stringify(this.literal)} === ${substr}) {
+              options.to = options.from + ${this.literal.length};
+              ${options.children} = ${children || "[]"};
+            } else {
+              ${options.children} = null;
+              options.log && options.ffExpect(${expectation});
+            }
+          `
+        )}
       }
     `;
   }
@@ -423,17 +434,19 @@ export class LiteralParser extends Parser {
 
 export class RegexParser extends Parser {
   readonly regex: RegExp;
+  private readonly singleChar: boolean;
   private readonly hasCaptures: boolean;
 
-  constructor(regex: RegExp) {
+  constructor(regex: RegExp, singleChar = false) {
     super();
     this.regex = regex;
-    this.hasCaptures = /\(\?</.test(this.regex.source);
+    this.singleChar = singleChar;
+    this.hasCaptures = !singleChar && /\(\?</.test(this.regex.source);
   }
 
   generate(options: CompileOptions): string {
-    const regex = options.id.generate(extendFlags(this.regex, "y"));
-    const regexNocase = options.id.generate(extendFlags(this.regex, "iy"));
+    const regex = options.id.generate(new RegExp(this.regex, "y"));
+    const regexNocase = options.id.generate(new RegExp(this.regex, "iy"));
     const expectation = options.id.generate<RegexExpectation>({
       type: ExpectationType.RegExp,
       regex: this.regex
@@ -449,12 +462,24 @@ export class RegexParser extends Parser {
       else {
         var ${usedRegex} = options.ignoreCase ? ${regexNocase} : ${regex};
         ${usedRegex}.lastIndex = options.from;
-        var ${result} = ${usedRegex}.exec(input);
-        if(${result} !== null) {
-          ${cond(captures, `Object.assign(${captures}, ${result}.groups);`)}
-          options.to = ${usedRegex}.lastIndex;
-          ${options.children} = ${result}.slice(1);
-        } else {
+        ${cond(
+          this.singleChar,
+          `
+            if(${usedRegex}.test(input)) {
+              options.to = options.from + 1;
+              ${options.children} = [];
+            }
+          `,
+          `
+            var ${result} = ${usedRegex}.exec(input);
+            if(${result} !== null) {
+              ${cond(captures, `Object.assign(${captures}, ${result}.groups);`)}
+              options.to = ${usedRegex}.lastIndex;
+              ${options.children} = ${result}.slice(1);
+            }
+          `
+        )}
+        else {
           ${options.children} = null;
           options.log && options.ffExpect(${expectation});
         }
@@ -475,8 +500,7 @@ export class EndOfInputParser extends Parser {
         ${options.children} = null;
       else {
         if(options.from === input.length) {
-          options.to = options.from;
-          ${options.children} = [];
+          ${noop(options)}
         } else {
           ${options.children} = null;
           options.log && options.ffExpect(${expectation});
@@ -579,8 +603,7 @@ export class CutParser extends Parser {
       : null;
     return `
       ${cond(id, `${id} = true;`)}
-      options.to = options.from;
-      ${options.children} = [];
+      ${noop(options)}
     `;
   }
 }

@@ -28,16 +28,6 @@ export function unique<T>(items: Iterable<T>) {
 }
 
 /**
- * Duplicates a RegExp with new flags
- * @param regex
- * @param flags
- */
-
-export function extendFlags(regex: RegExp, flags: string) {
-  return new RegExp(regex, unique([...regex.flags, ...flags]).join(""));
-}
-
-/**
  * Converts a string to space case
  * @param input
  */

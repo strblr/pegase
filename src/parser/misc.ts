@@ -8,6 +8,13 @@ export function cond(condition: unknown, code: string, elseCode = "") {
   return condition ? code : elseCode;
 }
 
+export function noop(options: CompileOptions) {
+  return `
+    options.to = options.from;
+    ${options.children} = [];
+  `;
+}
+
 export function wrap(
   code: string,
   target: string,
