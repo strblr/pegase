@@ -181,7 +181,7 @@ export abstract class Parser<Context = any> {
           },
           ffCommit() {
             if (this.ffType !== null) {
-              const pos = u_at(this.ffIndex);
+              const pos = $at(this.ffIndex);
               if (this.ffType === "${FailureType.Expectation}")
                 this.failures.push({
                   from: pos,
@@ -209,7 +209,7 @@ export abstract class Parser<Context = any> {
           return start;
         });
         
-        function u_at(index) {
+        function $at(index) {
           let line = 0;
           let n = indexes.length - 1;
           while (line < n) {
@@ -229,7 +229,7 @@ export abstract class Parser<Context = any> {
           };
         }
           
-        function u_skip() {
+        function $skip() {
           options.skipper.lastIndex = options.from;
           if (!options.skipper.test(input)) return false;
           options.from = options.skipper.lastIndex;
@@ -239,8 +239,8 @@ export abstract class Parser<Context = any> {
         ${cond(
           options.nonTerminals.has,
           `
-            function u_trace(rule, exec) {
-              var ${traceAt} = u_at(options.from);
+            function $trace(rule, exec) {
+              var ${traceAt} = $at(options.from);
               options.tracer({
                 type: "${TraceEventType.Enter}",
                 rule,
@@ -258,8 +258,8 @@ export abstract class Parser<Context = any> {
                   type: "${TraceEventType.Match}",
                   rule,
                   at: ${traceAt},
-                  from: u_at(options.from),
-                  to: u_at(options.to),
+                  from: $at(options.from),
+                  to: $at(options.to),
                   children: ${traceChildren}
                 });
               return ${traceChildren};
@@ -273,8 +273,8 @@ export abstract class Parser<Context = any> {
             : `
               var ${Object.values(options.actions.has).join(",")};
               ${hook}.push({
-                $from: () => u_at(options.from),
-                $to: () => u_at(options.to),
+                $from: () => $at(options.from),
+                $to: () => $at(options.to),
                 $children: () => ${options.actions.has.children},
                 $value: () => ${
                   options.actions.has.children
@@ -285,8 +285,8 @@ export abstract class Parser<Context = any> {
                 $warn(message) {
                   options.log &&
                     options.warnings.push({
-                      from: u_at(options.from),
-                      to: u_at(options.to),
+                      from: $at(options.from),
+                      to: $at(options.to),
                       type: "${WarningType.Message}",
                       message
                     });
@@ -359,8 +359,8 @@ export abstract class Parser<Context = any> {
         }
         return {
           success: true,
-          from: u_at(options.from),
-          to: u_at(options.to),
+          from: $at(options.from),
+          to: $at(options.to),
           children: ${options.children},
           warnings: options.warnings,
           failures: options.failures
@@ -398,7 +398,7 @@ export class LiteralParser extends Parser {
       literal: this.literal
     });
     return `
-      if(options.skip && !u_skip())
+      if(options.skip && !$skip())
         ${options.children} = null;
       else {
         options.to = options.from + ${this.literal.length};
@@ -444,7 +444,7 @@ export class RegexParser extends Parser {
       this.hasCaptures &&
       (options.captures.has || (options.captures.has = options.id.generate()));
     return `
-      if(options.skip && !u_skip())
+      if(options.skip && !$skip())
         ${options.children} = null;
       else {
         var ${usedRegex} = options.ignoreCase ? ${regexNocase} : ${regex};
@@ -471,7 +471,7 @@ export class EndOfInputParser extends Parser {
       type: ExpectationType.EndOfInput
     });
     return `
-      if(options.skip && !u_skip())
+      if(options.skip && !$skip())
         ${options.children} = null;
       else {
         if(options.from === input.length) {
@@ -509,7 +509,7 @@ export class TokenParser extends Parser {
       });
     const code = this.parser.generate(options);
     return `
-      if(options.skip && !u_skip())
+      if(options.skip && !$skip())
         ${options.children} = null;
       else {
         var ${skip} = options.skip;
@@ -548,7 +548,7 @@ export class BackReferenceParser extends Parser {
     const captures =
       options.captures.has || (options.captures.has = options.id.generate());
     return `
-      if(options.skip && !u_skip())
+      if(options.skip && !$skip())
         ${options.children} = null;
       else {
         var ${reference} = ${captures}["${this.name}"];
@@ -840,7 +840,7 @@ export class NonTerminalParser extends Parser {
         )
         .join("\n")}
       if(options.trace) {
-        ${options.children} = u_trace("${this.rule}", function() {
+        ${options.children} = $trace("${this.rule}", function() {
           return (${call});
         })
       } else {
