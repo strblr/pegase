@@ -144,7 +144,6 @@ export abstract class Parser<Context = any> {
         
         const options = {
           from: 0,
-          to: 0,
           complete: true,
           skipper: ${defSkipper},
           skip: true,
@@ -153,6 +152,7 @@ export abstract class Parser<Context = any> {
           trace: false,
           log: true,
           context: undefined,
+          to: 0,
           warnings: [],
           failures: [],
           ffIndex: 0,
@@ -280,8 +280,8 @@ export abstract class Parser<Context = any> {
                   options.actions.has.children
                 }.length !== 1 ? void 0 : ${options.actions.has.children}[0],
                 $raw: () => input.substring(options.from, options.to),
-                $options: () => options,
                 $context: () => options.context,
+                $options: () => options,
                 $warn(message) {
                   options.log &&
                     options.warnings.push({

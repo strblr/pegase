@@ -1,4 +1,4 @@
-import { Expectation, ExpectationType, Location } from "../index.js";
+import { Expectation, ExpectationType, Location, Options } from "../index.js";
 
 // Hooks
 
@@ -9,6 +9,7 @@ export interface Hooks {
   $value(): any;
   $raw(): string;
   $context(): any;
+  $options(): Options & Record<string, unknown>;
   $warn(message: string): void;
   $fail(message: string): void;
   $expected(expected: ExpectationInput[]): void;
@@ -29,6 +30,7 @@ export const $children = hook("$children");
 export const $value = hook("$value");
 export const $raw = hook("$raw");
 export const $context = hook("$context");
+export const $options = hook("$options");
 export const $warn = hook("$warn");
 export const $fail = hook("$fail");
 export const $expected = hook("$expected");
