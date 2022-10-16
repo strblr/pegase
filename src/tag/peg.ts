@@ -8,6 +8,10 @@ import {
   pegSkipper
 } from "../index.js";
 
+/**
+ * Type definitions
+ */
+
 export interface TagOptions {
   metaparser: Parser<MetaContext>;
   trace: boolean;
@@ -34,7 +38,10 @@ export type Any =
   | object
   | ((...args: any[]) => any); // no "implicit any" error
 
-// createTag
+/**
+ * Creates a new template literal tag to parse grammars
+ * @param options
+ */
 
 export function createTag(options?: Partial<TagOptions>) {
   const opts: TagOptions = {
