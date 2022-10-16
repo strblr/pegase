@@ -435,14 +435,15 @@ export class LiteralParser extends Parser {
 
 export class RegexParser extends Parser {
   readonly regex: RegExp;
-  private readonly singleChar: boolean;
-  private readonly hasCaptures: boolean;
+  private readonly hasGroups: boolean;
+  private readonly hasNamedGroups: boolean;
 
-  constructor(regex: RegExp, singleChar = false) {
+  constructor(regex: RegExp) {
     super();
     this.regex = regex;
-    this.singleChar = singleChar;
-    this.hasCaptures = !singleChar && /\(\?</.test(this.regex.source);
+    this.hasGroups = /(?<!\\)\((?!\?:)/.test(this.regex.source);
+    this.hasNamedGroups =
+      this.hasGroups && /(?<!\\)\(\?<(?![=!])/.test(this.regex.source);
   }
 
   generate(options: CompileOptions): string {
@@ -455,7 +456,7 @@ export class RegexParser extends Parser {
     const usedRegex = options.id.generate();
     const result = options.id.generate();
     const captures =
-      this.hasCaptures &&
+      this.hasNamedGroups &&
       (options.captures.has || (options.captures.has = options.id.generate()));
     return `
       if(options.skip && !$skip())
@@ -464,10 +465,10 @@ export class RegexParser extends Parser {
         var ${usedRegex} = options.ignoreCase ? ${regexNocase} : ${regex};
         ${usedRegex}.lastIndex = options.from;
         ${cond(
-          this.singleChar,
+          !this.hasGroups,
           `
             if(${usedRegex}.test(input)) {
-              options.to = options.from + 1;
+              options.to = ${usedRegex}.lastIndex;
               ${options.children} = [];
             }
           `,

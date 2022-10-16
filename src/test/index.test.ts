@@ -16,10 +16,11 @@ import peg, {
   RegexParser,
   SuccessResult
 } from "../index.js";
+import { format } from "prettier";
 
-/*function echoBuild(p: Parser) {
-  console.log(format((p.parse as any).code, { parser: "babel" }));
-}*/
+function echoBuild(p: any) {
+  console.log(format(p.parse.code, { parser: "babel" }));
+}
 
 test("The peg tag should work with raw strings", () => {
   const g1 = peg` "My name is \"pegase\"." `;

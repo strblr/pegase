@@ -323,11 +323,11 @@ export function createMetaparser(): Parser<MetaContext> {
         ),
         new ActionParser(
           new NonTerminalParser("characterClass"),
-          () => new RegexParser($children()[0], true)
+          () => new RegexParser($children()[0])
         ),
         new ActionParser(
           new NonTerminalParser("escapedMeta"),
-          () => new RegexParser($children()[0], true)
+          () => new RegexParser($children()[0])
         ),
         new ActionParser(
           new NonTerminalParser("regexLiteral"),
