@@ -13,6 +13,7 @@ import {
   noop,
   Range,
   RegexExpectation,
+  SemanticAction,
   TokenExpectation,
   TraceEventType,
   Tracer,
@@ -956,8 +957,6 @@ export class CustomParser extends Parser {
 }
 
 // ActionParser
-
-export type SemanticAction = (captures: Record<string, any>) => any;
 
 export class ActionParser extends Parser {
   readonly parser: Parser;

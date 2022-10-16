@@ -1,5 +1,9 @@
 import { CompileOptions } from "../index.js";
 
+export type SemanticAction = (captures: Record<string, any>) => any;
+
+export const defaultSkipper = /\s*/y;
+
 export function uncompiledParse(): never {
   throw new Error("parse method cannot be called on uncompiled parsers");
 }
@@ -12,20 +16,5 @@ export function noop(options: CompileOptions) {
   return `
     options.to = options.from;
     ${options.children} = [];
-  `;
-}
-
-export function wrap(
-  code: string,
-  target: string,
-  value: string,
-  options: CompileOptions
-) {
-  const saved = options.id.generate();
-  return `
-    var ${saved} = ${target};
-    ${target} = ${value};
-    ${code}
-    ${target} = ${saved};
   `;
 }

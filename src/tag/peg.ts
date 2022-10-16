@@ -3,13 +3,24 @@ import {
   defaultExtension,
   Extension,
   log,
+  MetaContext,
   Parser,
   pegSkipper
 } from "../index.js";
 
 export interface TagOptions {
+  metaparser: Parser<MetaContext>;
   trace: boolean;
   extensions: Extension[];
+}
+
+export interface Tag {
+  <Context>(
+    chunks: TemplateStringsArray | string,
+    ...args: Any[]
+  ): Parser<Context>;
+  trace: Tag;
+  extend(extensions: Extension | Extension[]): Tag;
 }
 
 export type Any =
@@ -26,18 +37,17 @@ export type Any =
 // createTag
 
 export function createTag(options?: Partial<TagOptions>) {
-  const metaparser = createMetaparser();
   const opts: TagOptions = {
-    trace: false,
-    extensions: [defaultExtension],
-    ...options
+    metaparser: options?.metaparser ?? createMetaparser(),
+    trace: options?.trace ?? false,
+    extensions: options?.extensions ?? [defaultExtension]
   };
 
   function peg<Context = any>(
     chunks: TemplateStringsArray | string,
     ...args: Any[]
   ): Parser<Context> {
-    const result = metaparser.parse(
+    const result = opts.metaparser.parse(
       typeof chunks === "string"
         ? chunks
         : chunks.raw.reduce(
@@ -55,5 +65,21 @@ export function createTag(options?: Partial<TagOptions>) {
     return result.children[0].compile();
   }
 
-  return peg;
+  const trace = (): Tag["trace"] => createTag({ ...opts, trace: true });
+
+  const extend: Tag["extend"] = extensions =>
+    createTag({
+      ...opts,
+      extensions: [
+        ...opts.extensions,
+        ...(Array.isArray(extensions) ? extensions : [extensions])
+      ]
+    });
+
+  Object.defineProperties(peg, {
+    trace: { get: trace },
+    extend: { value: extend }
+  });
+
+  return peg as Tag;
 }

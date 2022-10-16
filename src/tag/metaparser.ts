@@ -25,7 +25,8 @@ import {
   resolveDirective,
   SequenceParser,
   spaceCase,
-  TokenParser
+  TokenParser,
+  unresolvedDirectiveFail
 } from "../index.js";
 
 export interface MetaContext {
@@ -34,12 +35,6 @@ export interface MetaContext {
 }
 
 export function createMetaparser(): Parser<MetaContext> {
-  const unresolvedDirectiveFail = (directive: string) => {
-    $fail(
-      `Couldn't resolve directive "${directive}", you can add support for it via peg.extend`
-    );
-  };
-
   return new GrammarParser([
     [
       "parser",

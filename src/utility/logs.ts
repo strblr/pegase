@@ -1,4 +1,4 @@
-import { Location, Range, unique } from "../index.js";
+import { Location, Range } from "../index.js";
 
 // Warning
 
@@ -200,4 +200,13 @@ export function codeFrame(
     }
   }
   return acc;
+}
+
+/**
+ * Creates a duplicate-free version of an iterable
+ * @param items
+ */
+
+export function unique<T>(items: Iterable<T>) {
+  return [...new Set(items)];
 }
