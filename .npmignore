@@ -1,5 +1,4 @@
-node_modules
+**/node_modules
+**/dist/test
+**/src
 .idea
-doc
-src
-lib/test
