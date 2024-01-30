@@ -1,16 +1,13 @@
 {
   "compilerOptions": {
-    "strict": true,
     "target": "ES6",
     "module": "ES6",
     "moduleResolution": "Node",
     "declaration": true,
-    "removeComments": true,
-    "lib": ["ESNext", "DOM"],
-    "baseUrl": "./",
-    "paths": {
-      "pegase": ["./packages/pegase"],
-      "@pegase/*": ["./packages/*/"]
-    }
-  }
+    "outDir": "./dist",
+    "strict": true,
+    "lib": ["ESNext", "DOM"]
+  },
+  "include": ["src"],
+  "exclude": ["node_modules"]
 }

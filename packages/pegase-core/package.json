@@ -1,9 +1,9 @@
 {
-  "name": "@pegase/trace",
+  "name": "@pegase/core",
   "version": "0.7.0",
   "author": "strblr",
   "license": "MIT",
-  "description": "A Pegase extension for advanced parse tracing",
+  "description": "A fast, inline, powerful and lightweight PEG parser generator for JavaScript and TypeScript",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/strblr/pegase.git"
@@ -38,9 +38,8 @@
     "build": "tsc"
   },
   "devDependencies": {
-    "typescript": "^4.8.4"
-  },
-  "peerDependencies": {
-    "pegase": "^0.7.0"
+    "@types/prettier": "^2.7.2",
+    "prettier": "^2.8.4",
+    "typescript": "^4.9.5"
   }
 }
