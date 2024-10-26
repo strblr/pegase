@@ -15,7 +15,7 @@ import peg, {
   log,
   RegexParser,
   SuccessResult
-} from "../index.js";
+} from "../index";
 import { format } from "prettier";
 
 function echoBuild(p: any) {

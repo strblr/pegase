@@ -1,4 +1,5 @@
 {
+  "include": ["src"],
   "compilerOptions": {
     "strict": true,
     "target": "ES6",
@@ -7,10 +8,6 @@
     "declaration": true,
     "removeComments": true,
     "lib": ["ESNext", "DOM"],
-    "baseUrl": "./",
-    "paths": {
-      "pegase": ["./packages/pegase"],
-      "@pegase/*": ["./packages/*/"]
-    }
+    "outDir": "./dist"
   }
 }

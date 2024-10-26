@@ -1,18 +1,48 @@
 {
-  "name": "pegase-repo",
-  "private": true,
+  "name": "pegase",
+  "version": "0.8.0",
   "author": "strblr",
   "license": "MIT",
-  "workspaces": [
-    "packages/*"
+  "description": "A fast, inline, powerful and lightweight PEG parser generator for JavaScript and TypeScript",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/strblr/pegase.git"
+  },
+  "homepage": "https://strblr.github.io/pegase/",
+  "bugs": {
+    "url": "https://github.com/strblr/pegase/issues"
+  },
+  "keywords": [
+    "parser",
+    "parsing",
+    "peg",
+    "parse",
+    "syntax",
+    "grammar",
+    "rule",
+    "tree",
+    "template",
+    "literal",
+    "semantic",
+    "expression",
+    "ast",
+    "visitor",
+    "semantic",
+    "recovery",
+    "regexp"
   ],
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "build": "yarn workspaces run build",
+    "build": "tsc",
     "test": "vitest run"
   },
   "devDependencies": {
-    "prettier": "^2.7.1",
-    "vitest": "^0.24.0"
+    "@types/prettier": "^3.0.0",
+    "prettier": "^3.2.4",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.2"
   },
   "prettier": {
     "trailingComma": "none",
